@@ -1,0 +1,34 @@
+name: Report-API CD GCP
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "report-api/**"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deploy To"
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+          - sandbox
+          - prod
+
+jobs:
+  report-api-cd:
+    permissions:
+      id-token: write
+      contents: write
+
+    uses: bcgov/bcregistry-sre/.github/workflows/cloud-run-service-cd.yaml@main
+    with:
+      target: ${{ github.event.inputs.target }}  # Corrected the input reference
+      app_name: "report-api"
+      working_directory: "./report-api"
+    secrets:
+      WORKLOAD_IDENTIFY_POOLS_PROVIDER: ${{ secrets.WORKLOAD_IDENTIFY_POOLS_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
