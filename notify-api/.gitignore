@@ -24,7 +24,6 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-.history
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -46,7 +45,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
-*.postman_environment.json
+coverage/
 
 # Translations
 *.mo
@@ -103,7 +102,6 @@ venv.bak/
 /**/.temp
 
 # node
-/**/package-lock.json
 /**/node_modules
 
 # OS specific
@@ -115,6 +113,13 @@ venv.bak/
 */*/.idea/*
 /**/.idea/*
 .idea/*
+*.iml
 
 # Misc backups
 *.bak
+
+# History
+.history/
+
+# Notebooks
+tests/**/*setup*.ipynb
