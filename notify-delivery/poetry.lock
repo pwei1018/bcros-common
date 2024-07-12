@@ -1235,7 +1235,7 @@ structured-logging = {git = "https://github.com/bcgov/sbc-connect-common.git", b
 type = "git"
 url = "https://github.com/bcgov/bcregistry-sre.git"
 reference = "main"
-resolved_reference = "94363c80e43eeb8449462bdc2b26eadaf25db0f1"
+resolved_reference = "9a9b769007fff1b6bd6d39a2fd9110957860c2f5"
 subdirectory = "notify-api"
 
 [[package]]
