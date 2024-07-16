@@ -32,4 +32,4 @@ def resend(t):
     """Resend notification endpoint."""
     notify.queue_republish()
 
-    return "", HTTPStatus.OK
+    return {}, HTTPStatus.OK

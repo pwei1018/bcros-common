@@ -1,0 +1,78 @@
+# Copyright 2022 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: deploy.cloud.google.com/v1
+kind: DeliveryPipeline
+metadata:
+ name: notify-api-pipeline
+description: Deployment pipeline
+serialPipeline:
+ stages:
+ - targetId: c4hnrd-dev
+   profiles: [dev]
+   strategy:
+    standard:
+      verify: false
+   deployParameters:
+   - values:
+      deploy-env: "development"
+      deploy-project-id: "c4hnrd-dev"
+      service-name: "notify-api-dev"
+      container-name: "notify-api-dev"
+      cloudsql-instances: "c4hnrd-dev:northamerica-northeast1:notify-db-dev"
+      service-account: "sa-api@c4hnrd-dev.iam.gserviceaccount.com"
+ - targetId: c4hnrd-test
+   profiles: [test]
+   strategy:
+    standard:
+      verify: false
+   deployParameters:
+   - values:
+      deploy-env: "test"
+      deploy-project-id: "c4hnrd-test"
+      service-name: "notify-api-test"
+      container-name: "notify-api-test"
+      app-env: "test"
+      cloudsql-instances: "c4hnrd-test:northamerica-northeast1:notify-db-test"
+      service-account: "sa-api@c4hnrd-test.iam.gserviceaccount.com"
+ - targetId: c4hnrd-sandbox
+   profiles: [sandbox]
+   strategy:
+    standard:
+      verify: false
+   deployParameters:
+   - values:
+      deploy-env: "sandbox"
+      deploy-project-id: "c4hnrd-sandbox"
+      service-name: "notify-api-sandbox"
+      container-name: "notify-api-sandbox"
+      app-env: "sandbox"
+      cloudsql-instances: "c4hnrd-sandbox:northamerica-northeast1:notify-db-sandbox"
+      service-account: "sa-api@c4hnrd-sandbox.iam.gserviceaccount.com"
+ - targetId: c4hnrd-prod
+   profiles: [prod]
+   strategy:
+    standard:
+      verify: false
+   deployParameters:
+   - values:
+      deploy-env: "production"
+      deploy-project-id: "c4hnrd-prod"
+      service-name: "notify-api-prod"
+      container-name: "notify-api-prod"
+      app-env: "production"
+      cloudsql-instances: "c4hnrd-prod:northamerica-northeast1:notify-db-prod"
+      service-account: "sa-api@c4hnrd-prod.iam.gserviceaccount.com"
+      max-scale: "10"
+      container-concurrency: "20"
