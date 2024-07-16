@@ -1204,7 +1204,7 @@ requests = ">=2.0.0"
 
 [[package]]
 name = "notify-api"
-version = "3.0.1"
+version = "3.1.0"
 description = ""
 optional = false
 python-versions = "^3.12"
@@ -1233,9 +1233,9 @@ structured-logging = {git = "https://github.com/bcgov/sbc-connect-common.git", b
 
 [package.source]
 type = "git"
-url = "https://github.com/bcgov/bcregistry-sre.git"
+url = "https://github.com/bcgov/bcros-common.git"
 reference = "main"
-resolved_reference = "1917a22ee532882ec34821e785775f5dad38a1af"
+resolved_reference = "410a7fc39198b181cceaaa9b404edc9fb1813503"
 subdirectory = "notify-api"
 
 [[package]]
@@ -2168,4 +2168,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "7591fd26bf7134d0acda68b7efdc2ff89fdfa8770424e8e59e498c157b1d33c0"
+content-hash = "e41675c46fcf896afd8b2d62bfe5208c0ee27d33ea6cc8b4e7eac4145862f5a0"
