@@ -28,7 +28,7 @@ bp = Blueprint("RESEND", __name__, url_prefix="/resend")
 @jwt.requires_auth
 @jwt.has_one_of_roles([Role.SYSTEM.value, Role.PUBLIC_USER.value, Role.STAFF.value])
 @validate()
-def resend(t):
+def resend():
     """Resend notification endpoint."""
     notify.queue_republish()
 
