@@ -1,4 +1,4 @@
-import { DialogButtonI } from './dialog-button'
+import type { DialogButtonI } from './dialog-button'
 
 export interface DialogOptionsI {
   buttons: DialogButtonI[]

@@ -1,6 +1,6 @@
-import { AccountTypeE } from '@/enums/account-type-e'
-import { AccountStatusE } from '@/enums/account-status-e'
-import { UserSettingsTypeE } from '@/enums/user-settings-type-e'
+import type { AccountTypeE } from '@/enums/account-type-e'
+import type { AccountStatusE } from '@/enums/account-status-e'
+import type { UserSettingsTypeE } from '@/enums/user-settings-type-e'
 
 export interface AccountI {
   id: number

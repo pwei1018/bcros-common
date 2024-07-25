@@ -1,5 +1,5 @@
 // following docs: https://nuxt.com/docs/guide/recipes/custom-usefetch
-export function useBcrosFetch<T>(url: string, options: any) {
+export function useBcrosFetch<T>(url: string, options: object) {
   return useFetch<T>(url, {
     ...options,
     watch: false,

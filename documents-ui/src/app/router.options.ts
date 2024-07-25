@@ -1,5 +1,4 @@
 import type { RouterConfig } from '@nuxt/schema'
-// @ts-ignore
 import DocumentsDashboard from '~/pages/DocumentsDashboard.vue'
 import { RouteNameE } from '~/enums/route-name-e'
 

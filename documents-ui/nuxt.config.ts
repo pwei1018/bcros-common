@@ -27,7 +27,13 @@ export default defineNuxtConfig({
   imports: {
     dirs: ['enums', 'interfaces', 'stores']
   },
-  modules: ['@nuxt/ui', '@nuxtjs/i18n', '@pinia/nuxt', '@nuxtjs/tailwindcss'],
+  modules: [
+    '@nuxt/ui',
+    '@nuxtjs/i18n',
+    '@pinia/nuxt',
+    '@nuxtjs/tailwindcss',
+    "@nuxt/eslint"
+  ],
   typescript: {
     tsConfig: {
       compilerOptions: {

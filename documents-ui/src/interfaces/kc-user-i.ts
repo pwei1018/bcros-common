@@ -1,4 +1,4 @@
-import { LoginSourceE } from '~/enums/login-source-e'
+import type { LoginSourceE } from '~/enums/login-source-e'
 
 export interface KCUserI {
   firstName: string

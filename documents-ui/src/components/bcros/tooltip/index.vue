@@ -17,7 +17,7 @@
 <script setup lang="ts">
 defineProps<{
   text?: string
-  popper: Object
+  popper: object
 }>()
 
 const tooltipRef = ref()
