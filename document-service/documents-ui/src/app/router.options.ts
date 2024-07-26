@@ -1,5 +1,4 @@
 import type { RouterConfig } from '@nuxt/schema'
-import DocumentsDashboard from '~/pages/DocumentsDashboard.vue'
 import { RouteNameE } from '~/enums/route-name-e'
 
 export default <RouterConfig> {
@@ -9,7 +8,7 @@ export default <RouterConfig> {
     {
       name: RouteNameE.DOCUMENTS_DASHBOARD,
       path: '/',
-      component: DocumentsDashboard,
+      component: () => import('~/pages/DocumentsDashboard.vue').then(r => r.default || r),
       meta: {
         layout: 'default',
         title: 'Documents UI',

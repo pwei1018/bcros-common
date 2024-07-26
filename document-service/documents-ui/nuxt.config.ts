@@ -24,6 +24,9 @@ export default defineNuxtConfig({
     icons: ['mdi']
   },
   ssr: false,
+  extends: [
+    ['github:bcgov/business-dashboard-ui#v0.0.1', { install: true }]
+  ],
   imports: {
     dirs: ['enums', 'interfaces', 'stores']
   },
@@ -37,6 +40,8 @@ export default defineNuxtConfig({
   typescript: {
     tsConfig: {
       compilerOptions: {
+        module: "esnext",
+        dynamicImport: true,
         noImplicitAny: false,
         strictNullChecks: false,
         strict: true
