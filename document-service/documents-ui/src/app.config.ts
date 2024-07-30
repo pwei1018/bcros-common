@@ -2,4 +2,34 @@
 // Default Nuxt/UI layer configuration
 // └── Extended layer's app.configs override/extend default configs
 //     └── This app.config further customizes/extends the extended layer's configurations
-export default defineAppConfig({})
+export default defineAppConfig({
+  ui: {
+    formGroup: {
+      label: {
+        base: 'text-gray-900 text-[16px] font-bold',
+        required: "text-red-600",
+      },
+      disabled: 'text-red-600',
+      description: 'text-gray-700 mt-1',
+      help: 'text-gray-700 text-xs pl-[15px]'
+    },
+    input: {
+      base: 'relative text-gray-900 border-0 border-b-[1px] border-gray-500 ring-0 focus:ring-0 ' +
+        'disabled:cursor-not-allowed disabled:opacity-45'
+    },
+    select: {
+      base: 'bg-white border-b-[1px] border-gray-500 ring-0 focus:border-b-2 focus:ring-0 disabled:cursor-not-allowed' +
+        ' disabled:opacity-45',
+    },
+    checkbox: {
+      base: 'h-4 w-4 cursor-pointer border-gray-500',
+      border: 'border border-gray-900 dark:border-gray-900',
+      label: 'cursor-pointer',
+    },
+    selectMenu: {
+      option: {
+        base: 'cursor-pointer',
+      },
+    }
+  }
+})

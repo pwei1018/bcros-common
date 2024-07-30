@@ -1,15 +1,17 @@
-// export function getBcrosHomeCrumb (): BreadcrumbI {
-//   const t = useNuxtApp().$i18n.t
-//   return {
-//     text: ref(t('breadcrumb.accountDashboard')),
-//     href: useRuntimeConfig().public.registryHomeURL + 'dashboard'
-//   }
-// }
+import { RouteNameE } from '~/enums/route-name-e'
 
-export function getDocumentsDashboardCrumb (): BreadcrumbI {
+export function getDocumentManagementCrumb (): BreadcrumbI {
   const t = useNuxtApp().$i18n.t
   return {
-    text: ref(t('breadcrumb.documentsDashboard')),
-    href: ``
+    text: ref(t('breadcrumb.documentManagement')),
+    to: { name: RouteNameE.DOCUMENT_MANAGEMENT},
+  }
+}
+
+export function getDocumentIndexingCrumb (): BreadcrumbI {
+  const t = useNuxtApp().$i18n.t
+  return {
+    text: ref(t('breadcrumb.documentIndexing')),
+    to: { name: RouteNameE.DOCUMENT_INDEXING},
   }
 }
