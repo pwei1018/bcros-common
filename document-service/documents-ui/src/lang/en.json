@@ -1,5 +1,39 @@
 {
   "breadcrumb": {
-    "documentsDashboard": "Documents Dashboard"
+    "documentManagement": "Document Management",
+    "documentIndexing": "Document Indexing"
+  },
+  "title": {
+    "documentManagement": "Document Management",
+    "documentIndexing": "Document Indexing"
+  },
+  "descriptions": {
+    "documentManagement": "Upload registrations through our document indexing service or complete a document search.",
+    "documentIndexing": "Index your documents using our document indexing service for easy access and search."
+  },
+  "button": {
+    "documentIndexing": "Document Indexing"
+  },
+  "documentIndexing": {
+    "label": "Document Indexing Information",
+    "form": {
+      "id": {
+        "label": "Entity ID",
+        "description": "Enter the entity ID of this document filing. The entity ID must be entered if there is one.",
+        "help": "Example: MH107403, BC1234567, CP1234567"
+      },
+      "checkbox": {
+        "label": "I do not have an Entity ID"
+      },
+      "selectMenu": {
+        "label": "Document Information",
+        "categoryLabel": "Document Category",
+        "typeLabel": "Document Type"
+      },
+      "dateSelect": {
+        "label": "Filing Date",
+        "description": "Enter date of filling or the registration date which was entered into BC Registries."
+      }
+    }
   }
 }

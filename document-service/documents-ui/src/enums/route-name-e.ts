@@ -1,3 +1,4 @@
 export enum RouteNameE {
-  DOCUMENTS_DASHBOARD = 'documents-dashboard'
+  DOCUMENT_MANAGEMENT = 'document-management',
+  DOCUMENT_INDEXING = 'document-indexing'
 }
