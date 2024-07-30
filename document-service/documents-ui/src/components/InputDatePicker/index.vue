@@ -9,7 +9,7 @@
     />
 
     <template #panel="{ close }">
-      <DatePicker v-model="date" isRequired @close="close"/>
+      <DatePicker v-model="date" is-required @close="close"/>
     </template>
   </UPopover>
 </template>

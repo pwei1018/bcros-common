@@ -65,7 +65,10 @@
           :label="$t('documentIndexing.form.dateSelect.label')"
           :description="$t('documentIndexing.form.dateSelect.description')"
         >
-          <InputDatePicker class="mt-3" v-model="filingDate" />
+          <InputDatePicker
+            v-model="filingDate"
+            class="mt-3"
+          />
         </UFormGroup>
 
       </div>
