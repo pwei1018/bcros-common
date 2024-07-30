@@ -6,9 +6,7 @@
       type="text"
       icon="i-mdi-calendar"
       :trailing="true"
-    >
-
-    </UInput>
+    />
 
     <template #panel="{ close }">
       <DatePicker v-model="date" isRequired @close="close"/>
