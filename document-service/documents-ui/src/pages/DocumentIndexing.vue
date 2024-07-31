@@ -16,6 +16,12 @@
           <DocumentIndexingForm class="mt-7" />
         </template>
       </BcrosSection>
+
+      <BcrosSection name="documentUpload">
+        <template #default>
+          <DocumentUpload class="mt-7" />
+        </template>
+      </BcrosSection>
     </div>
 
     <div class="col-span-2 pl-6">

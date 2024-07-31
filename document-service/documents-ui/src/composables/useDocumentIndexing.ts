@@ -5,6 +5,7 @@ export const useDocumentIndexing = () => {
   const documentCategory = ref('')
   const documentType = ref('')
   const filingDate = ref('')
+  const documents = ref([])
 
   // Return the refs and any computed values or methods
   return {
@@ -12,6 +13,7 @@ export const useDocumentIndexing = () => {
     noIdCheckbox,
     documentCategory,
     documentType,
-    filingDate
+    filingDate,
+    documents
   }
 }
