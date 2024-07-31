@@ -15,7 +15,7 @@ export default defineAppConfig({
     },
     input: {
       base: 'relative text-gray-900 border-0 border-b-[1px] border-gray-500 ring-0 focus:ring-0 ' +
-        'disabled:cursor-not-allowed disabled:opacity-45'
+        'disabled:opacity-45 placeholder-display-[none]',
     },
     select: {
       base: 'bg-white border-b-[1px] border-gray-500 ring-0 focus:border-b-2 focus:ring-0 disabled:cursor-not-allowed' +
