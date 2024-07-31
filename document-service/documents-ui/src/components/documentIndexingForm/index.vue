@@ -126,5 +126,9 @@ watch(() => entityId.value, (id: string) => {
   if (id.length >= 1) findCategoryByPrefix(id)
 })
 
+/** Reset Entity Identifier when No Id Checkbox is selected **/
+watch(() => noIdCheckbox.value, (hasNoId: boolean) => {
+  if (hasNoId) entityId.value = ''
+})
 
 </script>

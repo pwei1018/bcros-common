@@ -41,7 +41,7 @@
     "description": "Upload one or more documents (Optional)",
     "placeholder": "Select Documents (Optional)",
     "help": "File must be a PDF. Maximum 50 MB.",
-    "fileSizeError": "File size exceeds 50 MB",
-    "fileTypeError": "File type must be PDF"
+    "fileSizeError": "Documents exceeds maximum 50 MB file size",
+    "fileTypeError": "Documents must be of PDF file type"
   }
 }

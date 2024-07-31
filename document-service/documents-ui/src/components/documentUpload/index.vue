@@ -6,6 +6,7 @@
 
     <template #form>
       <UFormGroup
+        :ui="{ help: 'ml-9', error: 'ml-9' }"
         :description="$t('documentUpload.description')"
         :help="$t('documentUpload.help')"
         :error="fileError"
@@ -19,12 +20,14 @@
             content="text-gray-700"
             :placeholder="$t('documentUpload.placeholder')"
             type="file"
+            multiple
             @change="uploadFile"
           />
         </div>
       </UFormGroup>
 
-      <section class="mt-6 ml-1">
+      <section v-if="documents.length" class="mt-6 ml-1">
+        <h4 class="text-gray-700 font-bold text-[14px]">Documents:</h4>
         <div
           v-for="(supportingDocument, index) in documents"
           :key="supportingDocument.name"
@@ -55,23 +58,42 @@ const t = useNuxtApp().$i18n.t
 
 const fileError = ref(null)
 
-const uploadFile = (file: FileList) => {
-  if (!file.length) return
-  const extension = file[0].name.substring(file[0].name.length - 3)
+/**
+ * Uploads valid PDF files to the documents array.
+ * @param {FileList} files - The list of files to be uploaded.
+ */
+const uploadFile = (files: FileList) => {
   const validType = ['pdf']
-  const fileSize = file[0].size / 1024 / 1024 // in MiB
-  const validFileType = validType.includes(extension)
-  const validFileSize = fileSize <= 50
-  if (!validFileSize) {
-    fileError.value = t('documentUpload.fileSizeError')
-  } else if (!validFileType) {
-    fileError.value = t('documentUpload.fileTypeError')
-  } else {
+  const maxFileSizeMiB = 50
+
+  // Convert FileList to Array
+  const allFiles = Array.from(files)
+
+  // Validate each file
+  const invalidFile = allFiles.find(file => {
+    const extension = file.name.slice(-3).toLowerCase()
+    const fileSize = file.size / 1024 / 1024 // in MiB
+    const validFileType = validType.includes(extension)
+    const validFileSize = fileSize <= maxFileSizeMiB
+
+    if (!validFileSize) {
+      fileError.value = t('documentUpload.fileSizeError')
+      return true
+    } else if (!validFileType) {
+      fileError.value = t('documentUpload.fileTypeError')
+      return true
+    }
+    return false
+  })
+
+  // If all files are valid, add them to the documents array
+  if (!invalidFile) {
     fileError.value = null
-    documents.value.push(file[0])
+    documents.value.push(...allFiles)
   }
 }
 
+/** Remove a file from the documents array. */
 const removeFile = (index: number) => {
   documents.value.splice(index, 1)
 }

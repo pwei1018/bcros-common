@@ -11,7 +11,8 @@ export default defineAppConfig({
       },
       disabled: 'text-red-600',
       description: 'text-gray-700 mt-1',
-      help: 'text-gray-700 text-xs pl-[15px]'
+      help: 'text-gray-700 text-xs pl-[15px]',
+      error: 'pl-[15px] text-xs',
     },
     input: {
       base: 'relative text-gray-900 border-0 border-b-[1px] border-gray-500 ring-0 focus:ring-0 ' +
