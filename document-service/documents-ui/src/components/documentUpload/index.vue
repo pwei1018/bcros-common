@@ -1,61 +1,13 @@
-<template>
-  <FormWrapper name="'document-upload'">
-    <template #label>
-      <h3>Upload Documents</h3>
-    </template>
-
-    <template #form>
-      <UFormGroup
-        :ui="{ help: 'ml-9', error: 'ml-9' }"
-        :description="$t('documentUpload.description')"
-        :help="$t('documentUpload.help')"
-        :error="fileError"
-      >
-        <div class="flex flex-row">
-          <img class="mr-3" src="~/assets/icons/attach.svg" alt="Paperclip icon">
-          <UInput
-            id="inputFile"
-            accept=".pdf"
-            class="mt-3 text-gray-200 w-full"
-            content="text-gray-700"
-            :placeholder="$t('documentUpload.placeholder')"
-            type="file"
-            multiple
-            @change="uploadFile"
-          />
-        </div>
-      </UFormGroup>
-
-      <section v-if="documents.length" class="mt-6 ml-1">
-        <h4 class="text-gray-700 font-bold text-[14px]">Documents:</h4>
-        <div
-          v-for="(supportingDocument, index) in documents"
-          :key="supportingDocument.name"
-        >
-          <div class="flex flex-row items-center mt-2">
-            <img
-              class="mr-1 h-[18px] w-[18px]"
-              src="~/assets/icons/attach_dark.svg"
-              alt="Attach icon"
-            >
-            <span>{{ supportingDocument.name }}</span>
-            <UIcon
-              name="i-mdi-delete"
-              class="h-[18px] w-[18px] ml-1 cursor-pointer"
-              @click="() => removeFile(index)"
-            />
-          </div>
-        </div>
-      </section>
-
-    </template>
-  </FormWrapper>
-</template>
-
 <script setup lang="ts">
-const { documents } = useDocumentIndexing()
-const t = useNuxtApp().$i18n.t
+defineProps({
+  validate: {
+    type: Boolean,
+    default: false
+  }
+})
 
+const { documentList } = storeToRefs(useBcrosDocuments())
+const t = useNuxtApp().$i18n.t
 const fileError = ref(null)
 
 /**
@@ -89,12 +41,65 @@ const uploadFile = (files: FileList) => {
   // If all files are valid, add them to the documents array
   if (!invalidFile) {
     fileError.value = null
-    documents.value.push(...allFiles)
+    documentList.value.push(...allFiles)
   }
 }
 
 /** Remove a file from the documents array. */
 const removeFile = (index: number) => {
-  documents.value.splice(index, 1)
+  documentList.value.splice(index, 1)
 }
 </script>
+<template>
+  <FormWrapper name="'document-upload'">
+    <template #label>
+      <h3>Upload Documents</h3>
+    </template>
+
+    <template #form>
+      <UFormGroup
+        :ui="{ help: 'ml-9', error: 'ml-9' }"
+        :description="$t('documentUpload.description')"
+        :help="$t('documentUpload.help')"
+        :error="fileError"
+      >
+        <div class="flex flex-row">
+          <img class="mr-3" src="~/assets/icons/attach.svg" alt="Paperclip icon">
+          <UInput
+            id="inputFile"
+            accept=".pdf"
+            class="mt-3 text-gray-200 w-full"
+            content="text-gray-700"
+            :placeholder="$t('documentUpload.placeholder')"
+            type="file"
+            multiple
+            @change="uploadFile"
+          />
+        </div>
+      </UFormGroup>
+
+      <section v-if="documentList.length" class="mt-6 ml-1">
+        <h4 class="text-gray-700 font-bold text-[14px]">Documents:</h4>
+        <div
+          v-for="(supportingDocument, index) in documentList"
+          :key="supportingDocument.name"
+        >
+          <div class="flex flex-row items-center mt-2">
+            <img
+              class="mr-1 h-[18px] w-[18px]"
+              src="~/assets/icons/attach_dark.svg"
+              alt="Attach icon"
+            >
+            <span>{{ supportingDocument.name }}</span>
+            <UIcon
+              name="i-mdi-delete"
+              class="h-[18px] w-[18px] ml-1 cursor-pointer"
+              @click="() => removeFile(index)"
+            />
+          </div>
+        </div>
+      </section>
+
+    </template>
+  </FormWrapper>
+</template>
