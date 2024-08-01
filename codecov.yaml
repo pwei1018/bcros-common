@@ -1,0 +1,63 @@
+codecov:
+  require_ci_to_pass: true
+  branch: main
+  max_report_age: false
+
+coverage:
+  precision: 2
+  round: down
+  range: "80...100"
+  status:
+    patch: false
+    project:
+      default: false
+      backend:
+        target: 80%
+        flags:
+          - notifyapi
+          - notifydelivery
+          - reportapi
+          - statusapi
+
+      ui:
+        target: 80%
+        flags:
+          - documentsui
+
+ignore:
+  - "^/tests/**/*" # ignore test harness code
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: true
+      loop: true
+      method: false
+      macro: false
+
+comment:
+  layout: "diff,flags,tree"
+  behavior: default
+  require_changes: true
+
+flags:
+  notifyapi:
+    paths:
+      - notify-api/src/notify_api
+    carryforward: true
+  notifydelivery:
+    paths:
+      - notify-delivery/src/notify_delivery
+    carryforward: true
+  reportapi:
+    paths:
+      - report-api/src/report_api
+    carryforward: true
+  statusapi:
+    paths:
+      - status-api/src/status_api
+    carryforward: true
+  documentsui:
+    paths:
+      - document-service/documents-ui/src
+    carryforward: true
