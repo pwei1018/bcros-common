@@ -1,0 +1,278 @@
+{
+	"info": {
+		"_postman_id": "ad3149b4-69bb-4f43-8bce-3a8121c8262e",
+		"name": "Doc API Unit Tests",
+		"description": "Requests to demonstrate the Document Services API. The requests use a test consumer API key and account ID.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "10405485"
+	},
+	"item": [
+		{
+			"name": "business",
+			"item": [
+				{
+					"name": "Query By Service ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/business/CORP?documentServiceId=DS0000100003",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"business",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "documentServiceId",
+									"value": "DS0000100003"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Document Id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/business/CORP?consumerDocumentId=0100000003",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"business",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "consumerDocumentId",
+									"value": "0100000003"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Consumer/Entity Id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/business/CORP?consumerIdentifier=UT00004",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"business",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "consumerIdentifier",
+									"value": "UT00004"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query No Results",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/business/CORP?consumerIdentifier=XXX-JUNK",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"business",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "consumerIdentifier",
+									"value": "XXX-JUNK"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upload CORP class all params",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Downloads/BC Registry Code Change.pdf"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/business/CORP/CORP_MISC?consumerIdentifier=BC0812384&consumerFilename=address_change.pdf&consumerFilingDate=2024-07-25&consumerScanDate=2024-05-01&consumerDocumentId=12345678",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"business",
+								"CORP",
+								"CORP_MISC"
+							],
+							"query": [
+								{
+									"key": "consumerIdentifier",
+									"value": "BC0812384"
+								},
+								{
+									"key": "consumerFilename",
+									"value": "address_change.pdf"
+								},
+								{
+									"key": "consumerFilingDate",
+									"value": "2024-07-25"
+								},
+								{
+									"key": "consumerScanDate",
+									"value": "2024-05-01"
+								},
+								{
+									"key": "consumerDocumentId",
+									"value": "12345678"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "value",
+				"value": "{{apikey}}",
+				"type": "string"
+			},
+			{
+				"key": "key",
+				"value": "x-apikey",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "apikey",
+			"value": "PROVIDE"
+		},
+		{
+			"key": "account_id",
+			"value": "PROVIDE"
+		},
+		{
+			"key": "base_url_prism",
+			"value": "http://127.0.0.1:4010/docs"
+		},
+		{
+			"key": "base_url",
+			"value": "bcregistry-dev.apigee.net/doc",
+			"type": "string"
+		},
+		{
+			"key": "base_url_local",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "jwt",
+			"value": "PROVIDE",
+			"type": "string"
+		}
+	]
+}
