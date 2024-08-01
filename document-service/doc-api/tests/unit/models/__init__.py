@@ -17,8 +17,4 @@ import base64
 import uuid
 from datetime import datetime, timezone
 
-# from freezegun import freeze_time
-from sqlalchemy_continuum import versioning_manager
-
 from doc_api.models import db
-# from tests import EPOCH_DATETIME, FROZEN_DATETIME
