@@ -4,12 +4,12 @@ export interface DocumentDetailIF {
   productCode: string
 }
 
-export interface documentClassIF {
+export interface DocumentClassIF {
   class: string
   prefixes: Array<string>
   documents: Array<DocumentDetailIF>
 }
 
 export interface DocumentTypesIF {
-  [key: string]: documentClassIF
+  [key: string]: DocumentClassIF
 }

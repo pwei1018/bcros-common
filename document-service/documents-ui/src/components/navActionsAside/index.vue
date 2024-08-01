@@ -3,6 +3,7 @@ defineProps({
   validationError: { type: Boolean, default: false }
 })
 const emit = defineEmits(['cancel', 'submit'])
+const { documentList } = storeToRefs(useBcrosDocuments())
 </script>
 <template>
   <aside data-cy="nav-actions-aside">
@@ -12,7 +13,7 @@ const emit = defineEmits(['cancel', 'submit'])
       </div>
       <div class="flex flex-row px-4 py-2 bg-white h-[40px] rounded-b">
         <span class="text-gray-900 font-bold text-[14px] basis-full">{{ $t('documentUpload.asideDescription') }}</span>
-        <span class="">-</span>
+        <span>{{ documentList.length || '-' }}</span>
       </div>
     </div>
 
@@ -36,7 +37,7 @@ const emit = defineEmits(['cancel', 'submit'])
     </UButton>
 
     <div v-if="validationError" class="text-center text-red-500 text-[12px] mt-2">
-      <span>Please complete required information</span>
+      <span>{{ $t('documentIndexing.incompleteError') }}</span>
     </div>
   </aside>
 </template>

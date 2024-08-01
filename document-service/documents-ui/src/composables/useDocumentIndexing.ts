@@ -10,7 +10,7 @@ export const useDocumentIndexing = () => {
     validateIndex
   } = storeToRefs(useBcrosDocuments())
 
-  /** Validate and Save Document Indexing */
+  /** Initialize Document Indexing */
   const initDocumentState = () => {
     validateIndex.value = false
     consumerIdentifier.value = ''

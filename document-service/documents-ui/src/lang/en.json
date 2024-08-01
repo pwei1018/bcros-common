@@ -16,6 +16,7 @@
   },
   "documentIndexing": {
     "label": "Document Indexing Information",
+    "incompleteError": 'Please complete required information',
     "form": {
       "id": {
         "label": "Entity ID",
