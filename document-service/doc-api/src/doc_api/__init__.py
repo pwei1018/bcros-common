@@ -19,6 +19,7 @@ import os
 
 from flask import Flask
 from flask_cors import CORS
+from flask_migrate import Migrate
 
 from doc_api import errorhandlers, models
 from doc_api.config import config
@@ -41,7 +42,8 @@ def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
     errorhandlers.init_app(app)
 
     db.init_app(app)
-    logger.info("Logging set up.")
+    Migrate(app, db)
+    logger.info("Logging, migrate set up.")
 
     meta_endpoint.init_app(app)
     ops_endpoint.init_app(app)
