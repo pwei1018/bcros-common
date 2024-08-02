@@ -1,9 +1,6 @@
+<script setup lang="ts"></script>
 <template>
-  <div class="bg-bcGovGray-100">
-    <NuxtLayout>
+    <NuxtLayout class="bg-bcGovGray-100">
       <NuxtPage />
     </NuxtLayout>
-  </div>
 </template>
-<script setup lang="ts">
-</script>

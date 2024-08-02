@@ -1,5 +1,10 @@
+<script setup lang="ts"></script>
 <template>
-  <BcrosSection name="documentManagement" class="mt-12 mb-16" data-cy="document-management">
+  <BcrosSection
+    name="documentManagement"
+    class="mt-12 mb-16"
+    data-cy="document-management"
+  >
     <template #header>
       <div class="grid grid-cols-6 gap-4 items-center">
 
@@ -33,6 +38,3 @@
     </template>
   </BcrosSection>
 </template>
-
-<script setup lang="ts">
-</script>

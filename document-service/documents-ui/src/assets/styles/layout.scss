@@ -10,3 +10,8 @@
 .app-body {
   @apply grow relative;
 }
+
+aside {
+  position: sticky;
+  top: 3.125rem;
+}

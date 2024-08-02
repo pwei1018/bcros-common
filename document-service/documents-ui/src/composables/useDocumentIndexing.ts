@@ -1,19 +1,55 @@
-export const useDocumentIndexing = () => {
-  // Use ref for individual properties
-  const entityId = ref('')
-  const noIdCheckbox = ref(false)
-  const documentCategory = ref('')
-  const documentType = ref('')
-  const filingDate = ref('')
-  const documents = ref([])
+import { useBcrosDocuments } from '~/stores/documents'
 
-  // Return the refs and any computed values or methods
-  return {
-    entityId,
-    noIdCheckbox,
-    documentCategory,
+export const useDocumentIndexing = () => {
+  const {
+    consumerIdentifier,
+    documentClass,
     documentType,
-    filingDate,
-    documents
+    consumerFilingDate,
+    documentList,
+    validateIndex
+  } = storeToRefs(useBcrosDocuments())
+
+  /** Initialize Document Indexing */
+  const initDocumentState = () => {
+    validateIndex.value = false
+    consumerIdentifier.value = ''
+    documentClass.value = ''
+    documentType.value = ''
+    consumerFilingDate.value = ''
+    documentList.value = []
+  }
+
+  /** Computed validation flag to check for required document meta data **/
+  const isValidIndexData = computed(() => {
+    return !!consumerIdentifier.value
+      && !!documentClass.value
+      && !!documentType.value
+      && !!consumerFilingDate.value
+  })
+
+  /** Validate and Save Document Indexing */
+  const saveDocuments = () => {
+    // Validate Document Indexing
+    validateIndex.value = true
+
+    if (isValidIndexData.value) {
+      // Save document indexing: Future
+      const documentIndexing = {
+        consumerIdentifier: consumerIdentifier.value,
+        documentClass: documentClass.value,
+        documentType: documentType.value,
+        consumerFilingDate: consumerFilingDate.value,
+        documents: documentList.value
+      }
+
+      console.warn('Document Indexing:', documentIndexing)
+    }
+  }
+
+  return {
+    initDocumentState,
+    isValidIndexData,
+    saveDocuments
   }
 }
