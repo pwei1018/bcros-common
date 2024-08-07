@@ -1,0 +1,301 @@
+# Copyright © 2019 Province of British Columbia
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Resource helper utilities for processing requests."""
+from http import HTTPStatus
+
+from flask import jsonify, request
+from doc_api.exceptions import ResourceErrorCodes
+from doc_api.models import db, Document, DocumentRequest, utils as model_utils, User
+from doc_api.services.document_storage.storage_service import GoogleStorageService
+from doc_api.utils import request_validator
+from doc_api.utils.logging import logger
+
+from .request_info import RequestInfo
+
+
+# Resource error messages
+# Model business error messages in models.utils.py
+ACCOUNT_REQUIRED = '{code}: Account-Id header required.'
+UNAUTHORIZED = '{code}: authorization failure submitting a request for {account_id}.'
+UNAUTHORIZED_HELPDESK = '{code}: BCOL helpdesk users are not authorized to create {reg_type} registrations.'
+ACCOUNT_ACCESS = '{code}: the account ID {account_id} cannot access statement information for ' + \
+                 'mhr number {mhr_num}.'
+STAFF_SEARCH_BCOL_FAS = '{code}: provide either a BCOL Account Number or a Routing Slip Number but not both.'
+SBC_SEARCH_NO_PAYMENT = '{code}: provide either a BCOL Account Number or a Routing Slip Number.'
+DATABASE = '{code}: {context} database error for {account_id}.'
+NOT_FOUND = '{code}: no {item} found for {key}.'
+PATH_PARAM = '{code}: a {param_name} path parameter is required.'
+REPORT = '{code}: error generating report. Detail: {detail}'
+DEFAULT = '{code}: error processing request.'
+DUPLICATE_REGISTRATION_ERROR = 'MH Registration {0} is already available to the account.'
+VAL_ERROR = 'Document request data validation errors.'  # Default validation error prefix
+SAVE_ERROR_MESSAGE = 'Account {0} create {1} statement db save failed: {2}'
+
+# Known request parameters
+PARAM_ACCOUNT_ID = 'Account-Id'
+PARAM_ACCEPT = 'Accept'
+PARAM_CONTENT_TYPE = 'Content-Type'
+PARAM_QUERY_START_DATE = 'queryStartDate'
+PARAM_QUERY_END_DATE = 'queryEndDate'
+PARAM_FROM_UI = 'fromUI'
+PARAM_DOC_SERVICE_ID = 'documentServiceId'
+PARAM_CONSUMER_DOC_ID = 'consumerDocumentId'
+PARAM_CONSUMER_FILENAME = 'consumerFilename'
+PARAM_CONSUMER_FILEDATE = 'consumerFilingDate'
+PARAM_CONSUMER_IDENTIFIER = 'consumerIdentifier'
+PARAM_CONSUMER_SCANDATE = 'consumerScanDate'
+
+
+def serialize(errors):
+    """Serialize errors."""
+    error_message = []
+    if errors:
+        for error in errors:
+            error_message.append('Schema validation: ' + error.message + '.')
+    return error_message
+
+
+def get_account_id(req):
+    """Get account ID from request headers."""
+    return req.headers.get(PARAM_ACCOUNT_ID)
+
+
+def is_pdf(req):
+    """Check if request headers Accept is application/pdf."""
+    accept = req.headers.get('Accept')
+    return accept and accept.upper() == 'APPLICATION/PDF'
+
+
+def get_apikey(req):
+    """Get gateway api key from request headers or parameter."""
+    key = req.headers.get('x-apikey')
+    if not key:
+        key = request.args.get('x-apikey')
+    return key
+
+
+def account_required_response():
+    """Build account required error response."""
+    message = ACCOUNT_REQUIRED.format(code=ResourceErrorCodes.ACCOUNT_REQUIRED_ERR.value)
+    return jsonify({'message': message}), HTTPStatus.BAD_REQUEST
+
+
+def error_response(status_code, message):
+    """Build generic error response."""
+    return jsonify({'message': message}), status_code
+
+
+def bad_request_response(message):
+    """Build generic bad request response."""
+    return jsonify({'message': message}), HTTPStatus.BAD_REQUEST
+
+
+def validation_error_response(errors, cause, additional_msg: str = None):
+    """Build a schema validation error response."""
+    message = ResourceErrorCodes.VALIDATION_ERR + ': ' + cause
+    details = serialize(errors)
+    if additional_msg:
+        details.append('Additional validation: ' + additional_msg)
+    return jsonify({'message': message, 'detail': details}), HTTPStatus.BAD_REQUEST
+
+
+def extra_validation_error_response(additional_msg: str = None):
+    """Build a schema validation error response."""
+    message = ResourceErrorCodes.VALIDATION_ERR.value + ': ' + VAL_ERROR
+    details = 'Additional validation: '
+    if additional_msg:
+        details += additional_msg
+    return jsonify({'message': message, 'detail': details}), HTTPStatus.BAD_REQUEST
+
+
+def db_exception_response(exception, account_id: str, context: str):
+    """Build a database error response."""
+    message = DATABASE.format(code=ResourceErrorCodes.DATABASE_ERR.value, context=context, account_id=account_id)
+    logger.error(message)
+    return jsonify({'message': message, 'detail': str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def business_exception_response(exception):
+    """Build business exception error response."""
+    logger.error(str(exception))
+    return jsonify({'message': exception.error}), exception.status_code
+
+
+def default_exception_response(exception):
+    """Build default 500 exception error response."""
+    logger.error(str(exception))
+    message = DEFAULT.format(code=ResourceErrorCodes.DEFAULT_ERR.value)
+    return jsonify({'message': message, 'detail': str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def service_exception_response(message):
+    """Build 500 exception error response."""
+    return jsonify({'message': message}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def not_found_error_response(item, key):
+    """Build a not found error response."""
+    message = NOT_FOUND.format(code=ResourceErrorCodes.NOT_FOUND_ERR.value, item=item, key=key)
+    logger.info(str(HTTPStatus.NOT_FOUND.value) + ': ' + message)
+    return jsonify({'message': message}), HTTPStatus.NOT_FOUND
+
+
+def duplicate_error_response(message):
+    """Build a duplicate request error response."""
+    err_msg = ResourceErrorCodes.DUPLICATE_ERR + ': ' + message
+    logger.info(str(HTTPStatus.CONFLICT.value) + ': ' + message)
+    return jsonify({'message': err_msg}), HTTPStatus.CONFLICT
+
+
+def unauthorized_error_response(account_id):
+    """Build an unauthorized error response."""
+    message = UNAUTHORIZED.format(code=ResourceErrorCodes.UNAUTHORIZED_ERR.value, account_id=account_id)
+    logger.info(str(HTTPStatus.UNAUTHORIZED.value) + ': ' + message)
+    return jsonify({'message': message}), HTTPStatus.UNAUTHORIZED
+
+
+def path_param_error_response(param_name):
+    """Build a bad request param missing error response."""
+    message = PATH_PARAM.format(code=ResourceErrorCodes.PATH_PARAM_ERR.value, param_name=param_name)
+    logger.info(str(HTTPStatus.BAD_REQUEST.value) + ': ' + message)
+    return jsonify({'message': message}), HTTPStatus.BAD_REQUEST
+
+
+def unprocessable_error_response(description):
+    """Build an unprocessable entity error response."""
+    message = f'The {description} request could not be processed (no change/results).'
+    logger.info(str(HTTPStatus.UNPROCESSABLE_ENTITY.value) + ': ' + message)
+    return jsonify({'message': message}), HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def validate_request(info: RequestInfo) -> str:
+    """Perform non-schema extra validation on a new requests."""
+    return request_validator.validate_request(info)
+
+
+def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> RequestInfo:
+    """Extract header and query parameters from the request."""
+    info.from_ui = req.args.get(PARAM_FROM_UI, False)
+    info.account_id = req.headers.get(PARAM_ACCOUNT_ID)
+    info.accept = req.headers.get(PARAM_ACCEPT)
+    info.content_type = req.headers.get(PARAM_CONTENT_TYPE)
+    info.document_service_id = req.args.get(PARAM_DOC_SERVICE_ID)
+    info.consumer_doc_id = req.args.get(PARAM_CONSUMER_DOC_ID)
+    info.consumer_filename = req.args.get(PARAM_CONSUMER_FILENAME)
+    info.consumer_filedate = req.args.get(PARAM_CONSUMER_FILEDATE)
+    info.consumer_identifier = req.args.get(PARAM_CONSUMER_IDENTIFIER)
+    info.consumer_scandate = req.args.get(PARAM_CONSUMER_SCANDATE)
+    info.query_start_date = req.args.get(PARAM_QUERY_START_DATE)
+    info.query_end_date = req.args.get(PARAM_QUERY_END_DATE)
+    info.staff = staff
+    if info.content_type:
+        info.content_type = info.content_type.lower()
+    return info
+
+
+def remove_quotes(text: str) -> str:
+    """Remove single and double quotation marks from request parameters."""
+    if text:
+        text = text.replace("'", "''")
+        text = text.replace('"', '""')
+    return text
+
+
+def save_to_doc_storage(document: Document, info: RequestInfo, raw_data) -> str:
+    """Save request binaary data to document storage. Return a download link"""
+    storage_type: str = info.document_storage_type
+    content_type = info.content_type
+    logger.info(f'Save to storage type={storage_type}, content type={content_type}')
+    storage_name: str = model_utils.get_doc_storage_name(document, content_type)
+    doc_link = GoogleStorageService.save_document_link(storage_name, raw_data, storage_type, 2, content_type)
+    logger.info(f'Save doc to storage {storage_name} successful: link= {doc_link}')
+    document.doc_storage_url = storage_name
+    return doc_link
+
+
+def build_doc_request(info: RequestInfo, user: User, doc_id: int) -> DocumentRequest:
+    """Build a document request for audit tracking from ther request properties."""
+    doc_request: DocumentRequest = DocumentRequest(request_ts=model_utils.now_ts(),
+                                                   account_id=info.account_id,
+                                                   username=user.username if user else '',
+                                                   request_type=info.request_type,
+                                                   status=HTTPStatus.OK,
+                                                   document_id=doc_id)
+    doc_request.request_data = info.json
+    return doc_request
+
+
+def save_add(info: RequestInfo, token, raw_data) -> dict:
+    """Save request binary data to document storage. Return a download link"""
+    request_json = info.json
+    logger.info(f'save_add starting raw data size={len(raw_data)}, getting user from token...')
+    user: User = User.get_or_create_user_by_jwt(token, info.account_id)
+    logger.info('save_add building Document model...')
+    document: Document = Document.create_from_json(request_json, info.document_type)
+    logger.info('save_add saving file data to doc storage...')
+    doc_link = save_to_doc_storage(document, info, raw_data)
+    logger.info('save_add building doc request model and saving...')
+    doc_request: DocumentRequest = build_doc_request(info, user, document.id)
+    db.session.add(document)
+    db.session.add(doc_request)
+    db.session.commit()
+    doc_json = document.json
+    doc_json['documentURL'] = doc_link
+    logger.info('save_add completed...')
+    return doc_json
+
+
+def get_doc_links(info: RequestInfo, results: list) -> list:
+    """Generate document links for the documents in the list"""
+    if not results:
+        return results
+    for result in results:
+        storage_name = result.get('documentURL')
+        storage_type = info.document_storage_type
+        if storage_name:
+            logger.info(f'getting link for type={storage_type} name={storage_name}...')
+            doc_link = GoogleStorageService.get_document_link(storage_name, storage_type, 2)
+            result['documentURL'] = doc_link
+    return results
+
+
+def get_docs(info: RequestInfo) -> list:
+    """Get document information by query parameters. If not querying by date range get a doc link."""
+    results = []
+    query_results = []
+    if info.document_service_id:
+        logger.info(f'get_docs class {info.document_class} query by service id {info.document_service_id}')
+        result = Document.find_by_doc_service_id(info.document_service_id)
+        if result and result.doc_type and result.doc_type.document_class == info.document_class:
+            results.append(result.json)
+    elif info.consumer_doc_id:
+        logger.info(f'get_docs class {info.document_class} query by document id {info.consumer_doc_id}')
+        query_results = Document.find_by_document_id(info.consumer_doc_id)
+        if query_results:
+            for result in query_results:
+                if result.doc_type and result.doc_type.document_class == info.document_class:
+                    results.append(result.json)
+    elif info.consumer_identifier:
+        logger.info(f'get_docs class {info.document_class} query by consumer id {info.consumer_identifier}')
+        query_results = Document.find_by_consumer_id(info.consumer_identifier)
+        if query_results:
+            for result in query_results:
+                if result.doc_type and result.doc_type.document_class == info.document_class:
+                    results.append(result.json)
+    elif info.query_start_date and info.query_end_date:
+        logger.info(f'get_docs class {info.document_class} query by date range coming soon.')
+        return results
+
+    logger.info('get docs completed...')
+    return get_doc_links(info, results)
