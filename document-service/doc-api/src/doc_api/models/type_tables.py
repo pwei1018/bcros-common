@@ -197,6 +197,13 @@ class DocumentClass(db.Model):  # pylint: disable=too-few-public-methods
         """Return all the type records."""
         return db.session.query(DocumentClass).all()
 
+    @classmethod
+    def find_by_doc_class(cls, doc_class: str):
+        """Return a specific record by type."""
+        if not doc_class or doc_class not in DocumentClasses:
+            return None
+        return db.session.query(DocumentClass).filter(DocumentClass.document_class == doc_class).one_or_none()
+
 
 class DocumentType(db.Model):  # pylint: disable=too-few-public-methods
     """This class defines the model for the document types table."""

@@ -36,7 +36,7 @@ SBC_SEARCH_NO_PAYMENT = '{code}: provide either a BCOL Account Number or a Routi
 DATABASE = '{code}: {context} database error for {account_id}.'
 NOT_FOUND = '{code}: no {item} found for {key}.'
 PATH_PARAM = '{code}: a {param_name} path parameter is required.'
-REPORT = '{code}: error generating report. Detail: {detail}'
+REPORT = ResourceErrorCodes.REPORT_ERR.value + ': error generating report. Detail: {detail}'
 DEFAULT = '{code}: error processing request.'
 DUPLICATE_REGISTRATION_ERROR = 'MH Registration {0} is already available to the account.'
 VAL_ERROR = 'Document request data validation errors.'  # Default validation error prefix
@@ -122,6 +122,13 @@ def extra_validation_error_response(additional_msg: str = None):
 def db_exception_response(exception, account_id: str, context: str):
     """Build a database error response."""
     message = DATABASE.format(code=ResourceErrorCodes.DATABASE_ERR.value, context=context, account_id=account_id)
+    logger.error(message)
+    return jsonify({'message': message, 'detail': str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def report_exception_response(exception, detail: str):
+    """Build a report request error response."""
+    message = REPORT.format(detail=detail)
     logger.error(message)
     return jsonify({'message': message, 'detail': str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
