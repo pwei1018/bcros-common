@@ -17,6 +17,8 @@ from http import HTTPStatus
 from flask import jsonify, request
 from doc_api.exceptions import ResourceErrorCodes
 from doc_api.models import db, Document, DocumentRequest, utils as model_utils, User
+from doc_api.models.type_tables import DocumentClasses
+from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils import request_validator
 from doc_api.utils.logging import logger
@@ -55,6 +57,19 @@ PARAM_CONSUMER_FILENAME = 'consumerFilename'
 PARAM_CONSUMER_FILEDATE = 'consumerFilingDate'
 PARAM_CONSUMER_IDENTIFIER = 'consumerIdentifier'
 PARAM_CONSUMER_SCANDATE = 'consumerScanDate'
+PARAM_DOCUMENT_TYPE = 'documentType'
+
+TO_STORAGE_TYPE = {
+    DocumentClasses.MHR: StorageDocTypes.MHR,
+    DocumentClasses.NR: StorageDocTypes.NR,
+    DocumentClasses.PPR: StorageDocTypes.PPR,
+    DocumentClasses.CORP: StorageDocTypes.BUSINESS,
+    DocumentClasses.COOP: StorageDocTypes.BUSINESS,
+    DocumentClasses.FIRM: StorageDocTypes.BUSINESS,
+    DocumentClasses.OTHER: StorageDocTypes.BUSINESS,
+    DocumentClasses.SOCIETY: StorageDocTypes.BUSINESS
+}
+STORAGE_TYPE_DEFAULT = StorageDocTypes.BUSINESS
 
 
 def serialize(errors):
@@ -208,6 +223,8 @@ def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> Re
     info.staff = staff
     if info.content_type:
         info.content_type = info.content_type.lower()
+    if not info.document_type and req.args.get(PARAM_DOCUMENT_TYPE):
+        info.document_type = req.args.get(PARAM_DOCUMENT_TYPE)
     return info
 
 
@@ -301,8 +318,14 @@ def get_docs(info: RequestInfo) -> list:
                 if result.doc_type and result.doc_type.document_class == info.document_class:
                     results.append(result.json)
     elif info.query_start_date and info.query_end_date:
-        logger.info(f'get_docs class {info.document_class} query by date range coming soon.')
-        return results
+        return model_utils.get_docs_by_date_range(info.document_class, info.query_start_date, info.query_end_date)
 
     logger.info('get docs completed...')
     return get_doc_links(info, results)
+
+
+def get_doc_storage_type(doc_class: str) -> str:
+    """Get the document storage type that maps to the document class."""
+    if doc_class and TO_STORAGE_TYPE.get(doc_class):
+        return TO_STORAGE_TYPE.get(doc_class)
+    return STORAGE_TYPE_DEFAULT

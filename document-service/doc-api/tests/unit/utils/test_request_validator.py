@@ -28,6 +28,7 @@ from doc_api.resources.request_info import RequestInfo
 # test data pattern is ({description}, {valid}, {req_type}, {doc_type}, {content_type}, {doc_class}, {message_content})
 TEST_DATA_ADD = [
     ('Valid', True, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, DocumentClasses.CORP, None),
+    ('Valid no class', True, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, None, None),
     ('Invalid missing doc type', False, RequestTypes.ADD, None, model_utils.CONTENT_TYPE_PDF, DocumentClasses.CORP,
      validator.MISSING_DOC_TYPE),
     ('Invalid doc type', False, RequestTypes.ADD, 'JUNK', model_utils.CONTENT_TYPE_PDF, DocumentClasses.CORP,
@@ -37,29 +38,104 @@ TEST_DATA_ADD = [
     ('Invalid missing content', False, RequestTypes.ADD, DocumentTypes.CORP_MISC, None, DocumentClasses.CORP,
       validator.MISSING_CONTENT_TYPE),
     ('Invalid content', False, RequestTypes.ADD, DocumentTypes.CORP_MISC, 'XXXXX', DocumentClasses.CORP,
-     validator.INVALID_CONTENT_TYPE)
+     validator.INVALID_CONTENT_TYPE),
+    ('Invalid doc class - type', False, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF,
+     DocumentClasses.FIRM, validator.INVALID_DOC_CLASS_TYPE),
+]
+# test data pattern is ({description}, {valid}, {scan_date}, {filing_date}, {message_content})
+TEST_DATA_ADD_DATES = [
+    ('Valid no dates', True, None, None, None),
+    ('Valid scan date', True, '2024-07-31', None, None),
+    ('Valid filing date', True, None, '2024-07-31', None),
+    ('Invalid scan date', False, 'January 12, 2022', None, validator.INVALID_SCAN_DATE),
+    ('Invalid filing date', False, None, 'January 12, 2022', validator.INVALID_FILING_DATE)
 ]
 # test data pattern is ({description}, {valid}, {doc_class}, {doc_service_id}, {doc_id}, {cons_id}, {start}, {end}, {message_content})
 TEST_DATA_GET = [
     ('Valid service id', True, DocumentClasses.CORP, '1234', None, None, None, None, None),
     ('Valid doc id', True, DocumentClasses.CORP, None, '1234', None, None, None, None),
     ('Valid consumer id', True, DocumentClasses.CORP, None, None, '1234', None, None, None),
-    ('Valid query dates', True, DocumentClasses.CORP, None, None, None, '2024-07-01', '2024-07-05', None),
-    ('Invalid doc class', False, 'XXXX', None, None, None, '2024-07-01', '2024-07-05', validator.INVALID_DOC_CLASS),
+    ('Valid query dates', True, DocumentClasses.CORP, None, None, None, '2024-07-01', '2024-07-01', None),
+    ('Invalid doc class', False, 'XXXX', None, None, None, None, None, validator.INVALID_DOC_CLASS),
     ('Missing doc class', False, None, '1234', None, None, None, None, validator.MISSING_DOC_CLASS),
     ('Missing params', False, DocumentClasses.CORP, None, None, None, None, None, validator.MISSING_QUERY_PARAMS),
     ('Invalid query dates', False, DocumentClasses.CORP, None, None, None, '2024-07-01', None,
-     validator.INVALID_DATE_PARAMS),
+     validator.MISSING_DATE_PARAM),
     ('Invalid query dates', False, DocumentClasses.CORP, None, None, None, None, '2024-07-01',
-     validator.INVALID_DATE_PARAMS)
+     validator.MISSING_DATE_PARAM)
 ]
+# test data pattern is ({description}, {valid}, {start_date}, {end_date}, {message_content})
+TEST_DATA_SEARCH_DATES = [
+    ('Valid no dates', True, None, None, None),
+    ('Valid date range', True, '2024-07-31', '2024-07-31', None),
+    ('Invalid date range', False, '2024-07-31', '2024-07-30', validator.INVALID_START_END_DATE),
+    ('Invalid start date', False, 'January 12, 2022', None, validator.INVALID_START_DATE),
+    ('Invalid end date', False, None, 'January 12, 2022', validator.INVALID_END_DATE)
+]
+
+
+@pytest.mark.parametrize('desc,valid,start_date,end_date,message_content', TEST_DATA_SEARCH_DATES)
+def test_validate_search_dates(session, desc, valid, start_date, end_date, message_content):
+    """Assert that new get request validation works as expected for scan and file dates."""
+    # setup
+    info: RequestInfo = RequestInfo(RequestTypes.GET, 'NA', None, 'NA')
+    info.account_id = 'NA'
+    info.document_class = DocumentClasses.CORP
+    if start_date:
+        info.query_start_date = start_date
+    if end_date:
+        info.query_end_date = end_date
+    if desc == 'Valid no dates':
+        info.document_service_id = '12343'
+
+    error_msg = validator.validate_request(info)
+
+    if valid:
+        assert error_msg == ''
+    else:
+        assert error_msg != ''
+        if message_content:
+            err_msg:str = message_content
+            if desc == 'Invalid date range':
+                err_msg = validator.INVALID_START_END_DATE.format(start_date=start_date, end_date=end_date)
+            elif desc == 'Invalid start date':
+                err_msg = validator.INVALID_START_DATE.format(param_date=start_date)
+            elif desc == 'Invalid end date':
+                err_msg = validator.INVALID_END_DATE.format(param_date=end_date)
+            assert error_msg.find(err_msg) != -1
+
+
+@pytest.mark.parametrize('desc,valid,scan_date,filing_date,message_content', TEST_DATA_ADD_DATES)
+def test_validate_add_dates(session, desc, valid, scan_date, filing_date, message_content):
+    """Assert that new add request validation works as expected for scan and file dates."""
+    # setup
+    info: RequestInfo = RequestInfo(RequestTypes.ADD, 'NA', DocumentTypes.CORP_MISC, 'NA')
+    info.content_type = model_utils.CONTENT_TYPE_PDF
+    info.account_id = 'NA'
+    info.document_class = DocumentClasses.CORP
+    if scan_date:
+        info.consumer_scandate = scan_date
+    if filing_date:
+        info.consumer_filedate = filing_date
+    error_msg = validator.validate_request(info)
+    if valid:
+        assert error_msg == ''
+    else:
+        assert error_msg != ''
+        if message_content:
+            err_msg:str = message_content
+            if desc == 'Invalid scan date':
+                err_msg = validator.INVALID_SCAN_DATE.format(param_date=scan_date)
+            elif desc == 'Invalid filing date':
+                err_msg = validator.INVALID_FILING_DATE.format(param_date=scan_date)
+            assert error_msg.find(err_msg) != -1
 
 
 @pytest.mark.parametrize('desc,valid,doc_class,service_id,doc_id,cons_id,start,end,message_content', TEST_DATA_GET)
 def test_validate_get(session, desc, valid, doc_class, service_id, doc_id, cons_id, start, end, message_content):
     """Assert that get documents request validation works as expected."""
     # setup
-    info: RequestInfo = RequestInfo(RequestTypes.GET.value, 'NA', 'NA', 'NA')
+    info: RequestInfo = RequestInfo(RequestTypes.GET.value, 'NA', None, 'NA')
     info.account_id = 'NA'
     if doc_class:
         info.document_class = doc_class
@@ -96,6 +172,10 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
     if doc_class:
         info.document_class = doc_class
     error_msg = validator.validate_request(info)
+    if doc_type and not doc_class and not message_content:
+        assert info.document_class
+        if doc_type ==  DocumentTypes.CORP_MISC:
+            assert info.document_class == DocumentClasses.CORP.value
     if valid:
         assert error_msg == ''
     else:
@@ -108,4 +188,6 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
                 err_msg = validator.INVALID_DOC_CLASS.format(doc_class=doc_class)
             elif desc == 'Invalid content':
                 err_msg = validator.INVALID_CONTENT_TYPE.format(content_type=content_type)
+            elif desc == 'Invalid doc class - type':
+                err_msg = validator.INVALID_DOC_CLASS_TYPE.format(doc_class=doc_class, doc_type=doc_type)
             assert error_msg.find(err_msg) != -1
