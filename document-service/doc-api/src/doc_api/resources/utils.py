@@ -318,8 +318,10 @@ def get_docs(info: RequestInfo) -> list:
                 if result.doc_type and result.doc_type.document_class == info.document_class:
                     results.append(result.json)
     elif info.query_start_date and info.query_end_date:
-        return model_utils.get_docs_by_date_range(info.document_class, info.query_start_date, info.query_end_date)
-
+        return model_utils.get_docs_by_date_range(info.document_class,
+                                                  info.query_start_date,
+                                                  info.query_end_date,
+                                                  info.document_type)
     logger.info('get docs completed...')
     return get_doc_links(info, results)
 
