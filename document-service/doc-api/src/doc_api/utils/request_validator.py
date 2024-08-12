@@ -38,6 +38,7 @@ INVALID_FILING_DATE = 'Request invalid: filing date format invalid {param_date}.
 INVALID_START_DATE = 'Request invalid: search start date format invalid {param_date}. '
 INVALID_END_DATE = 'Request invalid: search end date format invalid {param_date}. '
 INVALID_START_END_DATE = 'Request invalid: search end date {end_date} before start date {start_date}. '
+MISSING_PATCH_PARAMS = 'Request invalid: update document information nothing to change. '
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -59,6 +60,8 @@ def validate_request(info: RequestInfo) -> str:
         return validate_add(info, error_msg)
     if info.request_type and info.request_type == RequestTypes.GET:
         return validate_get(info, error_msg)
+    if info.request_type and info.request_type == RequestTypes.UPDATE:
+        return validate_patch(info, error_msg)
     return error_msg
 
 
@@ -88,6 +91,20 @@ def validate_get(info: RequestInfo, error_msg: str) -> str:
         error_msg += validate_search_dates(info)
     except Exception as validation_exception:   # noqa: B902; eat all errors
         logger.error('validate_get exception: ' + str(validation_exception))
+        error_msg += VALIDATOR_ERROR
+    return error_msg
+
+
+def validate_patch(info: RequestInfo, error_msg: str) -> str:
+    """Validate the patch request."""
+    try:
+        if not info.consumer_filedate and not info.consumer_identifier and not info.consumer_scandate and \
+                not info.consumer_filename and not info.consumer_doc_id:
+            error_msg += MISSING_PATCH_PARAMS
+        error_msg += validate_scandate(info)
+        error_msg += validate_filingdate(info)
+    except Exception as validation_exception:   # noqa: B902; eat all errors
+        logger.error('validate_patch exception: ' + str(validation_exception))
         error_msg += VALIDATOR_ERROR
     return error_msg
 

@@ -228,6 +228,27 @@ def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> Re
     return info
 
 
+def update_request_info(req: request,
+                        info: RequestInfo,
+                        doc_service_id: str,
+                        doc_class: str,
+                        staff: bool = False) -> RequestInfo:
+    """Extract header and from the request and update parameters from the request payload."""
+    info.from_ui = req.args.get(PARAM_FROM_UI, False)
+    info.account_id = req.headers.get(PARAM_ACCOUNT_ID)
+    info.document_service_id = doc_service_id
+    info.document_class = doc_class
+    request_json = req.get_json(silent=True)
+    if request_json:
+        info.consumer_doc_id = request_json.get(PARAM_CONSUMER_DOC_ID)
+        info.consumer_filename = request_json.get(PARAM_CONSUMER_FILENAME)
+        info.consumer_filedate = request_json.get(PARAM_CONSUMER_FILEDATE)
+        info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
+        info.consumer_scandate = request_json.get(PARAM_CONSUMER_SCANDATE)
+    info.staff = staff
+    return info
+
+
 def remove_quotes(text: str) -> str:
     """Remove single and double quotation marks from request parameters."""
     if text:
@@ -267,16 +288,46 @@ def save_add(info: RequestInfo, token, raw_data) -> dict:
     user: User = User.get_or_create_user_by_jwt(token, info.account_id)
     logger.info('save_add building Document model...')
     document: Document = Document.create_from_json(request_json, info.document_type)
-    logger.info('save_add saving file data to doc storage...')
-    doc_link = save_to_doc_storage(document, info, raw_data)
+    doc_link: str = None
+    if raw_data:
+        logger.info('save_add saving file data to doc storage...')
+        doc_link = save_to_doc_storage(document, info, raw_data)
     logger.info('save_add building doc request model and saving...')
     doc_request: DocumentRequest = build_doc_request(info, user, document.id)
     db.session.add(document)
     db.session.add(doc_request)
     db.session.commit()
     doc_json = document.json
-    doc_json['documentURL'] = doc_link
+    if doc_link:
+        doc_json['documentURL'] = doc_link
     logger.info('save_add completed...')
+    return doc_json
+
+
+def save_update(info: RequestInfo, document: Document, token) -> dict:
+    """Save updated document information. Return the updated information."""
+    logger.info('save_update starting, getting user from token...')
+    user: User = User.get_or_create_user_by_jwt(token, info.account_id)
+    logger.info('save_update updating Document model...')
+    if info.consumer_doc_id:
+        document.consumer_document_id = info.consumer_doc_id
+    if info.consumer_identifier:
+        document.consumer_identifier = info.consumer_identifier
+    if info.consumer_filename:
+        document.consumer_filename = info.consumer_filename
+    if info.consumer_filedate:
+        document.consumer_filing_date = model_utils.ts_from_iso_date_noon(info.consumer_filedate)
+    if info.consumer_scandate:
+        document.scan_date = model_utils.ts_from_iso_date_noon(info.consumer_scandate)
+    logger.info('save_update saving updated document model and document_request...')
+    doc_request: DocumentRequest = build_doc_request(info, user, document.id)
+    db.session.add(document)
+    db.session.add(doc_request)
+    db.session.commit()
+    doc_json = document.json
+    if doc_json.get('documentURL'):
+        del doc_json['documentURL']
+    logger.info('save_update completed...')
     return doc_json
 
 

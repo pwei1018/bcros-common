@@ -25,7 +25,7 @@ from doc_api.utils.logging import logger
 
 
 SYSTEM_ROLE = 'system'
-STAFF_ROLE = 'ppr_staff'  # Share single role/account id with ppr for search, registration history.
+STAFF_ROLE = 'staff'  # Share single role/account id with ppr for search, registration history.
 PPR_STAFF_ROLE = 'ppr_staff'  # Share single role/account id with ppr for search, registration history.
 COLIN_ROLE = 'colin'
 MHR_ROLE = 'mhr'
@@ -213,6 +213,6 @@ def is_staff(jwt: JwtManager) -> bool:  # pylint: disable=too-many-return-statem
     """Return True if the user has the BC Registries staff role."""
     if not jwt:
         return False
-    if jwt.validate_roles([STAFF_ROLE, PPR_STAFF_ROLE]):
+    if jwt.validate_roles([STAFF_ROLE]) or jwt.validate_roles([PPR_STAFF_ROLE]):
         return True
     return False
