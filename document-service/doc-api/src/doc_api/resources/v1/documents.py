@@ -71,7 +71,7 @@ def post_documents(doc_class: str, doc_type: str):
 @bp.route('/<string:doc_service_id>', methods=['PATCH', 'OPTIONS'])
 @jwt.requires_auth
 def update_document_info(doc_service_id: str):
-    """Get business documents matching the query parameters."""
+    """Update document information excluding the document (use PUT) that is associated with the document service ID."""
     try:
         req_path: str = CHANGE_REQUEST_PATH.format(doc_service_id=doc_service_id)
         account_id = resource_utils.get_account_id(request)

@@ -101,7 +101,6 @@ def validate_patch(info: RequestInfo, error_msg: str) -> str:
         if not info.consumer_filedate and not info.consumer_identifier and not info.consumer_scandate and \
                 not info.consumer_filename and not info.consumer_doc_id:
             error_msg += MISSING_PATCH_PARAMS
-        error_msg += validate_search_dates(info)
         error_msg += validate_scandate(info)
         error_msg += validate_filingdate(info)
     except Exception as validation_exception:   # noqa: B902; eat all errors
