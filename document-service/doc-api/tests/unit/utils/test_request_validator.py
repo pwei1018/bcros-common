@@ -72,6 +72,17 @@ TEST_DATA_SEARCH_DATES = [
     ('Invalid start date', False, 'January 12, 2022', None, validator.INVALID_START_DATE),
     ('Invalid end date', False, None, 'January 12, 2022', validator.INVALID_END_DATE)
 ]
+# test data pattern is ({description},{valid},{doc_id},{cons_id},{filename},{scan_date},{filing_date},{message_content})
+TEST_DATA_PATCH = [
+    ('Valid doc id', True, '89999999', None, None, None, None, None),
+    ('Valid consumer id', True, None, 'BC0700000', None, None, None, None),
+    ('Valid filename', True, None, None, 'change_address.pdf', None, None, None),
+    ('Valid scan date', True, None, None, None, '2024-07-31', None, None),
+    ('Valid filing date', True, None, None, None, None, '2024-07-31', None),
+    ('Invalid no change', False, None, None, None, None, None, validator.MISSING_PATCH_PARAMS),
+    ('Invalid scan date', False, None, None, None, 'January 12, 2022', None, validator.INVALID_SCAN_DATE),
+    ('Invalid filing date', False, None, None, None, None, 'January 12, 2022', validator.INVALID_FILING_DATE)
+]
 
 
 @pytest.mark.parametrize('desc,valid,start_date,end_date,message_content', TEST_DATA_SEARCH_DATES)
@@ -190,4 +201,36 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
                 err_msg = validator.INVALID_CONTENT_TYPE.format(content_type=content_type)
             elif desc == 'Invalid doc class - type':
                 err_msg = validator.INVALID_DOC_CLASS_TYPE.format(doc_class=doc_class, doc_type=doc_type)
+            assert error_msg.find(err_msg) != -1
+
+
+@pytest.mark.parametrize('desc,valid,doc_id,cons_id,filename,scan_date,filing_date,message_content', TEST_DATA_PATCH)
+def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, scan_date, filing_date, message_content):
+    """Assert that patch request validation works as expected."""
+    # setup
+    info: RequestInfo = RequestInfo(RequestTypes.UPDATE, 'NA', DocumentTypes.CORP_MISC, 'NA')
+    info.content_type = model_utils.CONTENT_TYPE_PDF
+    info.account_id = 'NA'
+    info.document_class = DocumentClasses.CORP
+    if doc_id:
+        info.consumer_doc_id = doc_id
+    if cons_id:
+        info.consumer_identifier = cons_id
+    if filename:
+        info.consumer_filename= filename
+    if scan_date:
+        info.consumer_scandate = scan_date
+    if filing_date:
+        info.consumer_filedate = filing_date
+    error_msg = validator.validate_request(info)
+    if valid:
+        assert error_msg == ''
+    else:
+        assert error_msg != ''
+        if message_content:
+            err_msg:str = message_content
+            if desc == 'Invalid scan date':
+                err_msg = validator.INVALID_SCAN_DATE.format(param_date=scan_date)
+            elif desc == 'Invalid filing date':
+                err_msg = validator.INVALID_FILING_DATE.format(param_date=scan_date)
             assert error_msg.find(err_msg) != -1

@@ -30,6 +30,24 @@ TEST_INFO: RequestInfo = RequestInfo(request_type=RequestTypes.ADD,
                                      request_path='path',
                                      doc_type=DocumentTypes.NR_MISC,
                                      doc_storage_type=StorageDocTypes.NR)
+TEST_DOCUMENT = Document(id=200000000,
+                         document_service_id='UT9999999',
+                         document_type=DocumentTypes.PPR_MISC.value,
+                         add_ts=model_utils.now_ts(),
+                         consumer_document_id='T0000001',
+                         consumer_identifier='T0000002',
+                         consumer_filename='test.pdf',
+                         consumer_filing_date=model_utils.ts_from_iso_date_noon('2024-07-01'),
+                         scan_date=model_utils.ts_from_iso_date_noon('2024-05-01'))
+TEST_TOKEN = {
+    'username': 'username_TEST1',
+    'firstname': 'given_name_TEST1',
+    'lastname': 'family_name_TEST1',
+    'iss': 'issuer_TEST1',
+    'sub': 'subject_TEST1',
+    'idp_userid': 'idp_userid_TEST1',
+    'loginSource': 'source_TEST1'
+}
 
 # testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff})
 TEST_DATA_REQUEST_INFO = [
@@ -64,6 +82,38 @@ TEST_DATA_STORAGE_TYPES = [
     (DocumentClasses.NR, StorageDocTypes.NR),
     (DocumentClasses.PPR, StorageDocTypes.PPR)
 ]
+# testdata pattern is ({document}, {token}, {doc_id}, {cons_id}, {filename}, {filing_date}, {scan_date}, {doc_class})
+TEST_UPDATE_DATA = [
+    (TEST_DOCUMENT, TEST_TOKEN, 'UT9999', 'NEW_ID', 'new_name.pdf', '2024-08-08', '2024-08-09',
+     DocumentClasses.CORP.value)
+]
+
+
+@pytest.mark.parametrize('document,token,doc_id,cons_id,filename,filing_date,scan_date,doc_class', TEST_UPDATE_DATA)
+def test_save_update(session, document, token, doc_id, cons_id, filename, filing_date, scan_date, doc_class):
+    """Assert that patch request resource_utils.save_update works as expected."""
+    doc: Document = copy.deepcopy(document)
+    info: RequestInfo = RequestInfo(RequestTypes.UPDATE.value, None, doc.document_type, None)
+    info.account_id = '1234'
+    info.document_class = doc_class
+    info.consumer_doc_id = doc_id
+    info.consumer_identifier = cons_id
+    info.consumer_filename = filename
+    info.consumer_filedate = filing_date
+    info.consumer_scandate = scan_date
+    doc.save()
+    result = resource_utils.save_update(info, doc, token)
+    assert result.get('documentServiceId')
+    assert result.get('createDateTime')
+    assert result.get('documentType')
+    assert result.get('documentTypeDescription')
+    assert result.get('documentClass')
+    assert result.get('consumerDocumentId') == doc_id
+    assert result.get('consumerIdentifier') == cons_id
+    assert result.get('consumerFilename') == filename
+    assert str(result.get('consumerFilingDateTime'))[:10] == filing_date
+    assert str(result.get('consumerScanDateTime'))[:10] == scan_date
+    assert not result.get('documentURL')
 
 
 @pytest.mark.parametrize('doc_class,start_offset,doc_type,no_results', TEST_DATA_DOC_DATES)
