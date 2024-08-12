@@ -59,4 +59,6 @@ class RequestInfo():
             'consumerScanDate': self.consumer_scandate if self.consumer_scandate else '',
             'documentType': self.document_type if self.document_type else ''
         }
+        if self.request_path:
+            info['requestPath'] = self.request_path
         return info

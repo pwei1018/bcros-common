@@ -1,0 +1,29 @@
+{
+  "consumerDocumentId": "0100000000",
+  "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
+  "consumerIdentifier": "108212",
+  "createDateTime": "2024-08-02T14:00:55+00:00",
+  "documentClass": "MHR",
+  "documentClassDescription": "Manufactured Home Registry",
+  "documentType": "REG_103",
+  "documentTypeDescription": "TRANSPORT PERMIT",
+  "uploadCount": 3,
+  "documents": [
+   {
+    "documentTypeDescription": "MH Supporting Documentation",  
+    "consumerFilename": "Land Title Search.pdf",
+    "documentServiceId": "DS0000100000",
+    "documentURL": "..."
+   }, {
+    "documentTypeDescription": "TRANSPORT PERMIT",  
+    "consumerFilename": "Registration - Transport Permit.pdf",
+    "documentServiceId": "DS0000100001",
+    "documentURL": "..."
+   }, {
+    "documentTypeDescription": "MH Supporting Documentation",  
+    "consumerFilename": "Tax Certificate.pdf",
+    "documentServiceId": "DS0000100002",
+    "documentURL": "..."
+   }
+ ]
+}

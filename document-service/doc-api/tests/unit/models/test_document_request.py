@@ -74,7 +74,9 @@ def test_find_by_id(session, id, has_results, doc_type, doc_class):
         assert not doc_request
     else:
         save_doc: Document = Document.create_from_json(DOC1, doc_type)
+        save_doc.id = id
         save_request: DocumentRequest = TEST_REQUEST
+        save_request.id = id
         save_doc.save()
         save_request.document_id = save_doc.id
         save_request.save()

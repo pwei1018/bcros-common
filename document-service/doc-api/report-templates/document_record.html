@@ -1,0 +1,58 @@
+[[macros.html]]
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>{{ meta_title }}</title>
+    <meta charset="UTF-8">
+    <meta name="author" content="BC Registries and Online Services">
+      {% if environment == '' %}
+        [[stylePageRegistration.html]]
+      {% else %}
+        [[stylePageRegistrationDraft.html]]
+      {% endif %}
+      [[style.html]]
+  </head>
+  <body>
+    <div class="container ml-3 mt-11">
+    </div>
+    <div class="container mt-11 ml-3">
+      <div class="cover-data-bold">Document Record Statement</div>
+      <div class="cover-data mt-4">
+        {% if uploadCount > 0 and documents is defined and documents|length == uploadCount %}
+          All documents were uploaded to document storage.
+        {% elif uploadCount == 1 %}
+          1 document was uploaded to document storage.
+        {% elif uploadCount > 0 %}
+          {{uploadCount}} documents have been uploaded to document storage.
+        {% else %}
+          No documents were uploaded to document storage.
+        {% endif %}        
+      </div>
+      <div class="cover-data mt-4">
+        <span class="cover-data-bold">Document ID:</span> {{ consumerDocumentId }}
+      </div>
+      <div class="cover-data">
+        <span class="cover-data-bold">Entity ID:</span> {% if consumerIdentifier is defined %}{{consumerIdentifier}} {% else %} (Not Entered) {% endif %}
+      </div>
+      <div class="cover-data">
+        <span class="cover-data-bold">Document Category:</span> {{documentClassDescription}}
+      </div>
+      <div class="cover-data">
+        <span class="cover-data-bold">Document Type:</span> {{documentTypeDescription}}
+      </div>
+      <div class="cover-data">
+        <span class="cover-data-bold">Filing Date:</span> {% if consumerFilingDateTime is defined %}{{consumerFilingDateTime}} {% else %} (Not Entered) {% endif %}
+      </div>
+
+      <div class="cover-data mt-4"><span class="cover-data-bold">Upload Date and Time:</span> {{ createDateTime }}</div>
+      <div class="cover-data"><span class="cover-data-bold">Documents Uploaded:</span> {{uploadCount}}</div>
+      <div class="cover-data-bold">Documents:</div>
+      {% if documents is defined and uploadCount > 0 %}
+        {% for doc in documents %}
+            {% if doc.consumerFilename is defined %}<div class="cover-data">{{doc.consumerFilename}}</div>{% endif %}
+        {% endfor %}
+      {% endif %}
+  </body>
+</html>
+

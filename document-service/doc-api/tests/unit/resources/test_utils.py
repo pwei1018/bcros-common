@@ -17,7 +17,7 @@ import copy
 import pytest
 
 from doc_api.models import Document, DocumentRequest, utils as model_utils, User
-from doc_api.models.type_tables import DocumentTypes, RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentTypes, RequestTypes
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
@@ -47,6 +47,46 @@ TEST_DATA_SAVE_STORAGE = [
 TEST_DATA_DOC_REQUEST = [
     (TEST_INFO, TEST_USER, 100, 'UT1234')
 ]
+# testdata pattern is ({doc_class}, {start_offset}, {doc_type}, {no_results})
+TEST_DATA_DOC_DATES = [
+    (DocumentClasses.CORP, 10, None, False),
+    (DocumentClasses.CORP, 1, DocumentTypes.MHR_MISC, True),
+    (DocumentClasses.CORP.value, 10, DocumentTypes.CORP_MISC.value, False)
+]
+# testdata pattern is ({doc_class}, {storage_type})
+TEST_DATA_STORAGE_TYPES = [
+    (DocumentClasses.CORP, StorageDocTypes.BUSINESS),
+    (DocumentClasses.COOP, StorageDocTypes.BUSINESS),
+    (DocumentClasses.FIRM, StorageDocTypes.BUSINESS),
+    (DocumentClasses.OTHER, StorageDocTypes.BUSINESS),
+    (DocumentClasses.SOCIETY, StorageDocTypes.BUSINESS),
+    (DocumentClasses.MHR, StorageDocTypes.MHR),
+    (DocumentClasses.NR, StorageDocTypes.NR),
+    (DocumentClasses.PPR, StorageDocTypes.PPR)
+]
+
+
+@pytest.mark.parametrize('doc_class,start_offset,doc_type,no_results', TEST_DATA_DOC_DATES)
+def test_get_docs_by_dates(session, doc_class, start_offset, doc_type, no_results):
+    """Assert that get_docs_by_date_range works as expected."""
+    info: RequestInfo = RequestInfo(RequestTypes.GET.value, None, doc_type, None)
+    info.account_id = '1234'
+    info.document_class = doc_class
+    end = model_utils.now_ts()
+    start = model_utils.date_offset(end.date(), start_offset)
+    info.query_start_date = start.isoformat()
+    info.query_end_date = end.isoformat()
+    results = resource_utils.get_docs(info)
+    if no_results:
+        assert not results
+    elif results:
+        for result in results:
+            assert result.get('documentServiceId')
+            assert result.get('createDateTime')
+            assert result.get('documentType')
+            assert result.get('documentTypeDescription')
+            assert result.get('documentClass')
+            assert 'documentURL' not in result
 
 
 @pytest.mark.parametrize('info,user,doc_id,account_id', TEST_DATA_DOC_REQUEST)
@@ -82,8 +122,8 @@ def test_request_info(session, req_type, req_path, doc_type, doc_storage_type, s
     assert 'contentType' in info_json
     assert 'consumerDocumentId' in info_json
     assert 'consumerFilename' in info_json
-    assert 'consumerFiledate' in info_json
-    assert 'consumerIdentifer' in info_json
+    assert 'consumerFilingDate' in info_json
+    assert 'consumerIdentifier' in info_json
     assert 'consumerScanDate' in info_json
 
 
@@ -102,3 +142,10 @@ def test_save_doc_storage(session, doc_ts, doc_type, doc_service_id, content_typ
     doc_link = resource_utils.save_to_doc_storage(doc, info, raw_data)
     assert doc_link
     assert doc.doc_storage_url
+
+
+@pytest.mark.parametrize('doc_class,storage_type', TEST_DATA_STORAGE_TYPES)
+def test_get_storage_type(session, doc_class, storage_type):
+    """Assert that get_docs_by_date_range works as expected."""
+    test_type = resource_utils.get_doc_storage_type(doc_class)
+    assert test_type == storage_type

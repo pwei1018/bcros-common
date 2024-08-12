@@ -23,7 +23,38 @@ from datetime import time, timedelta, timezone
 import pytz
 from datedelta import datedelta
 from flask import current_app
+from sqlalchemy.sql import text
 
+from doc_api.utils.logging import logger
+
+from .db import db
+
+
+QUERY_DATES_DEFAULT = """
+select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_identifier, d.consumer_filename,
+       d.consumer_filing_date, d.scan_date, d.document_type, dt.document_type_desc, dc.document_class,
+       dc.document_class_desc
+  from documents d, document_types dt, document_classes dc
+ where d.document_type = dt.document_type
+   and dt.document_class = dc.document_class
+   and dc.document_class = :query_val1
+   and d.add_ts between to_timestamp(:query_val2, 'YYYY-MM-DD HH24:MI:SS')
+                    and to_timestamp(:query_val3, 'YYYY-MM-DD HH24:MI:SS')
+order by d.consumer_document_id
+"""
+QUERY_DATES_DOC_TYPE = """
+select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_identifier, d.consumer_filename,
+       d.consumer_filing_date, d.scan_date, d.document_type, dt.document_type_desc, dc.document_class,
+       dc.document_class_desc
+  from documents d, document_types dt, document_classes dc
+ where d.document_type = dt.document_type
+   and dt.document_class = dc.document_class
+   and dc.document_class = :query_val1
+   and d.add_ts between to_timestamp(:query_val2, 'YYYY-MM-DD HH24:MI:SS')
+                    and to_timestamp(:query_val3, 'YYYY-MM-DD HH24:MI:SS')
+   and d.document_type = :query_val4
+order by d.consumer_document_id
+"""
 
 # Local timzone
 LOCAL_TZ = pytz.timezone('America/Los_Angeles')
@@ -226,3 +257,52 @@ def date_elapsed(date_iso: str):
     today_date = date(now.year, now.month, now.day)
     # current_app.logger.info('Comparing now ' + today_date.isoformat() + ' with expiry ' + test_date.isoformat())
     return today_date > test_date
+
+
+def get_docs_by_date_range(doc_class: str, start_date: str, end_date: str, doc_type: str = None) -> dict:
+    """Get document info by date range and class, type is optional."""
+    results = []
+    if not doc_class or not start_date or not end_date:
+        logger.warning('get_docs_by_date_range missing one of required doc class, start date, end date')
+        return results
+    query_s = QUERY_DATES_DEFAULT if not doc_type else QUERY_DATES_DOC_TYPE
+    query = text(query_s)
+    start_ts = ts_from_iso_date_start(start_date)
+    end_ts = ts_from_iso_date_end(end_date)
+    start: str = format_ts(start_ts)[:19].replace('T', ' ')
+    end: str = format_ts(end_ts)[:19].replace('T', ' ')
+    logger.info(f'get_docs class {doc_class} query by date range {start} to {end}.')
+    qresults = None
+    if not doc_type:
+        qresults = db.session.execute(query,
+                                      {'query_val1': doc_class, 'query_val2': start, 'query_val3': end})
+    else:
+        qresults = db.session.execute(query,
+                                      {'query_val1': doc_class,
+                                       'query_val2': start,
+                                       'query_val3': end,
+                                       'query_val4': doc_type})
+
+    rows = qresults.fetchall()
+    if rows is not None:
+        for row in rows:
+            result_json = {
+                'documentServiceId': str(row[0]),
+                'createDateTime': format_ts(row[1]),
+                'consumerDocumentId': str(row[2]) if row[2] else '',
+                'consumerIdentifier': str(row[3]) if row[3] else '',
+                'consumerFilename': str(row[4]) if row[4] else '',
+                'documentType': str(row[7]),
+                'documentTypeDescription': str(row[8]),
+                'documentClass': str(row[9])
+            }
+            if row[5]:
+                result_json['consumerFilingDateTime'] = format_ts(row[5])
+            if row[6]:
+                result_json['consumerScanDateTime'] = format_ts(row[6])
+            results.append(result_json)
+    if results:
+        logger.info(f'get_docs_by_date_range returning {len(results)} results.')
+    else:
+        logger.info('get_docs_by_date_range no results found.')
+    return results

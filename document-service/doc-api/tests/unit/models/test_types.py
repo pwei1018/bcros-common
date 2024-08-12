@@ -46,6 +46,17 @@ TEST_DOC_TYPE_CLASSES = [
     (DocumentClasses.OTHER.value, DocumentTypes.LTR.value, True, True),
     (DocumentClasses.OTHER.value, DocumentTypes.PPR_MISC.value, True, False)
 ]
+# testdata pattern is ({doc_class}, {exists})
+TEST_DOC_CLASSES = [
+    ('XXX', False),
+    (DocumentClasses.CORP.value, True),
+    (DocumentClasses.SOCIETY.value, True),
+    (DocumentClasses.NR.value, True),
+    (DocumentClasses.PPR.value, True),
+    (DocumentClasses.MHR.value, True),
+    (DocumentClasses.FIRM.value, True),
+    (DocumentClasses.OTHER.value, True)
+]
 
 
 def test_request_type_findall(session):
@@ -120,3 +131,15 @@ def test_document_type_finddocclass(session, doc_class, doc_type, has_results, t
         assert exists == type_exists
     else:
         assert not results
+
+
+@pytest.mark.parametrize('doc_class, exists', TEST_DOC_CLASSES)
+def test_document_class_finddocclass(session, doc_class, exists):
+    """Assert that the DocumentClass.find_by_doc_class() works as expected."""
+    result = type_tables.DocumentClass.find_by_doc_class(doc_class) 
+    if exists:
+        assert result
+        assert result.document_class == doc_class
+        assert result.document_class_desc
+    else:
+        assert not result

@@ -16,7 +16,7 @@
 import pytest
 
 from doc_api.models import utils as model_utils, Document
-from doc_api.models.type_tables import DocumentTypes
+from doc_api.models.type_tables import DocumentTypes, DocumentClasses
 from doc_api.utils.logging import logger
 
 
@@ -57,6 +57,31 @@ TEST_DATA_STORAGE_NAME = [
     ('2024-12-01T19:00:00+00:00', DocumentTypes.SOC_MISC.value, 'UT01111', model_utils.CONTENT_TYPE_ZIP,
      '2024/12/01/soc_misc-UT01111.zip')
 ]
+# testdata pattern is ({doc_class}, {start_offset}, {doc_type}, {no_results})
+TEST_DATA_DOC_DATES = [
+    (None, 10, None, True),
+    (DocumentClasses.CORP, 10, None, False),
+    (DocumentClasses.CORP, 1, DocumentTypes.MHR_MISC, True),
+    (DocumentClasses.CORP.value, 10, DocumentTypes.CORP_MISC.value, False)
+]
+
+
+@pytest.mark.parametrize('doc_class,start_offset,doc_type,no_results', TEST_DATA_DOC_DATES)
+def test_get_docs_by_dates(session, doc_class, start_offset, doc_type, no_results):
+    """Assert that get_docs_by_date_range works as expected."""
+    end = model_utils.now_ts()
+    start = model_utils.date_offset(end.date(), start_offset)
+    results = model_utils.get_docs_by_date_range(doc_class, start.isoformat(), end.isoformat(), doc_type)
+    if no_results:
+        assert not results
+    elif results:
+        for result in results:
+            assert result.get('documentServiceId')
+            assert result.get('createDateTime')
+            assert result.get('documentType')
+            assert result.get('documentTypeDescription')
+            assert result.get('documentClass')
+            assert 'documentURL' not in result
 
 
 @pytest.mark.parametrize('doc_ts,doc_type,doc_service_id,content_type,name', TEST_DATA_STORAGE_NAME)

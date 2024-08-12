@@ -73,7 +73,7 @@ def get_ppr_docs():
     """Get PPR documents matching the query parameters."""
     try:
         req_path: str = GET_REQUEST_PATH
-        info: RequestInfo = RequestInfo(RequestTypes.GET, req_path, 'NA', DOC_STORAGE_TYPE)
+        info: RequestInfo = RequestInfo(RequestTypes.GET, req_path, None, DOC_STORAGE_TYPE)
         info = resource_utils.get_request_info(request, info, is_staff(jwt))
         info.document_class = DOCUMENT_CLASS
         logger.info(f'Starting get PPR docs request {req_path}, account={info.account_id}')
