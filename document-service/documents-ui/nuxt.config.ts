@@ -65,6 +65,8 @@ export default defineNuxtConfig({
       authApiURL: `${process.env.VUE_APP_AUTH_API_URL || ''}${process.env.VUE_APP_AUTH_API_VERSION || ''}`,
       authWebURL: process.env.VUE_APP_AUTH_WEB_URL || '',
       dashboardOldUrl: process.env.VUE_APP_DASHBOARD_URL || '',
+      documentsApiURL: `${process.env.VUE_APP_DOC_API_URL || ''}${process.env.VUE_APP_DOC_API_VERSION || ''}`,
+      documentsApiKey: `${process.env.VUE_APP_DOC_API_KEY || ''}`,
       kcURL: process.env.VUE_APP_KEYCLOAK_AUTH_URL || '',
       kcRealm: process.env.VUE_APP_KEYCLOAK_REALM || '',
       kcClient: process.env.VUE_APP_KEYCLOAK_CLIENTID || '',

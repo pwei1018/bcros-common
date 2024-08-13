@@ -1,0 +1,63 @@
+/**
+ * Converts a date string into an ISO 8601 formatted string with the local timezone offset.
+ *
+ * @param dateString - The date string to be formatted.
+ * @returns The ISO 8601 formatted date string with the correct timezone offset.
+ */
+export const formatDateToISO = (dateString: string) => {
+  const date = new Date(dateString)
+
+  // Format the date to ISO 8601 with timezone offset
+  const isoString = date.toISOString()
+
+  // Convert the UTC time to the local time with timezone offset
+  const offsetMinutes = date.getTimezoneOffset()
+  const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60)
+  const minutes = Math.abs(offsetMinutes) % 60
+  const sign = offsetMinutes > 0 ? '-' : '+'
+
+  // Create the formatted timezone offset string
+  const timezoneOffset = `${sign}${String(offsetHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+
+  // Replace the 'Z' with the correct timezone offset
+  return isoString.replace('Z', timezoneOffset)
+}
+
+/**
+ * Converts an ISO 8601 date string to a human-readable date format.
+ *
+ * This function formats the given ISO date string into a readable format,
+ * such as "August 13, 2024 at 10:21:29 AM Pacific time". The formatting
+ * includes the full date, time, and the Pacific time zone.
+ *
+ * @param isoDate - The ISO 8601 date string to be formatted (e.g., "2024-08-13T17:21:29+00:00").
+ * @returns A string representing the formatted date in a readable format with time and timezone.
+ *
+ * @example
+ * ```typescript
+ * const isoDate = '2024-08-13T17:21:29+00:00';
+ * console.log(formatToReadableDate(isoDate));
+ * // Output: "August 13, 2024 at 10:21:29 AM Pacific time"
+ * ```
+ */
+export function formatToReadableDate(isoDate: string): string {
+  const date = new Date(isoDate)
+
+  // Options for formatting the date and time
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: true,
+    timeZoneName: 'short',
+    timeZone: 'America/Los_Angeles', // Pacific Time Zone
+  }
+
+  // Format the date and time
+  const formattedDate = new Intl.DateTimeFormat('en-US', options).format(date)
+
+  return formattedDate.replace(/PDT|PST/, 'Pacific time')
+}

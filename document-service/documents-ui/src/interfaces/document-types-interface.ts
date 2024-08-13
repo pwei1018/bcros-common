@@ -6,10 +6,21 @@ export interface DocumentDetailIF {
 
 export interface DocumentClassIF {
   class: string
+  description: string
   prefixes: Array<string>
   documents: Array<DocumentDetailIF>
 }
 
-export interface DocumentTypesIF {
-  [key: string]: DocumentClassIF
+export interface DocumentInfoIF {
+  consumerDocumentId: string
+  consumerFilename: string
+  consumerFilingDateTime: string
+  consumerIdentifier: string
+  createDateTime: string
+  documentClass: string
+  documentServiceId: string
+  documentType: string
+  documentTypeDescription: string
+  documentURL: string
+  filenames: Array<string>
 }
