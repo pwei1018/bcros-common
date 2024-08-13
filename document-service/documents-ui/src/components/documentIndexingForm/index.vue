@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { documentTypes } from '~/utils/documentTypes'
 import { useBcrosDocuments } from '~/stores/documents'
+import type { DocumentDetailIF } from '~/interfaces/document-types-interface'
 
 const props = defineProps({
   validate: {
@@ -31,33 +32,28 @@ const hasDateError = computed(() => {
 })
 
 /**
- * Returns an array of all root keys (categories) from the documentTypes object
- */
-function getCategories(): string[] {
-  return Object.keys(documentTypes)
-}
-
-/**
  * Retrieves document descriptions for the specified category
- * @param category - The category for which to retrieve documents
+ * @param documentClass - The document class for which to retrieve documents
  * @returns An array of document descriptions or an empty array if the category is not found
  */
-function getDocumentsByCategory(category: string): string[]|null {
-  const categoryData = documentTypes[category]
-  return categoryData ? categoryData.documents.map(doc => doc.description ) : []
+function getDocumentTypesByClass(documentClass: string): Array<DocumentDetailIF>|[]  {
+  return documentTypes.find(doc => doc.class === documentClass)?.documents || []
 }
 
 /**
- * Finds the category based on the prefix of the entity identifier
- * @param identifier - The entity identifier to search
- * @returns The category associated with the prefix or null if no match is found
+ * Finds the category based on the prefix of the entity identifier.
+ * @param identifier - The entity identifier to search.
+ * @returns The category associated with the prefix or null if no match is found.
  */
 function findCategoryByPrefix(identifier: string): void {
   const match = identifier.match(/^([A-Za-z]+)\d*/)
   const prefix = match ? match[1].toUpperCase() : '' // Extract prefix
 
-  for (const [category, { prefixes }] of Object.entries(documentTypes)) {
-    if (prefixes.includes(prefix)) documentClass.value = category
+  for (const documentType of documentTypes) {
+    if (documentType.prefixes.includes(prefix)) {
+      documentClass.value = documentType.class
+      return
+    }
   }
 }
 
@@ -127,7 +123,9 @@ watch(() => documentClass.value, () => {
                   v-model="documentClass"
                   :placeholder="$t('documentIndexing.form.selectMenu.categoryLabel')"
                   select-class="text-gray-700"
-                  :options="getCategories()"
+                  :options="documentTypes"
+                  value-attribute="class"
+                  option-attribute="description"
                   :ui="{ placeholder: hasClassError ? 'placeholder:text-red-500' : 'text-gray-700' }"
                 />
               </UFormGroup>
@@ -140,7 +138,9 @@ watch(() => documentClass.value, () => {
                   :placeholder="$t('documentIndexing.form.selectMenu.typeLabel')"
                   select-class="text-gray-700"
                   :disabled="!documentClass"
-                  :options="getDocumentsByCategory(documentClass)"
+                  :options="getDocumentTypesByClass(documentClass)"
+                  value-attribute="type"
+                  option-attribute="description"
                   :ui="{ placeholder: hasTypeError ? 'placeholder:text-red-500' : 'text-gray-700' }"
                 />
               </UFormGroup>

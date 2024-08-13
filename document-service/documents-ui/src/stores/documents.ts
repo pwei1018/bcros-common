@@ -1,3 +1,5 @@
+import type { DocumentInfoIF } from '~/interfaces/document-types-interface'
+
 export const useBcrosDocuments = defineStore('documents', () => {
   // Document Meta
   const consumerIdentifier = ref('')
@@ -8,11 +10,14 @@ export const useBcrosDocuments = defineStore('documents', () => {
 
   // Documents
   const documentList = ref([])
-  // const consumerFilename = ref(''): Future Payload Property
 
   // Validations
   const validateIndex = ref()
+  const isLoading = ref(false)
 
+  // Review
+  const displayDocumentReview = ref(false)
+  const documentInfoRO = ref(null as DocumentInfoIF)
 
   return {
     consumerIdentifier,
@@ -22,5 +27,8 @@ export const useBcrosDocuments = defineStore('documents', () => {
     consumerFilingDate,
     documentList,
     validateIndex,
+    isLoading,
+    displayDocumentReview,
+    documentInfoRO
   }
 })

@@ -1,4 +1,4 @@
-import type { DocumentTypesIF } from '~/interfaces/document-types-interface'
+import type { DocumentClassIF } from '~/interfaces/document-types-interface'
 
 /**
  * @file documentTypes.ts
@@ -7,17 +7,19 @@ import type { DocumentTypesIF } from '~/interfaces/document-types-interface'
  * - `prefixes`: Array of document prefixes.
  * - `documents`: Array of document details (type, description, product code).
  */
-export const documentTypes: DocumentTypesIF = {
-  Cooperatives: {
+export const documentTypes: Array<DocumentClassIF> = [
+  {
     class: 'COOP',
+    description: 'Cooperatives',
     prefixes: ['CP', 'XCP'],
     documents: [
       { type: 'COOP_MISC', description: 'Correction Filing', productCode: 'business' },
       { type: 'COFI', description: 'Cooperatives Miscellaneous Documents', productCode: 'business' }
     ]
   },
-  Corporations: {
+  {
     class: 'CORP',
+    description: 'Corporations',
     prefixes: ['BC', 'C', 'QA', 'QB', 'QC', 'QD', 'QE'],
     documents: [
       { type: 'CORP_MISC', description: 'Corporations Miscellaneous Documents', productCode: 'business' },
@@ -39,8 +41,9 @@ export const documentTypes: DocumentTypesIF = {
       { type: 'DISS', description: 'Dissolution Due to Death', productCode: 'business' }
     ]
   },
-  Firms: {
+  {
     class: 'FIRM',
+    description: 'Firms',
     prefixes: ['FM', 'GP', 'SP', 'MF'],
     documents: [
       { type: 'FIRM_MISC', description: 'Firms miscellaneous documents', productCode: 'business' },
@@ -48,8 +51,9 @@ export const documentTypes: DocumentTypesIF = {
       { type: 'COPN', description: 'Change of Proprietor\'s Name', productCode: 'business' }
     ]
   },
-  ManufacturedHomeRegistry: {
+  {
     class: 'MHR',
+    description: 'Manufactured Home Registry',
     prefixes: ['MH'],
     documents: [
       { type: 'MHR_MISC', description: 'MHR miscellaneous documents', productCode: 'mhr' },
@@ -103,16 +107,18 @@ export const documentTypes: DocumentTypesIF = {
       { type: 'WILL', description: 'TRANSFER TO EXECUTOR - GRANT OF PROBATE WITH WILL', productCode: 'mhr' }
     ]
   },
-  NameRequest: {
+  {
     class: 'NR',
+    description: 'Name Requests',
     prefixes: ['NR'],
     documents: [
       { type: 'NR_MISC', description: 'Name requests miscellaneous documents', productCode: 'nro' },
       { type: 'CONS', description: 'NR Consent Letter', productCode: 'nro' }
     ]
   },
-  PersonalPropertyRegistry: {
+  {
     class: 'PPR',
+    description: 'Personal Property Registry',
     prefixes: ['PPR'],
     documents: [
       { type: 'PPR_MISC', description: 'PPR miscellaneous documents', productCode: 'ppr' },
@@ -120,8 +126,9 @@ export const documentTypes: DocumentTypesIF = {
       { type: 'PPRC', description: 'PPR Secure Party Codes', productCode: 'ppr' }
     ]
   },
-  Societies: {
+  {
     class: 'SOCIETY',
+    description: 'Societies',
     prefixes: ['S', 'XS', 'S-', 'XS-', 'S/', 'XS/'],
     documents: [
       { type: 'SOC_MISC', description: 'Societies miscellaneous documents', productCode: 'business' },
@@ -133,8 +140,9 @@ export const documentTypes: DocumentTypesIF = {
       { type: 'DIRS', description: 'Directors', productCode: 'business' }
     ]
   },
-  Other: {
+  {
     class: 'OTHER',
+    description: 'Other',
     prefixes: [],
     documents: [
       { type: 'CERT', description: 'Certificates', productCode: 'business' },
@@ -167,4 +175,4 @@ export const documentTypes: DocumentTypesIF = {
       { type: 'OTP', description: 'OTP', productCode: 'business' }
     ]
   }
-}
+]

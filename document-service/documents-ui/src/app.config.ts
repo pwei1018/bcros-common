@@ -31,6 +31,11 @@ export default defineAppConfig({
       option: {
         base: 'cursor-pointer',
       },
+    },
+    modal: {
+      overlay: {
+        background: 'bg-gray-900/75',
+      }
     }
   }
 })
