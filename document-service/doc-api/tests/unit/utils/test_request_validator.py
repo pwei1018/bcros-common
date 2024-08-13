@@ -40,7 +40,7 @@ TEST_DATA_ADD = [
     ('Invalid content', False, RequestTypes.ADD, DocumentTypes.CORP_MISC, 'XXXXX', DocumentClasses.CORP,
      validator.INVALID_CONTENT_TYPE),
     ('Invalid doc class - type', False, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF,
-     DocumentClasses.FIRM, validator.INVALID_DOC_CLASS_TYPE),
+     DocumentClasses.FIRM, validator.INVALID_DOC_CLASS_TYPE)
 ]
 # test data pattern is ({description}, {valid}, {scan_date}, {filing_date}, {message_content})
 TEST_DATA_ADD_DATES = [
@@ -82,6 +82,16 @@ TEST_DATA_PATCH = [
     ('Invalid no change', False, None, None, None, None, None, validator.MISSING_PATCH_PARAMS),
     ('Invalid scan date', False, None, None, None, 'January 12, 2022', None, validator.INVALID_SCAN_DATE),
     ('Invalid filing date', False, None, None, None, None, 'January 12, 2022', validator.INVALID_FILING_DATE)
+]
+# test data pattern is ({description}, {valid}, {payload}, {doc_type}, {content_type}, {doc_class}, {message_content})
+TEST_DATA_REPLACE = [
+    ('Valid', True, True, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, DocumentClasses.CORP, None),
+    ('Invalid missing content', False, True, DocumentTypes.CORP_MISC, None, DocumentClasses.CORP,
+      validator.MISSING_CONTENT_TYPE),
+    ('Invalid content', False, True, DocumentTypes.CORP_MISC, '*/*', DocumentClasses.CORP,
+     validator.INVALID_CONTENT_TYPE),
+    ('Missing payload', False, False, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF,
+     DocumentClasses.FIRM, validator.MISSING_PAYLOAD)
 ]
 
 
@@ -233,4 +243,29 @@ def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, scan_da
                 err_msg = validator.INVALID_SCAN_DATE.format(param_date=scan_date)
             elif desc == 'Invalid filing date':
                 err_msg = validator.INVALID_FILING_DATE.format(param_date=scan_date)
+            assert error_msg.find(err_msg) != -1
+
+
+@pytest.mark.parametrize('desc,valid,has_payload,doc_type,content_type,doc_class,message_content', TEST_DATA_REPLACE)
+def test_validate_replace(session, desc, valid, has_payload, doc_type, content_type, doc_class, message_content):
+    """Assert that new put add/replace document request validation works as expected."""
+    # setup
+    info: RequestInfo = RequestInfo(RequestTypes.REPLACE, 'NA', doc_type, 'NA')
+    info.content_type = content_type
+    info.account_id = 'NA'
+    info.has_payload = has_payload
+    info.document_class = doc_class
+    error_msg = validator.validate_request(info)
+    if doc_type and not doc_class and not message_content:
+        assert info.document_class
+        if doc_type ==  DocumentTypes.CORP_MISC:
+            assert info.document_class == DocumentClasses.CORP.value
+    if valid:
+        assert error_msg == ''
+    else:
+        assert error_msg != ''
+        if message_content:
+            err_msg:str = message_content
+            if desc == 'Invalid content':
+                err_msg = validator.INVALID_CONTENT_TYPE.format(content_type=content_type)
             assert error_msg.find(err_msg) != -1

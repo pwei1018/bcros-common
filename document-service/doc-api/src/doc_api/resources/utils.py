@@ -17,7 +17,7 @@ from http import HTTPStatus
 from flask import jsonify, request
 from doc_api.exceptions import ResourceErrorCodes
 from doc_api.models import db, Document, DocumentRequest, utils as model_utils, User
-from doc_api.models.type_tables import DocumentClasses
+from doc_api.models.type_tables import DocumentClasses, RequestTypes
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils import request_validator
@@ -246,6 +246,13 @@ def update_request_info(req: request,
         info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
         info.consumer_scandate = request_json.get(PARAM_CONSUMER_SCANDATE)
     info.staff = staff
+    info.content_type = req.headers.get(PARAM_CONTENT_TYPE)
+    if info.content_type:
+        info.content_type = info.content_type.lower()
+    if info.request_type == RequestTypes.REPLACE and req.args.get(PARAM_CONSUMER_FILENAME):
+        info.consumer_filename = req.args.get(PARAM_CONSUMER_FILENAME)
+    if info.request_type == RequestTypes.REPLACE and request.get_data():
+        info.has_payload = True
     return info
 
 
@@ -292,6 +299,9 @@ def save_add(info: RequestInfo, token, raw_data) -> dict:
     if raw_data:
         logger.info('save_add saving file data to doc storage...')
         doc_link = save_to_doc_storage(document, info, raw_data)
+    else:
+        logger.info('save_add no payload file to save to doc storage...')
+        info.request_type = RequestTypes.PENDING.value
     logger.info('save_add building doc request model and saving...')
     doc_request: DocumentRequest = build_doc_request(info, user, document.id)
     db.session.add(document)
@@ -328,6 +338,30 @@ def save_update(info: RequestInfo, document: Document, token) -> dict:
     if doc_json.get('documentURL'):
         del doc_json['documentURL']
     logger.info('save_update completed...')
+    return doc_json
+
+
+def save_replace(info: RequestInfo, document: Document, token, raw_data) -> dict:
+    """Save request binary data to document storage, adding or replacing the existing document. Return a link"""
+    logger.info(f'save_replace starting raw data size={len(raw_data)}, getting user from token...')
+    service_id: str = document.document_service_id
+    user: User = User.get_or_create_user_by_jwt(token, info.account_id)
+    if info.consumer_filename:
+        document.consumer_filename = info.consumer_filename
+    if document.doc_storage_url:
+        logger.info(f'save_replace ID {service_id} replacing existing doc storage file {document.doc_storage_url}...')
+    else:
+        logger.info(f'save_replace adding new file for doc service id {service_id}...')
+    doc_link = save_to_doc_storage(document, info, raw_data)
+    logger.info('save_replace building doc request model and saving...')
+    doc_request: DocumentRequest = build_doc_request(info, user, document.id)
+    db.session.add(document)
+    db.session.add(doc_request)
+    db.session.commit()
+    doc_json = document.json
+    if doc_link:
+        doc_json['documentURL'] = doc_link
+    logger.info('save_replace completed...')
     return doc_json
 
 

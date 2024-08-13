@@ -39,6 +39,7 @@ INVALID_START_DATE = 'Request invalid: search start date format invalid {param_d
 INVALID_END_DATE = 'Request invalid: search end date format invalid {param_date}. '
 INVALID_START_END_DATE = 'Request invalid: search end date {end_date} before start date {start_date}. '
 MISSING_PATCH_PARAMS = 'Request invalid: update document information nothing to change. '
+MISSING_PAYLOAD = 'Request invalid: add/replace document missing required payload. '
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -62,6 +63,8 @@ def validate_request(info: RequestInfo) -> str:
         return validate_get(info, error_msg)
     if info.request_type and info.request_type == RequestTypes.UPDATE:
         return validate_patch(info, error_msg)
+    if info.request_type and info.request_type == RequestTypes.REPLACE:
+        return validate_put(info, error_msg)
     return error_msg
 
 
@@ -105,6 +108,21 @@ def validate_patch(info: RequestInfo, error_msg: str) -> str:
         error_msg += validate_filingdate(info)
     except Exception as validation_exception:   # noqa: B902; eat all errors
         logger.error('validate_patch exception: ' + str(validation_exception))
+        error_msg += VALIDATOR_ERROR
+    return error_msg
+
+
+def validate_put(info: RequestInfo, error_msg: str) -> str:
+    """Validate the put request."""
+    try:
+        if not info.content_type:
+            error_msg += MISSING_CONTENT_TYPE
+        elif not model_utils.TO_FILE_TYPE.get(info.content_type):
+            error_msg += INVALID_CONTENT_TYPE.format(content_type=info.content_type)
+        if not info.has_payload:
+            error_msg += MISSING_PAYLOAD
+    except Exception as validation_exception:   # noqa: B902; eat all errors
+        logger.error('validate_put exception: ' + str(validation_exception))
         error_msg += VALIDATOR_ERROR
     return error_msg
 

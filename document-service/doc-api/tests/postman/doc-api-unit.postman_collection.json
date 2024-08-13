@@ -211,6 +211,595 @@
 			]
 		},
 		{
+			"name": "documents",
+			"item": [
+				{
+					"name": "Upload CORP class all params except doc ID",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/pdf",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": ""
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/CORP/CORP_MISC?consumerIdentifier=BC0700000&consumerFilename=address_change.pdf&consumerFilingDate=2024-08-08&consumerScanDate=2024-05-01",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"CORP",
+								"CORP_MISC"
+							],
+							"query": [
+								{
+									"key": "consumerIdentifier",
+									"value": "BC0700000"
+								},
+								{
+									"key": "consumerFilename",
+									"value": "address_change.pdf"
+								},
+								{
+									"key": "consumerFilingDate",
+									"value": "2024-08-08"
+								},
+								{
+									"key": "consumerScanDate",
+									"value": "2024-05-01"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Submit requests to create new document records with or without a document payload."
+		},
+		{
+			"name": "put_add_replace",
+			"item": [
+				{
+					"name": "Replace with new filename",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/pdf",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": ""
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100005?consumerFilename=updated_address_change.pdf",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100005"
+							],
+							"query": [
+								{
+									"key": "consumerFilename",
+									"value": "updated_address_change.pdf"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Submit requests to add a document or replace an existing document by document service ID."
+		},
+		{
+			"name": "searches",
+			"item": [
+				{
+					"name": "Query By Service ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches/CORP?documentServiceId=DS0000100007",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "documentServiceId",
+									"value": "DS0000100007"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Document Id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches/CORP?consumerDocumentId=0100000001",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "consumerDocumentId",
+									"value": "0100000001"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Consumer/Entity Id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches/CORP?consumerIdentifier=BC0700002",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "consumerIdentifier",
+									"value": "BC0700002"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query No Results",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches/CORP?consumerIdentifier=XXX-JUNK",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "consumerIdentifier",
+									"value": "XXX-JUNK"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Dates",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches/CORP?queryStartDate=2024-08-10&queryEndDate=2024-08-12",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "queryStartDate",
+									"value": "2024-08-10"
+								},
+								{
+									"key": "queryEndDate",
+									"value": "2024-08-12"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Dates and Doc Type",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches/CORP?queryStartDate=2024-08-01&queryEndDate=2024-08-03&documentType=CORP_MISC",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches",
+								"CORP"
+							],
+							"query": [
+								{
+									"key": "queryStartDate",
+									"value": "2024-08-01"
+								},
+								{
+									"key": "queryEndDate",
+									"value": "2024-08-03"
+								},
+								{
+									"key": "documentType",
+									"value": "CORP_MISC"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Query document storage information."
+		},
+		{
+			"name": "patch_update",
+			"item": [
+				{
+					"name": "Update Consumer Doc Id",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"consumerDocumentId\": \"UT000006\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100003",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100003"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update All",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"consumerDocumentId\": \"UT000006\",\n  \"consumerFilename\": \"change_address2.pdf\",\n  \"consumerIdentifier\": \"BC0700002\",\n  \"consumerFilingDate\": \"2024-08-02\",\n  \"consumerScanDate\": \"2024-07-02\"\t\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100003",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100003"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Scan Date",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"consumerScanDate\": \"2024-06-02\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100003",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100003"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Filing Date",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"consumerFilingDate\": \"2024-07-02\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100003",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100003"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Filename",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"consumerFilename\": \"change_directors.pdf\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100003",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100003"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Consumer ID",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"consumerIdentifier\": \"BC0700001\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100003",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100003"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Update document storage information."
+		},
+		{
 			"name": "reports",
 			"item": [
 				{
@@ -238,7 +827,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/api/v1/reports/document-records/0100000001",
+							"raw": "{{base_url}}/api/v1/reports/document-records/0100000003",
 							"host": [
 								"{{base_url}}"
 							],
@@ -247,7 +836,7 @@
 								"v1",
 								"reports",
 								"document-records",
-								"0100000001"
+								"0100000003"
 							]
 						}
 					},
@@ -311,7 +900,7 @@
 		},
 		{
 			"key": "base_url_local",
-			"value": "http://localhost:5000",
+			"value": "https://localhost:5000",
 			"type": "string"
 		},
 		{

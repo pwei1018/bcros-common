@@ -31,6 +31,8 @@ from tests.unit.services.utils import create_header_upload, create_header_accoun
 
 
 TEST_DATAFILE = 'tests/unit/services/unit_test.pdf'
+TEST_FILENAME = 'updated_name.pdf'
+PARAM_TEST_FILENAME = '?consumerFilename=updated_name.pdf'
 MOCK_AUTH_URL = 'https://bcregistry-bcregistry-mock.apigee.net/mockTarget/auth/api/v1/'
 STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
 INVALID_ROLES = [COLIN_ROLE]
@@ -66,6 +68,13 @@ TEST_PATCH_DATA = [
     ('Invalid role', INVALID_ROLES, 'UT1234', 'INVALID', PATCH_PAYLOAD, HTTPStatus.UNAUTHORIZED),
     ('Invalid doc service id', STAFF_ROLES, 'UT1234', 'INVALID', PATCH_PAYLOAD, HTTPStatus.NOT_FOUND),
     ('Valid staff', STAFF_ROLES, 'UT1234', None, PATCH_PAYLOAD, HTTPStatus.OK)
+]
+# testdata pattern is ({description}, {roles}, {account}, {doc_service_id}, {status})
+TEST_PUT_DATA = [
+    ('Staff missing account', STAFF_ROLES, None, 'INVALID', HTTPStatus.BAD_REQUEST),
+    ('Invalid role', INVALID_ROLES, 'UT1234', 'INVALID', HTTPStatus.UNAUTHORIZED),
+    ('Invalid doc service id', STAFF_ROLES, 'UT1234', 'INVALID', HTTPStatus.NOT_FOUND),
+    ('Valid staff', STAFF_ROLES, 'UT1234', None, HTTPStatus.OK)
 ]
 
 
@@ -119,7 +128,6 @@ def test_create(session, client, jwt, desc, content_type, roles, account, doc_cl
         assert doc.document_type == doc_type
 
 
-# testdata pattern is ({description}, {roles}, {account}, {doc_service_id}, {payload}, {status})
 @pytest.mark.parametrize('desc,roles,account,doc_service_id,payload,status', TEST_PATCH_DATA)
 def test_update(session, client, jwt, desc, roles, account, doc_service_id, payload, status):
     """Assert that a request to update document information (not the document itself) works as expected."""
@@ -161,3 +169,48 @@ def test_update(session, client, jwt, desc, roles, account, doc_service_id, payl
         assert doc_json.get('consumerIdentifier') == payload.get('consumerIdentifier')
         assert doc_json.get('consumerFilename') == payload.get('consumerFilename')
         assert not doc_json.get('documentURL')
+
+
+@pytest.mark.parametrize('desc,roles,account,doc_service_id,status', TEST_PUT_DATA)
+def test_replace(session, client, jwt, desc, roles, account, doc_service_id, status):
+    """Assert that a request to add/replace a document works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    if account:
+        headers = create_header_account_upload(jwt, roles, 'UT-TEST', account, MEDIA_PDF)
+    else:
+        headers = create_header_upload(jwt, roles, MEDIA_PDF)
+    req_path = CHANGE_PATH.format(doc_service_id=doc_service_id)
+
+    # test
+    raw_data = None
+    if status == HTTPStatus.OK:  # Create.
+        response = client.post(PATH.format(doc_class=DOC_CLASS1, doc_type=DOC_TYPE1),
+                               data=None,
+                               headers=headers,
+                               content_type=MEDIA_PDF)
+        # logger.info(response.json)
+        resp_json = response.json
+        valid_id = resp_json.get('documentServiceId')
+        req_path = CHANGE_PATH.format(doc_service_id=valid_id) + PARAM_TEST_FILENAME
+        with open(TEST_DATAFILE, 'rb') as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+    response = client.put(req_path,
+                          data=raw_data,
+                          headers=headers,
+                          content_type=MEDIA_PDF)
+
+    # check
+    # logger.info(response.json)
+    assert response.status_code == status
+    if response.status_code == HTTPStatus.OK:
+        doc_json = response.json
+        assert doc_json
+        assert doc_json.get('documentServiceId')
+        assert doc_json.get('documentClass')
+        assert doc_json.get('consumerDocumentId')
+        assert doc_json.get('consumerIdentifier')
+        assert doc_json.get('consumerFilename') == TEST_FILENAME
+        assert doc_json.get('documentURL')
