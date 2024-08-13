@@ -20,7 +20,7 @@ import logging
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import RoutingException
 
-from notify_api import errorhandlers
+from doc_api import errorhandlers
 
 
 def test_handle_http_error_pass_through_routing_exception():  # pylint: disable=invalid-name

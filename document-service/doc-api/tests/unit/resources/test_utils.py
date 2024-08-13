@@ -48,6 +48,7 @@ TEST_TOKEN = {
     'idp_userid': 'idp_userid_TEST1',
     'loginSource': 'source_TEST1'
 }
+TEST_FILENAME = 'updated_name.pdf'
 
 # testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff})
 TEST_DATA_REQUEST_INFO = [
@@ -85,8 +86,41 @@ TEST_DATA_STORAGE_TYPES = [
 # testdata pattern is ({document}, {token}, {doc_id}, {cons_id}, {filename}, {filing_date}, {scan_date}, {doc_class})
 TEST_UPDATE_DATA = [
     (TEST_DOCUMENT, TEST_TOKEN, 'UT9999', 'NEW_ID', 'new_name.pdf', '2024-08-08', '2024-08-09',
-     DocumentClasses.CORP.value)
+     DocumentClasses.PPR.value)
 ]
+# testdata pattern is ({document}, {token}, {filename})
+TEST_REPLACE_DATA = [
+    (TEST_DOCUMENT, TEST_TOKEN, TEST_FILENAME)
+]
+
+
+@pytest.mark.parametrize('document,token,filename', TEST_REPLACE_DATA)
+def test_save_replace(session, document, token, filename):
+    """Assert that PUT request resource_utils.save_replace works as expected."""
+    doc: Document = copy.deepcopy(document)
+    doc.save()
+    assert not doc.doc_storage_url
+    info: RequestInfo = RequestInfo(RequestTypes.REPLACE.value, None, doc.document_type, None)
+    info.account_id = '1234'
+    info.consumer_filename = filename
+    # info.document_class = doc_class
+    raw_data = None
+    with open(TEST_DATAFILE, 'rb') as data_file:
+        raw_data = data_file.read()
+        data_file.close()
+    result = resource_utils.save_replace(info, doc, token, raw_data)
+    assert doc.doc_storage_url
+    assert result.get('documentServiceId')
+    assert result.get('createDateTime')
+    assert result.get('documentType') == doc.document_type
+    assert result.get('documentTypeDescription')
+    assert result.get('documentClass')
+    assert result.get('consumerDocumentId') == doc.consumer_document_id
+    assert result.get('consumerIdentifier') == doc.consumer_identifier
+    assert result.get('consumerFilename') == filename
+    assert result.get('consumerFilingDateTime')
+    assert result.get('consumerScanDateTime')
+    assert result.get('documentURL')
 
 
 @pytest.mark.parametrize('document,token,doc_id,cons_id,filename,filing_date,scan_date,doc_class', TEST_UPDATE_DATA)

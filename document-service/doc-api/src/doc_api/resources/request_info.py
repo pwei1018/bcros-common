@@ -35,6 +35,7 @@ class RequestInfo():
     document_type: str = None
     document_storage_type: str = None
     document_class: str = None
+    has_payload: bool = False
 
     def __init__(self, request_type: str, request_path: str, doc_type: str, doc_storage_type):
         """Set common base initialization."""
