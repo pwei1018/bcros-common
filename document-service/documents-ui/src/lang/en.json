@@ -16,7 +16,7 @@
   },
   "documentIndexing": {
     "label": "Document Indexing Information",
-    "incompleteError": 'Please complete required information',
+    "incompleteError": "Please complete required information",
     "form": {
       "id": {
         "label": "Entity ID",
@@ -45,5 +45,23 @@
     "help": "File must be a PDF. Maximum 50 MB.",
     "fileSizeError": "Documents exceeds maximum 50 MB file size",
     "fileTypeError": "Documents must be of PDF file type"
+  },
+  "documentReview": {
+    "title": "Document Information Saved",
+    "description": "Your document information has been successfully uploaded and saved. To view, complete a search on the document management page using the following information",
+    "labels": {
+      "documentId": "Document ID",
+      "entityId": "Entity ID",
+      "documentCategory": "Document Category",
+      "documentType": "Document Type",
+      "filingDate": "Filing Date",
+      "uploadDate": "Upload Date and Time",
+      "documentsUploaded": "Documents Uploaded",
+      "documentListLabel": "Documents"
+    },
+    "buttonLabels": {
+      "cancel": "Back to Documents Services Page",
+      "downloadReport": "Download Document Record Statement"
+    }
   }
 }
