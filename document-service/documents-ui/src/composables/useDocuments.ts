@@ -101,12 +101,7 @@ export const useDocuments = () => {
   /** Validate and Search Documents **/
   const searchDocuments = async (): Promise<void> => {
     validateDocumentSearch.value = true
-    console.warn({
-      searchDocumentId: searchDocumentId.value,
-      searchEntityId: searchEntityId.value,
-      searchDocumentClass: searchDocumentClass.value,
-      searchDocumentType: searchDocumentType.value
-    })
+
     if (hasMinimumSearchCriteria.value) {
       try {
         isLoading.value = true
@@ -200,10 +195,7 @@ export const useDocuments = () => {
             // Add the document name to the fileNames array
             consolidatedResponse.fileNames.push(document.name)
 
-            // Will remove post POC
-            console.warn('Success:', response.data.value)
           } else {
-            // Will remove post POC
             console.warn('Error:', response.message, response.status, response.statusText)
             isLoading.value = false
             return // Exit if there is an error in any request
