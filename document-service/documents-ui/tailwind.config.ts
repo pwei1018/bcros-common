@@ -5,7 +5,8 @@ export default {
     extend: {
       colors: {
         bcGovColor: {
-          darkBlue: '#003366'
+          darkBlue: '#003366',
+          ltBlue: '#e2e8ee'
         },
         // used color generator recommended by tailwind docs: https://uicolors.app/create
         bcGovGray: {

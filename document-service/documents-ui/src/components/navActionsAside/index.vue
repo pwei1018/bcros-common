@@ -12,7 +12,7 @@ const { documentList } = storeToRefs(useBcrosDocuments())
         <span class="text-white font-bold">{{ $t('title.documentIndexing') }}</span>
       </div>
       <div class="flex flex-row px-4 py-2 bg-white h-[40px] rounded-b">
-        <span class="text-gray-900 font-bold text-[14px] basis-full">{{ $t('documentUpload.asideDescription') }}</span>
+        <span class="text-gray-900 font-bold text-sm basis-full">{{ $t('documentUpload.asideDescription') }}</span>
         <span>{{ documentList.length || '-' }}</span>
       </div>
     </div>

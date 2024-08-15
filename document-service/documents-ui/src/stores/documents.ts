@@ -1,34 +1,45 @@
 import type { DocumentInfoIF } from '~/interfaces/document-types-interface'
 
-export const useBcrosDocuments = defineStore('documents', () => {
-  // Document Meta
-  const consumerIdentifier = ref('')
-  const noIdCheckbox = ref(false)
-  const documentClass = ref('')
-  const documentType = ref('')
-  const consumerFilingDate = ref('')
+export const useBcrosDocuments = defineStore('bcros/documents', () => {
 
-  // Documents
-  const documentList = ref([])
+  // Function to return default values
+  const getDefaultState = () => ({
+    // Document Search
+    searchDocumentId: '',
+    searchEntityId: '',
+    searchDocumentClass: '',
+    searchDocumentType: '',
+    searchDateRange: '',
 
-  // Validations
-  const validateIndex = ref()
-  const isLoading = ref(false)
+    // Document Meta
+    consumerIdentifier: '',
+    noIdCheckbox: false,
+    documentClass: '',
+    documentType: '',
+    consumerFilingDate: '',
+    documentList: [],
 
-  // Review
-  const displayDocumentReview = ref(false)
-  const documentInfoRO = ref(null as DocumentInfoIF)
+    // Validations
+    validateIndex: undefined,
+    isLoading: false,
+    validateDocumentSearch: false,
+
+    // Document Review
+    displayDocumentReview: false,
+    documentInfoRO: null as DocumentInfoIF,
+    documentSearchResults: [],
+  })
+
+  // Initial state
+  const state = reactive(getDefaultState())
+
+  // Reset function
+  const resetStore = () => {
+    Object.assign(state, getDefaultState())
+  }
 
   return {
-    consumerIdentifier,
-    noIdCheckbox,
-    documentClass,
-    documentType,
-    consumerFilingDate,
-    documentList,
-    validateIndex,
-    isLoading,
-    displayDocumentReview,
-    documentInfoRO
+    ...toRefs(state),
+    resetStore, // Expose the reset function
   }
 })

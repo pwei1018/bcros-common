@@ -57,7 +57,7 @@ const getDescription = (value: string, isType = false): string | undefined => {
         </div>
 
         <div class="flex flex-row py-6">
-          <span class="text-gray-700 font-normal text-[16px] leading-6">{{ $t('documentReview.description') }}</span>
+          <span class="text-gray-700 font-normal text-base leading-6">{{ $t('documentReview.description') }}</span>
         </div>
 
         <div class="grid grid-flow-row auto-rows-max">

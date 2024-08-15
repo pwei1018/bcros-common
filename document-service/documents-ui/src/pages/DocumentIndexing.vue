@@ -1,22 +1,15 @@
 <script setup lang="ts">
-const { initDocumentState, isValidIndexData, saveDocuments } = useDocumentIndexing()
-const { validateIndex, isLoading, displayDocumentReview } = storeToRefs(useBcrosDocuments())
-onMounted(() => { initDocumentState() })
-onUnmounted(() => { initDocumentState() })
+const { resetStore } = useBcrosDocuments()
+const { isValidIndexData, saveDocuments } = useDocuments()
+const { validateIndex, displayDocumentReview } = storeToRefs(useBcrosDocuments())
+// Use onScopeDispose to reset the store when the component is unmounted
+onMounted(() => { resetStore() })
+// Reset the store when the component is unmounted or scope is disposed
+onScopeDispose(() => { resetStore() })
 
 </script>
 <template>
   <div :data-cy="'document-indexing'" class="grid grid-cols-8 gap-4 mt-12 mb-16">
-
-    <!-- Loading Overlay and Spinner -->
-    <template v-if="isLoading">
-      <div class="fixed left-0 top-0 h-full w-full z-50 bg-gray-300 opacity-45" />
-      <UIcon
-        name="i-heroicons-arrow-path"
-        class="animate-spin text-[50px] text-blue-500 absolute top-40 left-[50%]"
-      />
-    </template>
-
     <!-- Document Review Modal -->
     <DocumentReviewModal />
 
@@ -26,7 +19,7 @@ onUnmounted(() => { initDocumentState() })
           <div class="grid grid-cols-6">
             <div class="col-span-6">
               <h1 class="text-[32px] pb-2" @click="displayDocumentReview = true">{{ $t('title.documentIndexing') }}</h1>
-              <span class="text-gray-700 font-normal text-[16px]">{{ $t('descriptions.documentIndexing') }}</span>
+              <span class="text-gray-700 font-normal text-base">{{ $t('descriptions.documentIndexing') }}</span>
             </div>
           </div>
         </template>

@@ -79,7 +79,7 @@ const removeFile = (index: number) => {
       </UFormGroup>
 
       <section v-if="documentList.length" class="mt-6 ml-1">
-        <h4 class="text-gray-700 font-bold text-[14px]">Documents:</h4>
+        <h4 class="text-gray-700 font-bold text-sm">Documents:</h4>
         <div
           v-for="(supportingDocument, index) in documentList"
           :key="supportingDocument.name"
