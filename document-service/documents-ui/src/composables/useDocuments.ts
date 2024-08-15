@@ -75,13 +75,23 @@ export const useDocuments = () => {
     const map = new Map()
 
     docs.forEach(doc => {
-      const { consumerDocumentId, consumerFilename, ...rest } = doc
+      const { consumerDocumentId, consumerFilename, documentURL, ...rest } = doc
 
       if (!map.has(consumerDocumentId)) {
-        map.set(consumerDocumentId, { consumerDocumentId, consumerFilenames: [consumerFilename], ...rest })
+        map.set(consumerDocumentId, {
+          consumerDocumentId,
+          consumerFilenames: [consumerFilename],
+          documentUrls: [documentURL],
+          ...rest
+        })
       } else {
         const existingDoc = map.get(consumerDocumentId)
-        existingDoc.consumerFilenames.push(consumerFilename)
+        if (consumerFilename) {
+          existingDoc.consumerFilenames.push(consumerFilename)
+        }
+        if (documentURL) {
+          existingDoc.documentUrls.push(documentURL)
+        }
       }
     })
 

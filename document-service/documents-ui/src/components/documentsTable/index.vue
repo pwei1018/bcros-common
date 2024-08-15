@@ -59,7 +59,7 @@ const documentResultCols = [
               v-for="(file, i) in row.consumerFilenames"
               :key="`file-${i}`"
               inactive-class="text-primary underline"
-              @click="downloadFileFromUrl(row.documentURL, row.consumerFilename)"
+              @click="downloadFileFromUrl(row.documentUrls[i], file)"
             >
               {{ file }}
             </ULink>
