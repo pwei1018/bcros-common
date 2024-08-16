@@ -395,9 +395,11 @@ def get_docs(info: RequestInfo) -> list:
             for result in query_results:
                 if result.doc_type and result.doc_type.document_class == info.document_class:
                     results.append(result.json)
-    elif info.consumer_identifier:
+    elif info.consumer_identifier and not (info.query_start_date or info.query_end_date):
         logger.info(f'get_docs class {info.document_class} query by consumer id {info.consumer_identifier}')
-        query_results = Document.find_by_consumer_id(info.consumer_identifier)
+        if info.document_type:
+            logger.info(f'Filtering on doc_type={info.document_type}')
+        query_results = Document.find_by_consumer_id(info.consumer_identifier, info.document_type)
         if query_results:
             for result in query_results:
                 if result.doc_type and result.doc_type.document_class == info.document_class:
@@ -406,7 +408,8 @@ def get_docs(info: RequestInfo) -> list:
         return model_utils.get_docs_by_date_range(info.document_class,
                                                   info.query_start_date,
                                                   info.query_end_date,
-                                                  info.document_type)
+                                                  info.document_type,
+                                                  info.consumer_identifier)
     logger.info('get docs completed...')
     return get_doc_links(info, results)
 

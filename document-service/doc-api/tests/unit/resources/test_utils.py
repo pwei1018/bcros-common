@@ -66,11 +66,13 @@ TEST_DATA_SAVE_STORAGE = [
 TEST_DATA_DOC_REQUEST = [
     (TEST_INFO, TEST_USER, 100, 'UT1234')
 ]
-# testdata pattern is ({doc_class}, {start_offset}, {doc_type}, {no_results})
+# testdata pattern is ({doc_class}, {start_offset}, {doc_type}, {cons_id}, {no_results})
 TEST_DATA_DOC_DATES = [
-    (DocumentClasses.CORP, 10, None, False),
-    (DocumentClasses.CORP, 1, DocumentTypes.MHR_MISC, True),
-    (DocumentClasses.CORP.value, 10, DocumentTypes.CORP_MISC.value, False)
+    (None, 10, None, None, True),
+    (DocumentClasses.CORP, 10, None, None, False),
+    (DocumentClasses.CORP, 1, DocumentTypes.MHR_MISC, None, True),
+    (DocumentClasses.CORP.value, 10, None, 'UT000004', False),
+    (DocumentClasses.CORP.value, 10, DocumentTypes.CORP_MISC.value, 'UT000004', False)
 ]
 # testdata pattern is ({doc_class}, {storage_type})
 TEST_DATA_STORAGE_TYPES = [
@@ -150,12 +152,13 @@ def test_save_update(session, document, token, doc_id, cons_id, filename, filing
     assert not result.get('documentURL')
 
 
-@pytest.mark.parametrize('doc_class,start_offset,doc_type,no_results', TEST_DATA_DOC_DATES)
-def test_get_docs_by_dates(session, doc_class, start_offset, doc_type, no_results):
+@pytest.mark.parametrize('doc_class,start_offset,doc_type,cons_id,no_results', TEST_DATA_DOC_DATES)
+def test_get_docs_by_dates(session, doc_class, start_offset, doc_type, cons_id, no_results):
     """Assert that get_docs_by_date_range works as expected."""
     info: RequestInfo = RequestInfo(RequestTypes.GET.value, None, doc_type, None)
     info.account_id = '1234'
     info.document_class = doc_class
+    info.consumer_identifier = cons_id
     end = model_utils.now_ts()
     start = model_utils.date_offset(end.date(), start_offset)
     info.query_start_date = start.isoformat()
@@ -170,7 +173,11 @@ def test_get_docs_by_dates(session, doc_class, start_offset, doc_type, no_result
             assert result.get('documentType')
             assert result.get('documentTypeDescription')
             assert result.get('documentClass')
-            assert 'documentURL' not in result
+            if doc_type:
+                assert result.get('documentType') == doc_type
+            if cons_id:
+                assert result.get('consumerIdentifier') == cons_id
+            assert not result.get('documentURL')
 
 
 @pytest.mark.parametrize('info,user,doc_id,account_id', TEST_DATA_DOC_REQUEST)
