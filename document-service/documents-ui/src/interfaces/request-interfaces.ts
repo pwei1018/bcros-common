@@ -15,7 +15,8 @@ export interface ApiErrorIF {
 export type ApiResponseOrError = ApiResponseIF | ApiErrorIF
 
 // Define a type for the document request parameters
-export interface DocumentRequestParamsIF {
+export interface DocumentRequestIF {
+  documentServiceId?: string
   consumerDocumentId?: string
   documentClass: string
   documentType: string
@@ -23,7 +24,7 @@ export interface DocumentRequestParamsIF {
   consumerFilingDate?: string
   consumerFilename?: string
   productCode?: string
-
+  documentURL?: string
 }
 
 // Define a type for the request data (if any)

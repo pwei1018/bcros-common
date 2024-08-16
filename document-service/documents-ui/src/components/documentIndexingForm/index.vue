@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { documentTypes } from '~/utils/documentTypes'
 import { useBcrosDocuments } from '~/stores/documents'
-import type { DocumentDetailIF } from '~/interfaces/document-types-interface'
-
 const props = defineProps({
   validate: {
     type: Boolean,
@@ -18,6 +16,11 @@ const {
   consumerFilingDate
 } = storeToRefs(useBcrosDocuments())
 
+const {
+  findCategoryByPrefix,
+  getDocumentTypesByClass
+} = useDocuments()
+
 const hasIdError = computed(() => {
   return props.validate && !consumerIdentifier.value && !noIdCheckbox.value
 })
@@ -30,32 +33,6 @@ const hasTypeError = computed(() => {
 const hasDateError = computed(() => {
   return props.validate && !consumerFilingDate.value
 })
-
-/**
- * Retrieves document descriptions for the specified category
- * @param documentClass - The document class for which to retrieve documents
- * @returns An array of document descriptions or an empty array if the category is not found
- */
-function getDocumentTypesByClass(documentClass: string): Array<DocumentDetailIF>|[]  {
-  return documentTypes.find(doc => doc.class === documentClass)?.documents || []
-}
-
-/**
- * Finds the category based on the prefix of the entity identifier.
- * @param identifier - The entity identifier to search.
- * @returns The category associated with the prefix or null if no match is found.
- */
-function findCategoryByPrefix(identifier: string): void {
-  const match = identifier.match(/^([A-Za-z]+)\d*/)
-  const prefix = match ? match[1].toUpperCase() : '' // Extract prefix
-
-  for (const documentType of documentTypes) {
-    if (documentType.prefixes.includes(prefix)) {
-      documentClass.value = documentType.class
-      return
-    }
-  }
-}
 
 /** Watch the entity identifier and pre-populate document category when there is a prefix match **/
 watch(() => consumerIdentifier.value, (id: string) => {
@@ -82,7 +59,7 @@ watch(() => documentClass.value, () => {
     class="rounded"
   >
     <template #label>
-      <h2 class="text-[16px] leading-6 font-bold">{{ $t('documentIndexing.label') }}</h2>
+      <h2 class="text-base leading-6 font-bold">{{ $t('documentIndexing.label') }}</h2>
     </template>
 
     <template #form>

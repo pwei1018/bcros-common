@@ -2,13 +2,57 @@ import type { AxiosError } from 'axios'
 import type {
   ApiResponseIF,
   ApiResponseOrError,
-  DocumentRequestParamsIF,
+  DocumentRequestIF,
   RequestDataIF
 } from '~/interfaces/request-interfaces'
 
 const config = useRuntimeConfig()
 const baseURL = config.public.documentsApiURL
 const docApiKey = config.public.documentsApiKey
+
+/**
+ * Sends a GET request to fetch a document from the specified API endpoint.
+ *
+ * @param params - The parameters for the document request, including document class, type, and optional consumer information.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function getDocuments(params: DocumentRequestIF): Promise<ApiResponseOrError> {
+  const options = {
+    method: 'GET',
+    headers: { 'x-apikey': `${docApiKey}` }
+  }
+
+  const {
+    consumerDocumentId,
+    documentClass,
+    documentType,
+    consumerIdentifier,
+  } = params
+
+  // Construct query parameters
+  const queryParams = new URLSearchParams()
+  if (consumerDocumentId) queryParams.append('consumerDocumentId', consumerDocumentId)
+  if (consumerIdentifier) queryParams.append('consumerIdentifier', consumerIdentifier)
+  if (documentType) queryParams.append('documentType', documentType)
+
+  // Build the full URL
+  const url = `${baseURL}/searches/${documentClass}?${queryParams.toString()}`
+
+  try {
+    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    return {
+      data: response.data,
+      status: response.status
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
 
 /**
  * Sends a POST request to upload a document to the specified API endpoint.
@@ -18,7 +62,7 @@ const docApiKey = config.public.documentsApiKey
  * @param document - The document data to be sent in the request body.
  * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
  */
-export async function postDocument(params: DocumentRequestParamsIF, document: RequestDataIF)
+export async function postDocument(params: DocumentRequestIF, document: RequestDataIF)
   : Promise<ApiResponseOrError> {
   const options = {
     method: 'POST',

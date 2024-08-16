@@ -6,7 +6,7 @@ export default defineAppConfig({
   ui: {
     formGroup: {
       label: {
-        base: 'text-gray-900 text-[16px] font-bold',
+        base: 'text-gray-900 text-base font-bold',
         required: "text-red-600",
       },
       disabled: 'text-red-600',
@@ -35,6 +35,16 @@ export default defineAppConfig({
     modal: {
       overlay: {
         background: 'bg-gray-900/75',
+      }
+    },
+    table: {
+      wrapper: 'max-h-[500px] overflow-y-auto',
+      th: {
+        base: 'w-[200px] text-left text-gray-700 font-bold',
+      },
+      td: {
+        base: 'w-[200px] h-[65px] last:block last:whitespace-normal',
+        color: 'text-gray-700',
       }
     }
   }

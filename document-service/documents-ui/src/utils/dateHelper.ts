@@ -1,3 +1,5 @@
+import { b } from 'unplugin-vue-router/types-CEBdfPkN'
+
 /**
  * Converts a date string into an ISO 8601 formatted string with the local timezone offset.
  *
@@ -31,23 +33,21 @@ export const formatDateToISO = (dateString: string) => {
  * includes the full date, time, and the Pacific time zone.
  *
  * @param isoDate - The ISO 8601 date string to be formatted (e.g., "2024-08-13T17:21:29+00:00").
- * @returns A string representing the formatted date in a readable format with time and timezone.
- *
- * @example
- * ```typescript
- * const isoDate = '2024-08-13T17:21:29+00:00';
- * console.log(formatToReadableDate(isoDate));
- * // Output: "August 13, 2024 at 10:21:29 AM Pacific time"
- * ```
+ * @param omitTime - A flag to determine if the date should be formatted without time.
+ * @returns A string representing the formatted date in a readable format with or without time.
  */
-export function formatToReadableDate(isoDate: string): string {
+export function formatToReadableDate(isoDate: string, omitTime: boolean = false): string {
   const date = new Date(isoDate)
 
-  // Options for formatting the date and time
-  const options: Intl.DateTimeFormatOptions = {
+  // Options for formatting the date
+  const dateOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
-    day: 'numeric',
+    day: 'numeric'
+  }
+
+  // Options for formatting the time
+  const timeOptions: Intl.DateTimeFormatOptions = {
     hour: 'numeric',
     minute: 'numeric',
     second: 'numeric',
@@ -56,8 +56,17 @@ export function formatToReadableDate(isoDate: string): string {
     timeZone: 'America/Los_Angeles', // Pacific Time Zone
   }
 
-  // Format the date and time
-  const formattedDate = new Intl.DateTimeFormat('en-US', options).format(date)
+  // Format the date
+  const formattedDate = new Intl.DateTimeFormat('en-US', dateOptions).format(date)
 
-  return formattedDate.replace(/PDT|PST/, 'Pacific time')
+  // If omitTime is true, return only the date
+  if (omitTime) {
+    return formattedDate
+  }
+
+  // Otherwise, format the date with time
+  const formattedTime = new Intl.DateTimeFormat('en-US', timeOptions).format(date)
+
+  // Return the date and time, replacing PDT/PST with 'Pacific time'
+  return `${formattedDate} at ${formattedTime.replace(/PDT|PST/, 'Pacific time')}`
 }
