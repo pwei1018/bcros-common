@@ -36,18 +36,22 @@ INVALID_ROLES = [COLIN_ROLE]
 DOC_CLASS1 = DocumentClasses.CORP.value
 DOC_TYPE1 = DocumentTypes.CORP_MISC.value
 TEST_DOC_ID = 'UT9999999'
+TEST_CONSUMER_ID = 'UTBUS'
 MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
 PARAMS1 = '?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25' + \
     '&consumerScanDate=2024-05-01&consumerDocumentId=' + TEST_DOC_ID
 PATH: str = '/api/v1/business/{doc_class}/{doc_type}' + PARAMS1
 GET_PATH = '/api/v1/searches/{doc_class}'
-PARAM_CONSUMER_ID = '?consumerIdentifier=UTBUS'
+PARAM_CONSUMER_ID = '?consumerIdentifier=' + TEST_CONSUMER_ID
 PARAM_CONSUMER_ID_NONE = '?consumerIdentifier=XXXXXXX'
 PARAM_DOC_SERVICE_ID = '?documentServiceId='
 PARAM_CONSUMER_DOC_ID = '?consumerDocumentId=' + TEST_DOC_ID
 PARAMS_DATE_INVALID = '?queryStartDate=2024-07-30'
 PARAMS_DATE_VALID = '?queryStartDate=2023-07-30&queryEndDate=2023-07-30'
 PARAMS_DATE_DOC_TYPE_VALID = '?queryStartDate=2023-07-30&queryEndDate=2024-03-30&documentType=' + DOC_TYPE1
+PARAMS_DATE_CONS_ID_VALID = '?queryStartDate=2023-07-30&queryEndDate=2024-03-30&consumerIdentifier=' + TEST_CONSUMER_ID
+PARAMS_DATE_ALL_VALID = '?queryStartDate=2023-07-30&queryEndDate=2024-03-30&consumerIdentifier=' + TEST_CONSUMER_ID + \
+    '&documentType=' + DOC_TYPE1
 
 # testdata pattern is ({description}, {params}, {roles}, {account}, {doc_class}, {status})
 TEST_SEARCH_DATA = [
@@ -58,6 +62,10 @@ TEST_SEARCH_DATA = [
     ('Invalid role', PARAM_CONSUMER_ID, INVALID_ROLES, 'UT1234', DOC_CLASS1, HTTPStatus.UNAUTHORIZED),
     ('Valid date params', PARAMS_DATE_VALID, STAFF_ROLES, 'UT1234', DOC_CLASS1, HTTPStatus.NOT_FOUND),
     ('Valid date, type params', PARAMS_DATE_DOC_TYPE_VALID, STAFF_ROLES, 'UT1234', DOC_CLASS1, HTTPStatus.NOT_FOUND),
+    ('Valid date, consumer_id params', PARAMS_DATE_CONS_ID_VALID, STAFF_ROLES, 'UT1234', DOC_CLASS1,
+     HTTPStatus.NOT_FOUND),
+    ('Valid date, type, consumer id params', PARAMS_DATE_ALL_VALID, STAFF_ROLES, 'UT1234', DOC_CLASS1,
+     HTTPStatus.NOT_FOUND),
     ('Valid consumer ID no results', PARAM_CONSUMER_ID_NONE, STAFF_ROLES, 'UT1234', DOC_CLASS1, HTTPStatus.NOT_FOUND),
     ('Valid consumer ID', PARAM_CONSUMER_ID, STAFF_ROLES, 'UT1234', DOC_CLASS1, HTTPStatus.OK),
     ('Valid document ID', PARAM_CONSUMER_DOC_ID, STAFF_ROLES, 'UT1234', DOC_CLASS1, HTTPStatus.OK),

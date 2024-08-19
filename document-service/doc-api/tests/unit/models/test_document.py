@@ -55,6 +55,12 @@ TEST_DOC_ID_DATA = [
     ('T0000001', True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value),
     ('XXXD0000', False, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value)
 ]
+# testdata pattern is ({id}, {has_results}, {doc_type), {doc_class}, {query_doc_type})
+TEST_CONSUMER_ID_DATA = [
+    ('T0000001', True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, False),
+    ('T0000001', True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, True),
+    ('XXXD0000', False, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, False)
+]
 # testdata pattern is ({has_doc_id}, {doc_type})
 TEST_CREATE_JSON_DATA = [
     (True, DocumentTypes.CORP_MISC.value),
@@ -127,8 +133,8 @@ def test_find_by_document_id(session, id, has_results, doc_type, doc_class):
         assert doc_json.get('documentTypeDescription')
 
 
-@pytest.mark.parametrize('id, has_results, doc_type, doc_class', TEST_DOC_ID_DATA)
-def test_find_by_consumer_id(session, id, has_results, doc_type, doc_class):
+@pytest.mark.parametrize('id, has_results, doc_type, doc_class, query_doc_type', TEST_CONSUMER_ID_DATA)
+def test_find_by_consumer_id(session, id, has_results, doc_type, doc_class, query_doc_type):
     """Assert that find document by consumer identifier contains all expected elements."""
     if not has_results:
         document: Document = Document.find_by_consumer_id(id)
@@ -140,7 +146,7 @@ def test_find_by_consumer_id(session, id, has_results, doc_type, doc_class):
         assert save_doc.document_service_id
         assert save_doc.consumer_document_id
         assert save_doc.consumer_identifier
-        documents = Document.find_by_consumer_id(save_doc.consumer_identifier)
+        documents = Document.find_by_consumer_id(save_doc.consumer_identifier, doc_type if query_doc_type else None)
         assert documents
         document: Document = documents[0]
         assert document.consumer_document_id == save_doc.consumer_document_id

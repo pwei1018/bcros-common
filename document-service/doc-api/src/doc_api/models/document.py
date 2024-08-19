@@ -13,6 +13,7 @@
 # limitations under the License.
 """This module holds data for individual documents."""
 
+from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.sql import text
 from doc_api.exceptions import DatabaseException
@@ -117,13 +118,21 @@ class Document(db.Model):
         return documents
 
     @classmethod
-    def find_by_consumer_id(cls, consumer_id: str):
-        """Return a list of document objects by consumer document id/number."""
+    def find_by_consumer_id(cls, consumer_id: str, doc_type: str = None):
+        """Return a list of document objects by consumer document id/number and optional document type."""
         documents = None
         if consumer_id:
             try:
-                documents = db.session.query(Document) \
-                    .filter(Document.consumer_identifier == consumer_id).order_by(Document.id).all()
+                if doc_type:
+                    logger.info(f'querying by consumer ID {consumer_id} and doc type {doc_type}')
+                    documents = db.session.query(Document) \
+                        .filter(and_(Document.consumer_identifier == consumer_id,
+                                     Document.document_type == doc_type)) \
+                        .order_by(Document.consumer_document_id).all()
+                else:
+                    documents = db.session.query(Document) \
+                        .filter(Document.consumer_identifier == consumer_id) \
+                        .order_by(Document.consumer_document_id).all()
             except Exception as db_exception:   # noqa: B902; return nicer error
                 logger.error('Document.find_by_consumer_id exception: ' + str(db_exception))
                 raise DatabaseException(db_exception) from db_exception
