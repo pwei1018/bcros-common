@@ -25,6 +25,8 @@ export interface DocumentRequestIF {
   consumerFilename?: string
   productCode?: string
   documentURL?: string
+  queryStartDate?: string
+  queryEndDate?: string
 }
 
 // Define a type for the request data (if any)

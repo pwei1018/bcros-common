@@ -1,7 +1,8 @@
 import { useBcrosDocuments } from '~/stores/documents'
 import { getDocuments, postDocument } from '~/utils/documentRequests'
 import type { ApiResponseIF, ApiResponseOrError, DocumentRequestIF } from '~/interfaces/request-interfaces'
-import type { DocumentInfoIF } from '~/interfaces/document-types-interface'
+import type { DocumentDetailIF, DocumentInfoIF } from '~/interfaces/document-types-interface'
+import { formatIsoToYYYYMMDD } from '~/utils/dateHelper'
 
 export const useDocuments = () => {
   const {
@@ -19,9 +20,9 @@ export const useDocuments = () => {
     searchDocumentClass,
     searchDocumentType,
     validateDocumentSearch,
-    documentSearchResults
+    documentSearchResults,
+    searchDateRange
   } = storeToRefs(useBcrosDocuments())
-  const { resetStore } = useBcrosDocuments()
 
   /**
    * Retrieves document descriptions for the specified category
@@ -111,6 +112,10 @@ export const useDocuments = () => {
             consumerIdentifier: searchEntityId.value,
             documentClass: searchDocumentClass.value,
             documentType: searchDocumentType.value,
+            ...(searchDateRange.value?.end && {
+              queryStartDate: formatIsoToYYYYMMDD(searchDateRange.value.start),
+              queryEndDate: formatIsoToYYYYMMDD(searchDateRange.value.end)
+            })
           }
         ) as ApiResponseIF
         isLoading.value = false
@@ -118,7 +123,6 @@ export const useDocuments = () => {
       }
       catch (error) {
         console.error('Request failed:', error)
-        resetStore()
       }
     }
   }

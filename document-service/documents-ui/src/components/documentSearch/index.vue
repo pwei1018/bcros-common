@@ -16,6 +16,10 @@ watch(() => searchEntityId.value, (id: string) => {
   // Assign and populate a prefix if a match is found
   if (id.length >= 1) findCategoryByPrefix(id, true)
 })
+/** Watch the document category and reset the document type on change **/
+watch(() => searchDocumentClass.value, () => {
+  searchDocumentType.value = ''
+})
 </script>
 <template>
   <ContentWrapper name="document-search" class="mt-7 pb-10">
@@ -34,7 +38,6 @@ watch(() => searchEntityId.value, (id: string) => {
               type="text"
               required
               placeholder="Document Id"
-              :ui="{ placeholder: false ? 'placeholder:text-red-500' : 'text-gray-700' }"
             />
           </UFormGroup>
         </div>
@@ -47,7 +50,6 @@ watch(() => searchEntityId.value, (id: string) => {
               type="text"
               required
               :placeholder="$t('documentIndexing.form.id.label')"
-              :ui="{ placeholder: false ? 'placeholder:text-red-500' : 'text-gray-700' }"
             />
           </UFormGroup>
         </div>
@@ -90,7 +92,8 @@ watch(() => searchEntityId.value, (id: string) => {
             <InputDatePicker
               v-model="searchDateRange"
               class="mt-3"
-              :ui="{ placeholder: false ? 'placeholder:text-red-500' : 'text-gray-700' }"
+              is-ranged-picker
+              :disabled="!searchDocumentType"
             />
           </UFormGroup>
         </div>

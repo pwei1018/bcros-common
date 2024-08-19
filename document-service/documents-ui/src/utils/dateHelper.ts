@@ -1,5 +1,3 @@
-import { b } from 'unplugin-vue-router/types-CEBdfPkN'
-
 /**
  * Converts a date string into an ISO 8601 formatted string with the local timezone offset.
  *
@@ -69,4 +67,18 @@ export function formatToReadableDate(isoDate: string, omitTime: boolean = false)
 
   // Return the date and time, replacing PDT/PST with 'Pacific time'
   return `${formattedDate} at ${formattedTime.replace(/PDT|PST/, 'Pacific time')}`
+}
+
+/**
+ * Converts an ISO 8601 date string to YYYY-MM-DD format.
+ *
+ * @param {string} isoString - The ISO 8601 date string (e.g., '2024-08-01T07:00:00.000Z').
+ * @returns {string} - The formatted date in YYYY-MM-DD format.
+ */
+export function formatIsoToYYYYMMDD(isoString) {
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

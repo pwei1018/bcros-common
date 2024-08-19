@@ -8,15 +8,19 @@ const props = defineProps({
   modelValue: {
     type: [String, Date] as PropType<DatePickerDate | DatePickerRangeObject>,
     default: null
+  },
+  isRangedPicker: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'close'])
+const emit = defineEmits(['update:model-value', 'close'])
 
 const date = computed({
   get: () => props.modelValue,
   set: (value) => {
-    emit('update:modelValue', value)
+    emit('update:model-value', value)
     emit('close')
   }
 })
@@ -31,5 +35,15 @@ const attrs = {
 </script>
 
 <template>
-  <VCalendarDatePicker v-model="date" v-bind="{ ...attrs, ...$attrs }" />
+  <VCalendarDatePicker
+    v-if="date && isRangedPicker && (typeof date === 'object')"
+    v-model.range="date"
+    :columns="2"
+    v-bind="{ ...attrs, ...$attrs }"
+  />
+  <VCalendarDatePicker
+    v-else
+    v-model="date"
+    v-bind="{ ...attrs, ...$attrs }"
+  />
 </template>

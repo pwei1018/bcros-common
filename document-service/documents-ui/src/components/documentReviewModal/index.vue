@@ -14,7 +14,6 @@ const requestDocumentRecord = async (consumerId: string) => {
   loadingDocuments.value = true
   await getDocumentRecord(consumerId)
   loadingDocuments.value = false
-  navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
 }
 
 /**
