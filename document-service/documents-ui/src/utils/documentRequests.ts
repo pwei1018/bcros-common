@@ -27,6 +27,8 @@ export async function getDocuments(params: DocumentRequestIF): Promise<ApiRespon
     documentClass,
     documentType,
     consumerIdentifier,
+    queryStartDate,
+    queryEndDate
   } = params
 
   // Construct query parameters
@@ -34,6 +36,8 @@ export async function getDocuments(params: DocumentRequestIF): Promise<ApiRespon
   if (consumerDocumentId) queryParams.append('consumerDocumentId', consumerDocumentId)
   if (consumerIdentifier) queryParams.append('consumerIdentifier', consumerIdentifier)
   if (documentType) queryParams.append('documentType', documentType)
+  if (queryStartDate) queryParams.append('queryStartDate', queryStartDate)
+  if (queryEndDate) queryParams.append('queryEndDate', queryEndDate)
 
   // Build the full URL
   const url = `${baseURL}/searches/${documentClass}?${queryParams.toString()}`
