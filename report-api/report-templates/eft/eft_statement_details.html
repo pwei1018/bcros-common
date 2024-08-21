@@ -15,7 +15,7 @@
                             {% endif %}
                         </div>
                     {% else %}
-                        <div><span class="font-bold">Payment Due Date:</span> {{statement.to_date | format_datetime('mmm dd,yyyy')}} at 5:15 PM Pacific Time</div>
+                        <div><span class="font-bold">Payment Due Date:</span> {{statementSummary.dueDate | format_datetime('mmm dd,yyyy')}} at 5:15 PM Pacific Time</div>
                     {% endif %}
                     
                     <div><span class="font-bold">Statement Number:</span> {{statement.id}}</div>

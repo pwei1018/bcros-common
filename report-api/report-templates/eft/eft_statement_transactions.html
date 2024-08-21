@@ -113,7 +113,7 @@
                     <span class="total">${{ "{:,.2f}".format(total.due) if total.due else '0.00' }}</span>
                 </div>
                 {% if not statement.is_interim_statement %}
-                    <div class="font-14">Payment Due Date: {{ statement.to_date | format_datetime('mmm dd,yyyy') }} at 5:15 pm Pacific Time</div>
+                    <div class="font-14">Payment Due Date: {{ statementSummary.dueDate | format_datetime('mmm dd,yyyy') }} at 5:15 pm Pacific Time</div>
                 {% endif %}
             </td>
         </tr>
