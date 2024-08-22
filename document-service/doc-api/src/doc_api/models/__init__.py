@@ -21,6 +21,7 @@ from .type_tables import (
 )
 from .document import Document
 from .document_request import DocumentRequest
+from .document_scanning import DocumentScanning
 from .user import User
 
 
@@ -29,5 +30,6 @@ __all__ = ('db',
            'DocumentClass',
            'DocumentType',
            'DocumentRequest',
+           'DocumentScanning',
            'RequestType',
            'User')

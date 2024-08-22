@@ -195,6 +195,9 @@ class Report:  # pylint: disable=too-few-public-methods
             doc['createDateTime'] = report_utils.to_report_datetime(doc['createDateTime'])
             if doc.get('consumerFilingDateTime'):
                 doc['consumerFilingDateTime'] = report_utils.to_report_datetime(doc['consumerFilingDateTime'], False)
+            if doc.get('scanningInformation') and doc['scanningInformation'].get('scanDateTime'):
+                scan_date = doc['scanningInformation'].get('scanDateTime')
+                doc['scanningInformation']['scanDateTime'] = report_utils.to_report_datetime(scan_date, False)
 
     def _set_descriptions(self):
         """Replace with title case."""

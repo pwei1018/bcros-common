@@ -39,7 +39,7 @@ TEST_DOC_ID = 'UT9999999'
 TEST_CONSUMER_ID = 'UTBUS'
 MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
 PARAMS1 = '?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25' + \
-    '&consumerScanDate=2024-05-01&consumerDocumentId=' + TEST_DOC_ID
+    '&consumerDocumentId=' + TEST_DOC_ID
 PATH: str = '/api/v1/business/{doc_class}/{doc_type}' + PARAMS1
 GET_PATH = '/api/v1/searches/{doc_class}'
 PARAM_CONSUMER_ID = '?consumerIdentifier=' + TEST_CONSUMER_ID

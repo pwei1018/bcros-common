@@ -20,7 +20,7 @@ import copy
 
 import pytest
 
-from doc_api.models import Document, utils as model_utils
+from doc_api.models import Document, DocumentScanning, utils as model_utils
 from doc_api.models.type_tables import DocumentTypes, DocumentClasses, DocumentType
 
 
@@ -29,8 +29,14 @@ DOC1 = {
     'consumerFilename': 'test.pdf',
     'consumerIdentifier': 'T0000002',
     'documentType': 'PPR_MISC',
-    'consumerFilingDateTime': '2024-07-01T19:00:00+00:00',
-    'consumerScanDateTime': '2024-05-01T19:00:00+00:00'
+    'consumerFilingDateTime': '2024-07-01T19:00:00+00:00'
+}
+DOC_SCAN = {
+    'scanDateTime': '2024-08-15T19:00:00+00:00',
+    'accessionNumber': 'AN-0002',
+    'batchId': '12345',
+    'author': 'Janet Smith',
+    'pageCount': 4
 }
 TEST_DOCUMENT = Document(id=1,
                          document_service_id='1',
@@ -39,8 +45,7 @@ TEST_DOCUMENT = Document(id=1,
                          consumer_document_id='T0000001',
                          consumer_identifier='T0000002',
                          consumer_filename='test.pdf',
-                         consumer_filing_date=model_utils.ts_from_iso_date_noon('2024-07-01'),
-                         scan_date=model_utils.ts_from_iso_date_noon('2024-05-01'))
+                         consumer_filing_date=model_utils.ts_from_iso_date_noon('2024-07-01'))
 
 # testdata pattern is ({id}, {has_results}, {doc_type), {doc_class})
 TEST_ID_DATA = [
@@ -51,9 +56,11 @@ TEST_DOC_SERVICE_ID_DATA = [
     ('T0000001', True, DocumentTypes.MHR_MISC.value, DocumentClasses.MHR.value),
     ('XXXD0000', False, DocumentTypes.MHR_MISC.value, DocumentClasses.MHR.value)
 ]
+# testdata pattern is ({id}, {has_results}, {doc_type), {doc_class}, {has_scan})
 TEST_DOC_ID_DATA = [
-    ('T0000001', True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value),
-    ('XXXD0000', False, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value)
+    ('T0000001', True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, True),
+    ('T0000001', True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, False),
+    ('XXXD0000', False, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, False)
 ]
 # testdata pattern is ({id}, {has_results}, {doc_type), {doc_class}, {query_doc_type})
 TEST_CONSUMER_ID_DATA = [
@@ -110,13 +117,17 @@ def test_find_by_doc_service_id(session, id, has_results, doc_type, doc_class):
         assert doc_json.get('documentTypeDescription')
 
 
-@pytest.mark.parametrize('id, has_results, doc_type, doc_class', TEST_DOC_ID_DATA)
-def test_find_by_document_id(session, id, has_results, doc_type, doc_class):
+@pytest.mark.parametrize('id, has_results, doc_type, doc_class, has_scan', TEST_DOC_ID_DATA)
+def test_find_by_document_id(session, id, has_results, doc_type, doc_class, has_scan):
     """Assert that find document by consumer document id contains all expected elements."""
     if not has_results:
         document: Document = Document.find_by_document_id(id)
         assert not document
     else:
+        if has_scan:
+            scan_doc: DocumentScanning = DocumentScanning.create_from_json(DOC_SCAN, id, doc_class)
+            scan_doc.id = 200000000
+            scan_doc.save()
         save_doc: Document = Document.create_from_json(DOC1, doc_type)
         save_doc.save()
         assert save_doc.id
@@ -131,6 +142,10 @@ def test_find_by_document_id(session, id, has_results, doc_type, doc_class):
         assert doc_json
         assert doc_json.get('documentClass') == doc_class
         assert doc_json.get('documentTypeDescription')
+        if has_scan:
+            assert doc_json.get('scanningInformation')
+        else:
+            assert not doc_json.get('scanningInformation')
 
 
 @pytest.mark.parametrize('id, has_results, doc_type, doc_class, query_doc_type', TEST_CONSUMER_ID_DATA)
@@ -188,7 +203,6 @@ def test_create_from_json(session, has_doc_id, doc_type):
         assert document.consumer_document_id
     assert document.add_ts
     assert document.document_type == doc_type
-    assert document.scan_date
     assert document.consumer_filing_date
     assert document.consumer_filename == json_data.get('consumerFilename')
     assert document.consumer_identifier == json_data.get('consumerIdentifier')

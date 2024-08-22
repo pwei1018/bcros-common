@@ -44,7 +44,28 @@
       <div class="cover-data">
         <span class="cover-data-bold">Filing Date:</span> {% if consumerFilingDateTime is defined %}{{consumerFilingDateTime}} {% else %} (Not Entered) {% endif %}
       </div>
-
+      {% if scanningInformation is defined %}
+        <div class="separator-section mt-3 mb-3"></div>
+        <div class="cover-data">
+          <span class="cover-data-bold">Scanning Information</span>
+        </div>
+        <div class="cover-data mt-3">
+          <span class="cover-data-bold">Accession Number:</span> {% if scanningInformation.accessionNumber is defined %}  {{ scanningInformation.accessionNumber }} {% endif %}
+        </div>
+        <div class="cover-data">
+          <span class="cover-data-bold">Batch ID:</span> {% if scanningInformation.batchId is defined %}  {{ scanningInformation.batchId }} {% endif %}
+        </div>
+        <div class="cover-data">
+          <span class="cover-data-bold">Pages to Scan:</span> {% if scanningInformation.pageCount is defined %}  {{ scanningInformation.pageCount }} {% endif %}
+        </div>
+        <div class="cover-data">
+          <span class="cover-data-bold">Scanned Date:</span> {{ scanningInformation.scanDateTime }}
+        </div>
+        <div class="cover-data">
+          <span class="cover-data-bold">Author:</span> {% if scanningInformation.author is defined %}  {{ scanningInformation.author }} {% endif %}
+        </div>
+        <div class="separator-section mt-3 mb-3"></div>
+      {% endif %}
       <div class="cover-data mt-4"><span class="cover-data-bold">Upload Date and Time:</span> {{ createDateTime }}</div>
       <div class="cover-data"><span class="cover-data-bold">Documents Uploaded:</span> {{uploadCount}}</div>
       <div class="cover-data-bold">Documents:</div>

@@ -33,7 +33,7 @@ MOCK_AUTH_URL = 'https://bcregistry-bcregistry-mock.apigee.net/mockTarget/auth/a
 STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
 INVALID_ROLES = [COLIN_ROLE]
 MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
-PARAMS1 = '?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25&consumerScanDate=2024-05-01'
+PARAMS1 = '?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25'
 TEST_DOC_ID: str =  'UT-900000001'
 GET_DOC_RECORD_PATH = '/api/v1/reports/document-records/'
 

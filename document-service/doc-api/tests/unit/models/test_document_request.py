@@ -29,8 +29,7 @@ DOC1 = {
     'consumerFilename': 'test.pdf',
     'consumerIdentifer': 'T0000002',
     'documentType': 'PPR_MISC',
-    'consumerFilingDateTime': '2024-07-01T19:00:00+00:00',
-    'consumerScanDateTime': '2024-05-01T19:00:00+00:00'
+    'consumerFilingDateTime': '2024-07-01T19:00:00+00:00'
 }
 REQUEST1 = {
     'requestType': RequestTypes.ADD.value,
@@ -47,8 +46,7 @@ TEST_DOCUMENT = Document(id=1,
                          consumer_document_id='T0000001',
                          consumer_identifier='T0000002',
                          consumer_filename='test.pdf',
-                         consumer_filing_date=model_utils.ts_from_iso_date_noon('2024-07-01'),
-                         scan_date=model_utils.ts_from_iso_date_noon('2024-05-01'))
+                         consumer_filing_date=model_utils.ts_from_iso_date_noon('2024-07-01'))
 TEST_REQUEST = DocumentRequest(id=1,
                                request_type=RequestTypes.ADD.value,
                                request_ts=model_utils.now_ts(),

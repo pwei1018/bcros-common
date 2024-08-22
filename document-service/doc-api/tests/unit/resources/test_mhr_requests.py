@@ -37,7 +37,7 @@ INVALID_ROLES = [COLIN_ROLE]
 DOC_CLASS1 = DocumentClasses.MHR.value
 DOC_TYPE1 = DocumentTypes.MHR_MISC.value
 MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
-PARAMS1 = '?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25&consumerScanDate=2024-05-01'
+PARAMS1 = '?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25'
 PATH: str = '/api/v1/mhr/{doc_type}' + PARAMS1
 PARAM_CONSUMER_ID = '?consumerIdentifier=UTBUS'
 PARAM_CONSUMER_ID_NONE = '?consumerIdentifier=XXXXXXX'

@@ -35,7 +35,7 @@ QUERY_CONSUMER_ID_CLAUSE = " and d.consumer_identifier = '{consumer_id}'"
 QUERY_DEFAULT_ORDER_BY = ' order by d.consumer_document_id'
 QUERY_DATES_DEFAULT = """
 select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_identifier, d.consumer_filename,
-       d.consumer_filing_date, d.scan_date, d.document_type, dt.document_type_desc, dc.document_class,
+       d.consumer_filing_date, d.document_type, dt.document_type_desc, dc.document_class,
        dc.document_class_desc
   from documents d, document_types dt, document_classes dc
  where d.document_type = dt.document_type
@@ -275,14 +275,12 @@ def get_docs_by_date_range(doc_class: str, start_date: str, end_date: str, doc_t
                 'consumerDocumentId': str(row[2]) if row[2] else '',
                 'consumerIdentifier': str(row[3]) if row[3] else '',
                 'consumerFilename': str(row[4]) if row[4] else '',
-                'documentType': str(row[7]),
-                'documentTypeDescription': str(row[8]),
-                'documentClass': str(row[9])
+                'documentType': str(row[6]),
+                'documentTypeDescription': str(row[7]),
+                'documentClass': str(row[8])
             }
             if row[5]:
                 result_json['consumerFilingDateTime'] = format_ts(row[5])
-            if row[6]:
-                result_json['consumerScanDateTime'] = format_ts(row[6])
             results.append(result_json)
     if results:
         logger.info(f'get_docs_by_date_range returning {len(results)} results.')

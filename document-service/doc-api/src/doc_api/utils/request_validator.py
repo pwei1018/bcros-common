@@ -17,7 +17,7 @@ Validation includes verifying the data combination for various registration docu
 """
 from datetime import datetime
 
-from doc_api.models import utils as model_utils
+from doc_api.models import utils as model_utils, DocumentScanning
 from doc_api.models.type_tables import DocumentType, DocumentClasses, DocumentTypes, RequestTypes
 from doc_api.resources.request_info import RequestInfo
 from doc_api.utils.logging import logger
@@ -40,6 +40,10 @@ INVALID_END_DATE = 'Request invalid: search end date format invalid {param_date}
 INVALID_START_END_DATE = 'Request invalid: search end date {end_date} before start date {start_date}. '
 MISSING_PATCH_PARAMS = 'Request invalid: update document information nothing to change. '
 MISSING_PAYLOAD = 'Request invalid: add/replace document missing required payload. '
+MISSING_SCAN_DATE = 'Request invalid: missing required scanDateTime. '
+MISSING_SCAN_PAYLOAD = 'Request invalid: document scanning missing required payload or missing payload properties. '
+MISSING_SCAN_DOCUMENT_ID = 'Request invalid: missing required consumerDocumentId. '
+INVALID_SCAN_EXISTS = 'Request invalid: record already exists for class {doc_class} and ID {cons_doc_id}. '
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -68,6 +72,37 @@ def validate_request(info: RequestInfo) -> str:
     return error_msg
 
 
+def validate_scanning(request_json: dict, is_new: bool = True) -> str:
+    """Perform all extra data validation checks on a new doc scanning request not covered by schema validation."""
+    logger.info(f'Validating new document scanning request new={is_new}...')
+    error_msg: str = ''
+    if not request_json:
+        return MISSING_SCAN_PAYLOAD
+    elif not request_json.get('scanDateTime') and not request_json.get('accessionNumber') and \
+            not request_json.get('batchId') and not request_json.get('author') and not request_json.get('pageCount'):
+        return MISSING_SCAN_PAYLOAD
+    try:
+        doc_class = request_json.get('documentClass')
+        cons_doc_id = request_json.get('consumerDocumentId')
+        if not doc_class:
+            error_msg += MISSING_DOC_CLASS
+        elif doc_class not in DocumentClasses:
+            error_msg += INVALID_DOC_CLASS.format(doc_class=doc_class)
+        if not cons_doc_id:
+            error_msg += MISSING_SCAN_DOCUMENT_ID
+        if is_new:
+            if not request_json.get('scanDateTime'):
+                error_msg += MISSING_SCAN_DATE
+            scan_doc: DocumentScanning = DocumentScanning.find_by_document_id(cons_doc_id, doc_class)
+            if scan_doc:
+                error_msg += INVALID_SCAN_EXISTS.format(doc_class=doc_class, cons_doc_id=cons_doc_id)
+        error_msg += validate_scandate(request_json)
+    except Exception as validation_exception:   # noqa: B902; eat all errors
+        logger.error('validate_scanning exception: ' + str(validation_exception))
+        error_msg += VALIDATOR_ERROR
+    return error_msg
+
+
 def validate_add(info: RequestInfo, error_msg: str) -> str:
     """Validate the add request."""
     try:
@@ -75,7 +110,6 @@ def validate_add(info: RequestInfo, error_msg: str) -> str:
             error_msg += MISSING_CONTENT_TYPE
         elif not model_utils.TO_FILE_TYPE.get(info.content_type):
             error_msg += INVALID_CONTENT_TYPE.format(content_type=info.content_type)
-        error_msg += validate_scandate(info)
         error_msg += validate_filingdate(info)
     except Exception as validation_exception:   # noqa: B902; eat all errors
         logger.error('validate_add exception: ' + str(validation_exception))
@@ -101,10 +135,9 @@ def validate_get(info: RequestInfo, error_msg: str) -> str:
 def validate_patch(info: RequestInfo, error_msg: str) -> str:
     """Validate the patch request."""
     try:
-        if not info.consumer_filedate and not info.consumer_identifier and not info.consumer_scandate and \
+        if not info.consumer_filedate and not info.consumer_identifier and \
                 not info.consumer_filename and not info.consumer_doc_id:
             error_msg += MISSING_PATCH_PARAMS
-        error_msg += validate_scandate(info)
         error_msg += validate_filingdate(info)
     except Exception as validation_exception:   # noqa: B902; eat all errors
         logger.error('validate_patch exception: ' + str(validation_exception))
@@ -152,18 +185,19 @@ def get_doc_class(info: RequestInfo) -> str:
     return error_msg
 
 
-def validate_scandate(info: RequestInfo) -> str:
+def validate_scandate(request_json: dict) -> str:
     """Check that the optional scan date is in a valid date format."""
     error_msg: str = ''
-    if not info.consumer_scandate:
+    scan_date = request_json.get('scanDateTime')
+    if not scan_date:
         return error_msg
     try:
-        test_date = model_utils.ts_from_iso_date_noon(info.consumer_scandate)
+        test_date = model_utils.ts_from_iso_date_noon(scan_date)
         if test_date:
             return error_msg
-        error_msg = INVALID_SCAN_DATE.format(param_date=info.consumer_scandate)
+        error_msg = INVALID_SCAN_DATE.format(param_date=scan_date)
     except Exception:   # noqa: B902; eat all errors
-        error_msg = INVALID_SCAN_DATE.format(param_date=info.consumer_scandate)
+        error_msg = INVALID_SCAN_DATE.format(param_date=scan_date)
     return error_msg
 
 
@@ -176,9 +210,9 @@ def validate_filingdate(info: RequestInfo) -> str:
         test_date = model_utils.ts_from_iso_date_noon(info.consumer_filedate)
         if test_date:
             return error_msg
-        error_msg = INVALID_FILING_DATE.format(param_date=info.consumer_scandate)
+        error_msg = INVALID_FILING_DATE.format(param_date=info.consumer_filedate)
     except Exception:   # noqa: B902; eat all errors
-        error_msg = INVALID_FILING_DATE.format(param_date=info.consumer_scandate)
+        error_msg = INVALID_FILING_DATE.format(param_date=info.consumer_filedate)
     return error_msg
 
 
