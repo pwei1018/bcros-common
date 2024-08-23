@@ -21,6 +21,7 @@ from doc_api.models import utils as model_utils
 from doc_api.utils.logging import logger
 
 from .db import db
+from .document_scanning import DocumentScanning
 from .type_tables import DocumentTypes
 
 
@@ -47,7 +48,6 @@ class Document(db.Model):
     consumer_identifier = db.mapped_column('consumer_identifier', db.String(20), nullable=True, index=True)
     consumer_filename = db.mapped_column('consumer_filename', db.String(1000), nullable=True)
     consumer_filing_date = db.mapped_column('consumer_filing_date', db.DateTime, nullable=True, index=True)
-    scan_date = db.mapped_column('scan_date', db.DateTime, nullable=True)
     doc_storage_url = db.mapped_column('doc_storage_url', db.String(1000), nullable=True)
 
     # parent keys
@@ -75,8 +75,14 @@ class Document(db.Model):
         }
         if self.consumer_filing_date:
             document['consumerFilingDateTime'] = model_utils.format_ts(self.consumer_filing_date)
-        if self.scan_date:
-            document['consumerScanDateTime'] = model_utils.format_ts(self.scan_date)
+        if len(self.consumer_document_id) < 10 and document.get('documentClass'):
+            scan_doc: DocumentScanning = DocumentScanning.find_by_document_id(self.consumer_document_id,
+                                                                              document.get('documentClass'))
+            if scan_doc:
+                scan_json = scan_doc.json
+                del scan_json['consumerDocumentId']
+                del scan_json['documentClass']
+                document['scanningInformation'] = scan_json
         return document
 
     @classmethod
@@ -174,9 +180,5 @@ class Document(db.Model):
             doc.consumer_filing_date = model_utils.ts_from_iso_date_noon(doc_json['consumerFilingDateTime'])
         elif doc_json.get('consumerFilingDate'):
             doc.consumer_filing_date = model_utils.ts_from_iso_date_noon(doc_json['consumerFilingDate'])
-        if doc_json.get('consumerScanDateTime'):
-            doc.scan_date = model_utils.ts_from_iso_date_noon(doc_json['consumerScanDateTime'])
-        elif doc_json.get('consumerScanDate'):
-            doc.scan_date = model_utils.ts_from_iso_date_noon(doc_json['consumerScanDate'])
         doc.get_generated_values()
         return doc

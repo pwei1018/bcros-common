@@ -40,7 +40,7 @@ DOC_CLASS1 = DocumentClasses.CORP.value
 DOC_TYPE1 = DocumentTypes.CORP_MISC.value
 MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
 PARAMS1 = '?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25' + \
-    '&consumerScanDate=2024-05-01&consumerDocumentId=UT999999'
+    '&consumerDocumentId=UT999999'
 PATH: str = '/api/v1/documents/{doc_class}/{doc_type}' + PARAMS1
 CHANGE_PATH = '/api/v1/documents/{doc_service_id}'
 PATCH_PAYLOAD_INVALID = {}
@@ -48,8 +48,7 @@ PATCH_PAYLOAD = {
     'consumerDocumentId': 'P0000001',
     'consumerFilename': 'test_patch.pdf',
     'consumerIdentifier': 'P8888999',
-    'consumerFilingDateTime': '2024-08-08',
-    'consumerScanDateTime': '2024-08-09'
+    'consumerFilingDateTime': '2024-08-08'
 }
 
 

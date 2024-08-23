@@ -37,8 +37,7 @@ TEST_DOCUMENT = Document(id=200000000,
                          consumer_document_id='T0000001',
                          consumer_identifier='T0000002',
                          consumer_filename='test.pdf',
-                         consumer_filing_date=model_utils.ts_from_iso_date_noon('2024-07-01'),
-                         scan_date=model_utils.ts_from_iso_date_noon('2024-05-01'))
+                         consumer_filing_date=model_utils.ts_from_iso_date_noon('2024-07-01'))
 TEST_TOKEN = {
     'username': 'username_TEST1',
     'firstname': 'given_name_TEST1',
@@ -85,10 +84,9 @@ TEST_DATA_STORAGE_TYPES = [
     (DocumentClasses.NR, StorageDocTypes.NR),
     (DocumentClasses.PPR, StorageDocTypes.PPR)
 ]
-# testdata pattern is ({document}, {token}, {doc_id}, {cons_id}, {filename}, {filing_date}, {scan_date}, {doc_class})
+# testdata pattern is ({document}, {token}, {doc_id}, {cons_id}, {filename}, {filing_date}, {doc_class})
 TEST_UPDATE_DATA = [
-    (TEST_DOCUMENT, TEST_TOKEN, 'UT9999', 'NEW_ID', 'new_name.pdf', '2024-08-08', '2024-08-09',
-     DocumentClasses.PPR.value)
+    (TEST_DOCUMENT, TEST_TOKEN, 'UT9999', 'NEW_ID', 'new_name.pdf', '2024-08-08', DocumentClasses.PPR.value)
 ]
 # testdata pattern is ({document}, {token}, {filename})
 TEST_REPLACE_DATA = [
@@ -121,12 +119,11 @@ def test_save_replace(session, document, token, filename):
     assert result.get('consumerIdentifier') == doc.consumer_identifier
     assert result.get('consumerFilename') == filename
     assert result.get('consumerFilingDateTime')
-    assert result.get('consumerScanDateTime')
     assert result.get('documentURL')
 
 
-@pytest.mark.parametrize('document,token,doc_id,cons_id,filename,filing_date,scan_date,doc_class', TEST_UPDATE_DATA)
-def test_save_update(session, document, token, doc_id, cons_id, filename, filing_date, scan_date, doc_class):
+@pytest.mark.parametrize('document,token,doc_id,cons_id,filename,filing_date,doc_class', TEST_UPDATE_DATA)
+def test_save_update(session, document, token, doc_id, cons_id, filename, filing_date, doc_class):
     """Assert that patch request resource_utils.save_update works as expected."""
     doc: Document = copy.deepcopy(document)
     info: RequestInfo = RequestInfo(RequestTypes.UPDATE.value, None, doc.document_type, None)
@@ -136,7 +133,6 @@ def test_save_update(session, document, token, doc_id, cons_id, filename, filing
     info.consumer_identifier = cons_id
     info.consumer_filename = filename
     info.consumer_filedate = filing_date
-    info.consumer_scandate = scan_date
     doc.save()
     result = resource_utils.save_update(info, doc, token)
     assert result.get('documentServiceId')
@@ -148,7 +144,6 @@ def test_save_update(session, document, token, doc_id, cons_id, filename, filing
     assert result.get('consumerIdentifier') == cons_id
     assert result.get('consumerFilename') == filename
     assert str(result.get('consumerFilingDateTime'))[:10] == filing_date
-    assert str(result.get('consumerScanDateTime'))[:10] == scan_date
     assert not result.get('documentURL')
 
 
@@ -215,7 +210,6 @@ def test_request_info(session, req_type, req_path, doc_type, doc_storage_type, s
     assert 'consumerFilename' in info_json
     assert 'consumerFilingDate' in info_json
     assert 'consumerIdentifier' in info_json
-    assert 'consumerScanDate' in info_json
 
 
 @pytest.mark.parametrize('doc_ts,doc_type,doc_service_id,content_type,doc_storage_type', TEST_DATA_SAVE_STORAGE)

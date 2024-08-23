@@ -20,11 +20,54 @@ import pytest
 
 from doc_api.utils import request_validator as validator
 from doc_api.utils.logging import logger
-from doc_api.models import utils as model_utils
+from doc_api.models import utils as model_utils, DocumentScanning
 from doc_api.models.type_tables import DocumentTypes, RequestTypes, DocumentClasses
 from doc_api.resources.request_info import RequestInfo
 
 
+TEST_SCAN1 = {
+    'scanDateTime': '2024-07-01',
+    'accessionNumber': 'AN-0001',
+    'batchId': '1234',
+    'author': 'Jane Smith',
+    'pageCount': 3
+}
+TEST_SCAN2 = {
+    'accessionNumber': 'AN-0001',
+    'batchId': '1234',
+    'author': 'Jane Smith',
+    'pageCount': 3
+}
+TEST_SCAN3 = {
+    'scanDateTime': 'JUNK',
+    'accessionNumber': 'AN-0001',
+    'batchId': '1234',
+    'author': 'Jane Smith',
+    'pageCount': 3
+}
+TEST_SCAN4 = {
+    'scanDateTime': '2024-07-01'
+}
+# test data pattern is ({description}, {valid}, {payload}, {new}, {cons_doc_id}, {doc_class}, {message_content})
+TEST_DATA_SCANNING = [
+    ('Valid new', True, TEST_SCAN1, True, 'UT000001',  DocumentClasses.CORP, None),
+    ('Valid new minimal', True, TEST_SCAN4, True, 'UT000001',  DocumentClasses.CORP, None),
+    ('Valid update', True, TEST_SCAN1, False, 'UT000001',  DocumentClasses.CORP, None),
+    ('Valid update no date', True, TEST_SCAN2, False, 'UT000001',  DocumentClasses.CORP, None),
+    ('Invalid new no payload', False, None, True, 'UT000001',  DocumentClasses.CORP, validator.MISSING_SCAN_PAYLOAD),
+    ('Invalid new no class', False, TEST_SCAN1, True, 'UT000001',  None, validator.MISSING_DOC_CLASS),
+    ('Invalid new class', False, TEST_SCAN1, True, 'UT000001',  'JUNK', validator.INVALID_DOC_CLASS),
+    ('Invalid new no doc id', False, TEST_SCAN1, True, None,  DocumentClasses.CORP,
+     validator.MISSING_SCAN_DOCUMENT_ID),
+    ('Invalid new no date', False, TEST_SCAN2, True, 'UT000001',  None, validator.MISSING_SCAN_DATE),
+    ('Invalid update no payload', False, None, False, 'UT000001',  DocumentClasses.CORP,
+     validator.MISSING_SCAN_PAYLOAD),
+    ('Invalid update no class', False, TEST_SCAN1, False, 'UT000001',  None, validator.MISSING_DOC_CLASS),
+    ('Invalid update class', False, TEST_SCAN1, False, 'UT000001',  'JUNK', validator.INVALID_DOC_CLASS),
+    ('Invalid update no doc id', False, TEST_SCAN1, False, None,  DocumentClasses.CORP,
+     validator.MISSING_SCAN_DOCUMENT_ID),
+    ('Invalid new exists', False, TEST_SCAN1, True, 'UT000001',  DocumentClasses.CORP, validator.INVALID_SCAN_EXISTS),
+]
 # test data pattern is ({description}, {valid}, {req_type}, {doc_type}, {content_type}, {doc_class}, {message_content})
 TEST_DATA_ADD = [
     ('Valid', True, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, DocumentClasses.CORP, None),
@@ -42,13 +85,11 @@ TEST_DATA_ADD = [
     ('Invalid doc class - type', False, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF,
      DocumentClasses.FIRM, validator.INVALID_DOC_CLASS_TYPE)
 ]
-# test data pattern is ({description}, {valid}, {scan_date}, {filing_date}, {message_content})
+# test data pattern is ({description}, {valid}, {filing_date}, {message_content})
 TEST_DATA_ADD_DATES = [
-    ('Valid no dates', True, None, None, None),
-    ('Valid scan date', True, '2024-07-31', None, None),
-    ('Valid filing date', True, None, '2024-07-31', None),
-    ('Invalid scan date', False, 'January 12, 2022', None, validator.INVALID_SCAN_DATE),
-    ('Invalid filing date', False, None, 'January 12, 2022', validator.INVALID_FILING_DATE)
+    ('Valid no dates', True, None, None),
+    ('Valid filing date', True, '2024-07-31', None),
+    ('Invalid filing date', False, 'January 12, 2022', validator.INVALID_FILING_DATE)
 ]
 # test data pattern is ({description}, {valid}, {doc_class}, {doc_service_id}, {doc_id}, {cons_id}, {start}, {end}, {message_content})
 TEST_DATA_GET = [
@@ -72,16 +113,14 @@ TEST_DATA_SEARCH_DATES = [
     ('Invalid start date', False, 'January 12, 2022', None, validator.INVALID_START_DATE),
     ('Invalid end date', False, None, 'January 12, 2022', validator.INVALID_END_DATE)
 ]
-# test data pattern is ({description},{valid},{doc_id},{cons_id},{filename},{scan_date},{filing_date},{message_content})
+# test data pattern is ({description},{valid},{doc_id},{cons_id},{filename},{filing_date},{message_content})
 TEST_DATA_PATCH = [
-    ('Valid doc id', True, '89999999', None, None, None, None, None),
-    ('Valid consumer id', True, None, 'BC0700000', None, None, None, None),
-    ('Valid filename', True, None, None, 'change_address.pdf', None, None, None),
-    ('Valid scan date', True, None, None, None, '2024-07-31', None, None),
-    ('Valid filing date', True, None, None, None, None, '2024-07-31', None),
-    ('Invalid no change', False, None, None, None, None, None, validator.MISSING_PATCH_PARAMS),
-    ('Invalid scan date', False, None, None, None, 'January 12, 2022', None, validator.INVALID_SCAN_DATE),
-    ('Invalid filing date', False, None, None, None, None, 'January 12, 2022', validator.INVALID_FILING_DATE)
+    ('Valid doc id', True, '89999999', None, None, None, None),
+    ('Valid consumer id', True, None, 'BC0700000', None, None, None),
+    ('Valid filename', True, None, None, 'change_address.pdf', None, None),
+    ('Valid filing date', True, None, None, None, '2024-07-31', None),
+    ('Invalid no change', False, None, None, None, None, validator.MISSING_PATCH_PARAMS),
+    ('Invalid filing date', False, None, None, None, 'January 12, 2022', validator.INVALID_FILING_DATE)
 ]
 # test data pattern is ({description}, {valid}, {payload}, {doc_type}, {content_type}, {doc_class}, {message_content})
 TEST_DATA_REPLACE = [
@@ -126,16 +165,14 @@ def test_validate_search_dates(session, desc, valid, start_date, end_date, messa
             assert error_msg.find(err_msg) != -1
 
 
-@pytest.mark.parametrize('desc,valid,scan_date,filing_date,message_content', TEST_DATA_ADD_DATES)
-def test_validate_add_dates(session, desc, valid, scan_date, filing_date, message_content):
+@pytest.mark.parametrize('desc,valid,filing_date,message_content', TEST_DATA_ADD_DATES)
+def test_validate_add_dates(session, desc, valid, filing_date, message_content):
     """Assert that new add request validation works as expected for scan and file dates."""
     # setup
     info: RequestInfo = RequestInfo(RequestTypes.ADD, 'NA', DocumentTypes.CORP_MISC, 'NA')
     info.content_type = model_utils.CONTENT_TYPE_PDF
     info.account_id = 'NA'
     info.document_class = DocumentClasses.CORP
-    if scan_date:
-        info.consumer_scandate = scan_date
     if filing_date:
         info.consumer_filedate = filing_date
     error_msg = validator.validate_request(info)
@@ -145,10 +182,8 @@ def test_validate_add_dates(session, desc, valid, scan_date, filing_date, messag
         assert error_msg != ''
         if message_content:
             err_msg:str = message_content
-            if desc == 'Invalid scan date':
-                err_msg = validator.INVALID_SCAN_DATE.format(param_date=scan_date)
-            elif desc == 'Invalid filing date':
-                err_msg = validator.INVALID_FILING_DATE.format(param_date=scan_date)
+            if desc == 'Invalid filing date':
+                err_msg = validator.INVALID_FILING_DATE.format(param_date=filing_date)
             assert error_msg.find(err_msg) != -1
 
 
@@ -214,8 +249,8 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
             assert error_msg.find(err_msg) != -1
 
 
-@pytest.mark.parametrize('desc,valid,doc_id,cons_id,filename,scan_date,filing_date,message_content', TEST_DATA_PATCH)
-def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, scan_date, filing_date, message_content):
+@pytest.mark.parametrize('desc,valid,doc_id,cons_id,filename,filing_date,message_content', TEST_DATA_PATCH)
+def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_date, message_content):
     """Assert that patch request validation works as expected."""
     # setup
     info: RequestInfo = RequestInfo(RequestTypes.UPDATE, 'NA', DocumentTypes.CORP_MISC, 'NA')
@@ -228,8 +263,6 @@ def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, scan_da
         info.consumer_identifier = cons_id
     if filename:
         info.consumer_filename= filename
-    if scan_date:
-        info.consumer_scandate = scan_date
     if filing_date:
         info.consumer_filedate = filing_date
     error_msg = validator.validate_request(info)
@@ -239,10 +272,8 @@ def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, scan_da
         assert error_msg != ''
         if message_content:
             err_msg:str = message_content
-            if desc == 'Invalid scan date':
-                err_msg = validator.INVALID_SCAN_DATE.format(param_date=scan_date)
-            elif desc == 'Invalid filing date':
-                err_msg = validator.INVALID_FILING_DATE.format(param_date=scan_date)
+            if desc == 'Invalid filing date':
+                err_msg = validator.INVALID_FILING_DATE.format(param_date=filing_date)
             assert error_msg.find(err_msg) != -1
 
 
@@ -268,4 +299,32 @@ def test_validate_replace(session, desc, valid, has_payload, doc_type, content_t
             err_msg:str = message_content
             if desc == 'Invalid content':
                 err_msg = validator.INVALID_CONTENT_TYPE.format(content_type=content_type)
+            assert error_msg.find(err_msg) != -1
+
+
+@pytest.mark.parametrize('desc,valid,payload,is_new,cons_doc_id,doc_class,message_content', TEST_DATA_SCANNING)
+def test_validate_scanning(session, desc, valid, payload, is_new, cons_doc_id, doc_class, message_content):
+    """Assert that document scanning validation works as expected."""
+    scan_json = None
+    if payload:
+        scan_json = copy.deepcopy(payload)
+        if cons_doc_id:
+            scan_json['consumerDocumentId'] = cons_doc_id
+        if doc_class:
+            scan_json['documentClass'] = doc_class
+    if desc == 'Invalid new exists':
+        doc_scan: DocumentScanning = DocumentScanning.create_from_json(scan_json, cons_doc_id, doc_class)
+        doc_scan.id = 200000000
+        doc_scan.save()
+    error_msg = validator.validate_scanning(scan_json, is_new)
+    if valid:
+        assert error_msg == ''
+    else:
+        assert error_msg != ''
+        if message_content:
+            err_msg:str = message_content
+            if desc in ('Invalid new class', 'Invalid update class'):
+                err_msg = validator.INVALID_DOC_CLASS.format(doc_class=doc_class)
+            elif is_new and desc == 'Invalid new exists':
+                err_msg = validator.INVALID_SCAN_EXISTS.format(doc_class=doc_class, cons_doc_id=cons_doc_id)
             assert error_msg.find(err_msg) != -1

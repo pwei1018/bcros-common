@@ -18,4 +18,5 @@ from .mhr_requests import bp as mhr_bp
 from .nr_requests import bp as nr_bp
 from .ppr_requests import bp as ppr_bp
 from .reports import bp as report_bp
+from .scanning import bp as scanning_bp
 from .searches import bp as search_bp

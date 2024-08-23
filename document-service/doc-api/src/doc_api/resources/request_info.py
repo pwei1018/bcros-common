@@ -29,7 +29,6 @@ class RequestInfo():
     consumer_filename: str = None
     consumer_filedate: str = None
     consumer_identifier: str = None
-    consumer_scandate: str = None
     request_type: str = None
     request_path: str = None
     document_type: str = None
@@ -57,7 +56,6 @@ class RequestInfo():
             'consumerFilename': self.consumer_filename if self.consumer_filename else '',
             'consumerFilingDate': self.consumer_filedate if self.consumer_filedate else '',
             'consumerIdentifier': self.consumer_identifier if self.consumer_identifier else '',
-            'consumerScanDate': self.consumer_scandate if self.consumer_scandate else '',
             'documentType': self.document_type if self.document_type else ''
         }
         if self.request_path:

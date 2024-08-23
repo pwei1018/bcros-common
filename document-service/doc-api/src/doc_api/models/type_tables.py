@@ -214,7 +214,7 @@ class DocumentType(db.Model):  # pylint: disable=too-few-public-methods
                                      PG_ENUM(DocumentTypes, name='documenttype'),
                                      primary_key=True)
     document_class = db.mapped_column('document_class',
-                                      PG_ENUM(DocumentClasses, name='documenttypeclass'),
+                                      PG_ENUM(DocumentClasses, name='documentclass'),
                                       db.ForeignKey('document_classes.document_class'),
                                       nullable=False)
     document_type_desc = db.mapped_column('document_type_desc', db.String(100), nullable=False)

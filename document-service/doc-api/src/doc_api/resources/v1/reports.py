@@ -94,6 +94,8 @@ def get_doc_record_json(consumer_doc_id: str) -> dict:
         report_json['documentTypeDescription'] = documents[0].get('documentTypeDescription', '')
         report_json['uploadCount'] = upload_count
         report_json['documents'] = documents
+        if documents[0].get('scanningInformation'):
+            report_json['scanningInformation'] = documents[0].get('scanningInformation')
     return report_json
 
 

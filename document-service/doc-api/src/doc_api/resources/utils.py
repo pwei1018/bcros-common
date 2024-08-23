@@ -56,7 +56,6 @@ PARAM_CONSUMER_DOC_ID = 'consumerDocumentId'
 PARAM_CONSUMER_FILENAME = 'consumerFilename'
 PARAM_CONSUMER_FILEDATE = 'consumerFilingDate'
 PARAM_CONSUMER_IDENTIFIER = 'consumerIdentifier'
-PARAM_CONSUMER_SCANDATE = 'consumerScanDate'
 PARAM_DOCUMENT_TYPE = 'documentType'
 
 TO_STORAGE_TYPE = {
@@ -206,6 +205,11 @@ def validate_request(info: RequestInfo) -> str:
     return request_validator.validate_request(info)
 
 
+def validate_scanning_request(request_json: dict, is_new: bool = True) -> str:
+    """Perform non-schema extra validation on a new document scanning requests."""
+    return request_validator.validate_scanning(request_json, is_new)
+
+
 def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> RequestInfo:
     """Extract header and query parameters from the request."""
     info.from_ui = req.args.get(PARAM_FROM_UI, False)
@@ -217,7 +221,6 @@ def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> Re
     info.consumer_filename = req.args.get(PARAM_CONSUMER_FILENAME)
     info.consumer_filedate = req.args.get(PARAM_CONSUMER_FILEDATE)
     info.consumer_identifier = req.args.get(PARAM_CONSUMER_IDENTIFIER)
-    info.consumer_scandate = req.args.get(PARAM_CONSUMER_SCANDATE)
     info.query_start_date = req.args.get(PARAM_QUERY_START_DATE)
     info.query_end_date = req.args.get(PARAM_QUERY_END_DATE)
     info.staff = staff
@@ -244,7 +247,6 @@ def update_request_info(req: request,
         info.consumer_filename = request_json.get(PARAM_CONSUMER_FILENAME)
         info.consumer_filedate = request_json.get(PARAM_CONSUMER_FILEDATE)
         info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
-        info.consumer_scandate = request_json.get(PARAM_CONSUMER_SCANDATE)
     info.staff = staff
     info.content_type = req.headers.get(PARAM_CONTENT_TYPE)
     if info.content_type:
@@ -327,8 +329,6 @@ def save_update(info: RequestInfo, document: Document, token) -> dict:
         document.consumer_filename = info.consumer_filename
     if info.consumer_filedate:
         document.consumer_filing_date = model_utils.ts_from_iso_date_noon(info.consumer_filedate)
-    if info.consumer_scandate:
-        document.scan_date = model_utils.ts_from_iso_date_noon(info.consumer_scandate)
     logger.info('save_update saving updated document model and document_request...')
     doc_request: DocumentRequest = build_doc_request(info, user, document.id)
     db.session.add(document)
@@ -393,6 +393,7 @@ def get_docs(info: RequestInfo) -> list:
         query_results = Document.find_by_document_id(info.consumer_doc_id)
         if query_results:
             for result in query_results:
+                # logger.info(f'Checking doc class {result.doc_type.document_class} with {info.document_class}')
                 if result.doc_type and result.doc_type.document_class == info.document_class:
                     results.append(result.json)
     elif info.consumer_identifier and not (info.query_start_date or info.query_end_date):
