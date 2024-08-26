@@ -27,6 +27,12 @@ export default defineAppConfig({
       border: 'border border-gray-900 dark:border-gray-900',
       label: 'cursor-pointer',
     },
+    divider: {
+      border: {
+        base: 'border-gray-500',
+        vertical: 'border-red-500'
+      },
+    },
     selectMenu: {
       option: {
         base: 'cursor-pointer',
@@ -40,10 +46,10 @@ export default defineAppConfig({
     table: {
       wrapper: 'max-h-[500px] overflow-y-auto',
       th: {
-        base: 'w-[200px] text-left text-gray-700 font-bold',
+        base: 'min-w-[160px] text-left text-gray-700 font-bold whitespace-nowrap',
       },
       td: {
-        base: 'w-[200px] h-[65px] last:block last:whitespace-normal',
+        base: 'align-top h-[65px] last:block whitespace-normal',
         color: 'text-gray-700',
       }
     }

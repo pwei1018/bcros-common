@@ -10,7 +10,7 @@ defineProps({
   <div :data-cy="'content_wrapper_' + name">
     <div
       :data-cy="'header_' + name"
-      class="font-bold text-gray-900 bg-bcGovColor-ltBlue h-[60px] px-6 pt-[18px]"
+      class="font-bold text-gray-900 bg-bcGovColor-ltBlue px-6 py-[18px]"
     >
       <slot name="header" />
     </div>

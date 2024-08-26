@@ -1,3 +1,7 @@
+<script setup lang="ts">
+const route = useRoute()
+const crumbConstructors = computed(() => (route?.meta?.breadcrumbs || []) as (() => BreadcrumbI)[])
+</script>
 <template>
   <div class="app-container" data-cy="default-layout">
     <bcros-header />
@@ -8,8 +12,3 @@
     <bcros-footer />
   </div>
 </template>
-
-<script setup lang="ts">
-const route = useRoute()
-const crumbConstructors = computed(() => (route?.meta?.breadcrumbs || []) as (() => BreadcrumbI)[])
-</script>
