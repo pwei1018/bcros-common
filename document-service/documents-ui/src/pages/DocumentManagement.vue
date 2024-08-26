@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { searchDocuments, hasMinimumSearchCriteria } = useDocuments()
 const { validateDocumentSearch } = storeToRefs(useBcrosDocuments())
+const { documentSearchResults } = storeToRefs(useBcrosDocuments())
 </script>
 <template>
   <div data-cy="document-management">
@@ -61,6 +62,7 @@ const { validateDocumentSearch } = storeToRefs(useBcrosDocuments())
     </span>
 
     <!-- Document Search Results -->
+    <UDivider v-if="documentSearchResults.length" class="pt-[60px] pb-4" />
     <DocumentsTable />
   </div>
 </template>

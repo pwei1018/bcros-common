@@ -1,6 +1,6 @@
 import type { RouterConfig } from '@nuxt/schema'
 import { RouteNameE } from '~/enums/route-name-e'
-import { getDocumentManagementCrumb, getDocumentIndexingCrumb } from '~/utils/breadcrumbs'
+import { getDocumentManagementCrumb, getDocumentIndexingCrumb, getDocumentRecordsCrumb } from '~/utils/breadcrumbs'
 
 export default <RouterConfig|Ro<unknown>> {
   // https://router.vuejs.org/api/interfaces/routeroptions.html#routes
@@ -24,6 +24,16 @@ export default <RouterConfig|Ro<unknown>> {
         layout: 'default',
         title: 'Document Indexing',
         breadcrumbs: [getBcrosHomeCrumb, getDocumentManagementCrumb, getDocumentIndexingCrumb]
+      }
+    },
+    {
+      name: RouteNameE.DOCUMENT_RECORDS,
+      path: '/document-records',
+      component: () => import('~/pages/DocumentRecords.vue').then(r => r.default || r),
+      meta: {
+        layout: 'default',
+        title: 'Document Records',
+        breadcrumbs: [getBcrosHomeCrumb, getDocumentManagementCrumb, getDocumentRecordsCrumb]
       }
     },
     {

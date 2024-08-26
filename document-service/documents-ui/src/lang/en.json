@@ -1,10 +1,11 @@
 {
   "breadcrumb": {
-    "documentManagement": "Document Management",
-    "documentIndexing": "Document Indexing"
+    "documentManagement": "Document Record Services",
+    "documentIndexing": "Document Indexing",
+    "documentRecords": "Document Records"
   },
   "title": {
-    "documentManagement": "Document Management",
+    "documentManagement": "Document Record Services",
     "documentIndexing": "Document Indexing"
   },
   "descriptions": {
@@ -12,7 +13,31 @@
     "documentIndexing": "Index your documents using our document indexing service for easy access and search."
   },
   "button": {
-    "documentIndexing": "Document Indexing"
+    "documentIndexing": "Create New Document Record",
+    "open": "Open"
+  },
+  "documentSearch": {
+    "title": "Document Search",
+    "description": "Search for original registration documents and filings. Enter Entity ID or Document category to selected a date range to search by.",
+    "form": {
+      "id": {
+        "label": "Entity ID",
+        "help": "Example: MH107403, BC1234567, CP1234567"
+      },
+      "docId": {
+        "label": "Document ID",
+        "help": "Enter the 8 digit document ID number"
+      },
+      "selectMenu": {
+        "label": "Document Information",
+        "categoryLabel": "Document Category",
+        "typeLabel": "Document Type"
+      },
+      "dateRange": {
+        "label": "Filing Date",
+        "help": "Date range of registered documents you would like to search"
+      }
+    }
   },
   "documentIndexing": {
     "label": "Document Indexing Information",

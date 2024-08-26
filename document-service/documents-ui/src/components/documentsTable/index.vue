@@ -2,14 +2,17 @@
 import { formatToReadableDate } from '~/utils/dateHelper'
 const { getDocumentClassDescription, downloadFileFromUrl } = useDocuments()
 const { documentSearchResults } = storeToRefs(useBcrosDocuments())
+const { searchEntityId } = storeToRefs(useBcrosDocuments())
 const documentResultCols = [
   {
     key: 'consumerIdentifier',
-    label: 'Entity ID'
+    label: 'Entity ID',
+    sortable: true
   },
   {
     key: 'consumerDocumentId',
-    label: 'Document ID'
+    label: 'Document ID',
+    sortable: true
   },
   {
     key: 'documentClass',
@@ -26,6 +29,10 @@ const documentResultCols = [
   {
     key: 'documentURL',
     label: 'Documents'
+  },
+  {
+    key: 'actions',
+    label: 'Actions'
   }
 ]
 </script>
@@ -36,11 +43,41 @@ const documentResultCols = [
     class="my-12"
     data-cy="document-search-results"
   >
-    <template #header>Search Results ({{ documentSearchResults.length }})</template>
+    <template #header>
+      <div class="flex justify-between items-center">
+        <span>Search Results</span>
+        <!-- Column Selection Pending User Preferences -->
+<!--        <UFormGroup>-->
+<!--          <USelectMenu-->
+<!--            v-model="selectedColumns"-->
+<!--            multiple-->
+<!--            placeholder="Columns to Show"-->
+<!--            select-class="text-gray-700"-->
+<!--            :options="documentResultCols"-->
+<!--            value-attribute="key"-->
+<!--            option-attribute="label"-->
+<!--          />-->
+<!--        </UFormGroup>-->
+      </div>
+    </template>
     <template #content>
+
+      <div class="flex flex-row pl-4 text-gray-700">
+        <span class="font-bold">Results: </span><span class="pl-2">({{ documentSearchResults.length }})</span>
+        <span class="px-4">|</span>
+        <span class="font-bold">Entity ID: </span><span class="pl-2">{{ searchEntityId}}</span>
+      </div>
+
       <UTable
+        class="mt-8"
         :columns="documentResultCols"
         :rows="documentSearchResults || []"
+        :sort-button="{
+          class: 'font-bold text-sm',
+          size: '2xs',
+          square: false,
+          ui: { rounded: 'rounded-full' }
+        }"
       >
 
         <!-- Document URL -->
@@ -63,8 +100,19 @@ const documentResultCols = [
             >
               {{ file }}
             </ULink>
-
           <br>
+        </template>
+
+        <!-- Actions -->
+        <template #actions-data="{ row }">
+          <UButton
+            class="h-[35px] px-8 text-base"
+            outlined
+            color="primary"
+            @click="navigateTo({ name: RouteNameE.DOCUMENT_RECORDS, params: { documentId: row.consumerDocumentId } })"
+          >
+            {{ $t('button.open') }}
+          </UButton>
         </template>
       </UTable>
     </template>
