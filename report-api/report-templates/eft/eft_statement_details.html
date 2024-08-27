@@ -11,11 +11,11 @@
                     {% if statement.is_interim_statement%}
                         <div><span class="font-bold">Payment Received Date:</span>
                             {%  if statementSummary.latestStatementPaymentDate %}
-                                {{statementSummary.latestStatementPaymentDate | format_datetime('mmm dd,yyyy')}} at 5:15 PM Pacific Time
+                                {{statementSummary.latestStatementPaymentDate | format_datetime('mmm dd,yyyy')}}
                             {% endif %}
                         </div>
                     {% else %}
-                        <div><span class="font-bold">Payment Due Date:</span> {{statementSummary.dueDate | format_datetime('mmm dd,yyyy')}} at 5:15 PM Pacific Time</div>
+                        <div><span class="font-bold">Payment Due Date:</span> {{statementSummary.dueDate | format_datetime('mmm dd,yyyy')}}</div>
                     {% endif %}
                     
                     <div><span class="font-bold">Statement Number:</span> {{statement.id}}</div>
