@@ -18,11 +18,10 @@ from doc_api.services.abstract_storage_service import DocumentTypes
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils.logging import logger
 
-
-TEST_GET_NAME = 'unit_test/unit_test.pdf'  # Never delete
-TEST_DATAFILE = 'tests/unit/services/unit_test.pdf'
-TEST_SAVE_NAME = 'unit_test/2022/05/06/unit_test.pdf'
-MEDIA_PDF = 'application/pdf'
+TEST_GET_NAME = "unit_test/unit_test.pdf"  # Never delete
+TEST_DATAFILE = "tests/unit/services/unit_test.pdf"
+TEST_SAVE_NAME = "unit_test/2022/05/06/unit_test.pdf"
+MEDIA_PDF = "application/pdf"
 
 # testdata pattern is ({filename}, {doc_type}, {is_link})
 TEST_DATA_GET = [
@@ -30,7 +29,7 @@ TEST_DATA_GET = [
     (TEST_GET_NAME, DocumentTypes.BUSINESS, True),
     (TEST_GET_NAME, DocumentTypes.MHR, True),
     (TEST_GET_NAME, DocumentTypes.PPR, True),
-    (TEST_GET_NAME, DocumentTypes.NR, True)
+    (TEST_GET_NAME, DocumentTypes.NR, True),
 ]
 # testdata pattern is ({file}, {filename}, {doc_type}, {is_link}, {content_type}, {delete})
 TEST_DATA_SAVE = [
@@ -38,29 +37,29 @@ TEST_DATA_SAVE = [
     (TEST_DATAFILE, TEST_SAVE_NAME, DocumentTypes.BUSINESS, True, MEDIA_PDF, False),
     (TEST_DATAFILE, TEST_SAVE_NAME, DocumentTypes.MHR, True, MEDIA_PDF, True),
     (TEST_DATAFILE, TEST_SAVE_NAME, DocumentTypes.NR, True, MEDIA_PDF, True),
-    (TEST_DATAFILE, TEST_SAVE_NAME, DocumentTypes.PPR, True, MEDIA_PDF, False)
+    (TEST_DATAFILE, TEST_SAVE_NAME, DocumentTypes.PPR, True, MEDIA_PDF, False),
 ]
 
 
-@pytest.mark.parametrize('name, doc_type, is_link', TEST_DATA_GET)
+@pytest.mark.parametrize("name, doc_type, is_link", TEST_DATA_GET)
 def test_get_document(session, name, doc_type, is_link):
     """Assert that getting a document from google cloud storage works as expected."""
     if is_link:
         download_link = GoogleStorageService.get_document_link(name, doc_type, 2)
-        logger.info(f'Get doc link={download_link}')
+        logger.info(f"Get doc link={download_link}")
         assert download_link
     else:
         raw_data = GoogleStorageService.get_document(name, doc_type)
         assert raw_data
         assert len(raw_data) > 0
-        logger.info(f'Get doc file size={len(raw_data)}')
+        logger.info(f"Get doc file size={len(raw_data)}")
 
 
-@pytest.mark.parametrize('file, name, doc_type, is_link, content_type, delete', TEST_DATA_SAVE)
+@pytest.mark.parametrize("file, name, doc_type, is_link, content_type, delete", TEST_DATA_SAVE)
 def test_save_delete_document(session, file, name, doc_type, is_link, content_type, delete):
     """Assert that saving then deleting a document from google cloud storage works as expected."""
     raw_data = None
-    with open(file, 'rb') as data_file:
+    with open(file, "rb") as data_file:
         raw_data = data_file.read()
         data_file.close()
     if is_link:

@@ -15,8 +15,10 @@
 from http import HTTPStatus
 
 from flask import jsonify, request
+
 from doc_api.exceptions import ResourceErrorCodes
-from doc_api.models import db, Document, DocumentRequest, utils as model_utils, User
+from doc_api.models import Document, DocumentRequest, User, db
+from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, RequestTypes
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
 from doc_api.services.document_storage.storage_service import GoogleStorageService
@@ -25,38 +27,38 @@ from doc_api.utils.logging import logger
 
 from .request_info import RequestInfo
 
-
 # Resource error messages
 # Model business error messages in models.utils.py
-ACCOUNT_REQUIRED = '{code}: Account-Id header required.'
-UNAUTHORIZED = '{code}: authorization failure submitting a request for {account_id}.'
-UNAUTHORIZED_HELPDESK = '{code}: BCOL helpdesk users are not authorized to create {reg_type} registrations.'
-ACCOUNT_ACCESS = '{code}: the account ID {account_id} cannot access statement information for ' + \
-                 'mhr number {mhr_num}.'
-STAFF_SEARCH_BCOL_FAS = '{code}: provide either a BCOL Account Number or a Routing Slip Number but not both.'
-SBC_SEARCH_NO_PAYMENT = '{code}: provide either a BCOL Account Number or a Routing Slip Number.'
-DATABASE = '{code}: {context} database error for {account_id}.'
-NOT_FOUND = '{code}: no {item} found for {key}.'
-PATH_PARAM = '{code}: a {param_name} path parameter is required.'
-REPORT = ResourceErrorCodes.REPORT_ERR.value + ': error generating report. Detail: {detail}'
-DEFAULT = '{code}: error processing request.'
-DUPLICATE_REGISTRATION_ERROR = 'MH Registration {0} is already available to the account.'
-VAL_ERROR = 'Document request data validation errors.'  # Default validation error prefix
-SAVE_ERROR_MESSAGE = 'Account {0} create {1} statement db save failed: {2}'
+ACCOUNT_REQUIRED = "{code}: Account-Id header required."
+UNAUTHORIZED = "{code}: authorization failure submitting a request for {account_id}."
+UNAUTHORIZED_HELPDESK = "{code}: BCOL helpdesk users are not authorized to create {reg_type} registrations."
+ACCOUNT_ACCESS = (
+    "{code}: the account ID {account_id} cannot access statement information for " + "mhr number {mhr_num}."
+)
+STAFF_SEARCH_BCOL_FAS = "{code}: provide either a BCOL Account Number or a Routing Slip Number but not both."
+SBC_SEARCH_NO_PAYMENT = "{code}: provide either a BCOL Account Number or a Routing Slip Number."
+DATABASE = "{code}: {context} database error for {account_id}."
+NOT_FOUND = "{code}: no {item} found for {key}."
+PATH_PARAM = "{code}: a {param_name} path parameter is required."
+REPORT = ResourceErrorCodes.REPORT_ERR.value + ": error generating report. Detail: {detail}"
+DEFAULT = "{code}: error processing request."
+DUPLICATE_REGISTRATION_ERROR = "MH Registration {0} is already available to the account."
+VAL_ERROR = "Document request data validation errors."  # Default validation error prefix
+SAVE_ERROR_MESSAGE = "Account {0} create {1} statement db save failed: {2}"
 
 # Known request parameters
-PARAM_ACCOUNT_ID = 'Account-Id'
-PARAM_ACCEPT = 'Accept'
-PARAM_CONTENT_TYPE = 'Content-Type'
-PARAM_QUERY_START_DATE = 'queryStartDate'
-PARAM_QUERY_END_DATE = 'queryEndDate'
-PARAM_FROM_UI = 'fromUI'
-PARAM_DOC_SERVICE_ID = 'documentServiceId'
-PARAM_CONSUMER_DOC_ID = 'consumerDocumentId'
-PARAM_CONSUMER_FILENAME = 'consumerFilename'
-PARAM_CONSUMER_FILEDATE = 'consumerFilingDate'
-PARAM_CONSUMER_IDENTIFIER = 'consumerIdentifier'
-PARAM_DOCUMENT_TYPE = 'documentType'
+PARAM_ACCOUNT_ID = "Account-Id"
+PARAM_ACCEPT = "Accept"
+PARAM_CONTENT_TYPE = "Content-Type"
+PARAM_QUERY_START_DATE = "queryStartDate"
+PARAM_QUERY_END_DATE = "queryEndDate"
+PARAM_FROM_UI = "fromUI"
+PARAM_DOC_SERVICE_ID = "documentServiceId"
+PARAM_CONSUMER_DOC_ID = "consumerDocumentId"
+PARAM_CONSUMER_FILENAME = "consumerFilename"
+PARAM_CONSUMER_FILEDATE = "consumerFilingDate"
+PARAM_CONSUMER_IDENTIFIER = "consumerIdentifier"
+PARAM_DOCUMENT_TYPE = "documentType"
 
 TO_STORAGE_TYPE = {
     DocumentClasses.MHR: StorageDocTypes.MHR,
@@ -66,7 +68,7 @@ TO_STORAGE_TYPE = {
     DocumentClasses.COOP: StorageDocTypes.BUSINESS,
     DocumentClasses.FIRM: StorageDocTypes.BUSINESS,
     DocumentClasses.OTHER: StorageDocTypes.BUSINESS,
-    DocumentClasses.SOCIETY: StorageDocTypes.BUSINESS
+    DocumentClasses.SOCIETY: StorageDocTypes.BUSINESS,
 }
 STORAGE_TYPE_DEFAULT = StorageDocTypes.BUSINESS
 
@@ -76,7 +78,7 @@ def serialize(errors):
     error_message = []
     if errors:
         for error in errors:
-            error_message.append('Schema validation: ' + error.message + '.')
+            error_message.append("Schema validation: " + error.message + ".")
     return error_message
 
 
@@ -87,117 +89,117 @@ def get_account_id(req):
 
 def is_pdf(req):
     """Check if request headers Accept is application/pdf."""
-    accept = req.headers.get('Accept')
-    return accept and accept.upper() == 'APPLICATION/PDF'
+    accept = req.headers.get("Accept")
+    return accept and accept.upper() == "APPLICATION/PDF"
 
 
 def get_apikey(req):
     """Get gateway api key from request headers or parameter."""
-    key = req.headers.get('x-apikey')
+    key = req.headers.get("x-apikey")
     if not key:
-        key = request.args.get('x-apikey')
+        key = request.args.get("x-apikey")
     return key
 
 
 def account_required_response():
     """Build account required error response."""
     message = ACCOUNT_REQUIRED.format(code=ResourceErrorCodes.ACCOUNT_REQUIRED_ERR.value)
-    return jsonify({'message': message}), HTTPStatus.BAD_REQUEST
+    return jsonify({"message": message}), HTTPStatus.BAD_REQUEST
 
 
 def error_response(status_code, message):
     """Build generic error response."""
-    return jsonify({'message': message}), status_code
+    return jsonify({"message": message}), status_code
 
 
 def bad_request_response(message):
     """Build generic bad request response."""
-    return jsonify({'message': message}), HTTPStatus.BAD_REQUEST
+    return jsonify({"message": message}), HTTPStatus.BAD_REQUEST
 
 
 def validation_error_response(errors, cause, additional_msg: str = None):
     """Build a schema validation error response."""
-    message = ResourceErrorCodes.VALIDATION_ERR + ': ' + cause
+    message = ResourceErrorCodes.VALIDATION_ERR + ": " + cause
     details = serialize(errors)
     if additional_msg:
-        details.append('Additional validation: ' + additional_msg)
-    return jsonify({'message': message, 'detail': details}), HTTPStatus.BAD_REQUEST
+        details.append("Additional validation: " + additional_msg)
+    return jsonify({"message": message, "detail": details}), HTTPStatus.BAD_REQUEST
 
 
 def extra_validation_error_response(additional_msg: str = None):
     """Build a schema validation error response."""
-    message = ResourceErrorCodes.VALIDATION_ERR.value + ': ' + VAL_ERROR
-    details = 'Additional validation: '
+    message = ResourceErrorCodes.VALIDATION_ERR.value + ": " + VAL_ERROR
+    details = "Additional validation: "
     if additional_msg:
         details += additional_msg
-    return jsonify({'message': message, 'detail': details}), HTTPStatus.BAD_REQUEST
+    return jsonify({"message": message, "detail": details}), HTTPStatus.BAD_REQUEST
 
 
 def db_exception_response(exception, account_id: str, context: str):
     """Build a database error response."""
     message = DATABASE.format(code=ResourceErrorCodes.DATABASE_ERR.value, context=context, account_id=account_id)
     logger.error(message)
-    return jsonify({'message': message, 'detail': str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    return jsonify({"message": message, "detail": str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def report_exception_response(exception, detail: str):
     """Build a report request error response."""
     message = REPORT.format(detail=detail)
     logger.error(message)
-    return jsonify({'message': message, 'detail': str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    return jsonify({"message": message, "detail": str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def business_exception_response(exception):
     """Build business exception error response."""
     logger.error(str(exception))
-    return jsonify({'message': exception.error}), exception.status_code
+    return jsonify({"message": exception.error}), exception.status_code
 
 
 def default_exception_response(exception):
     """Build default 500 exception error response."""
     logger.error(str(exception))
     message = DEFAULT.format(code=ResourceErrorCodes.DEFAULT_ERR.value)
-    return jsonify({'message': message, 'detail': str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    return jsonify({"message": message, "detail": str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def service_exception_response(message):
     """Build 500 exception error response."""
-    return jsonify({'message': message}), HTTPStatus.INTERNAL_SERVER_ERROR
+    return jsonify({"message": message}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def not_found_error_response(item, key):
     """Build a not found error response."""
     message = NOT_FOUND.format(code=ResourceErrorCodes.NOT_FOUND_ERR.value, item=item, key=key)
-    logger.info(str(HTTPStatus.NOT_FOUND.value) + ': ' + message)
-    return jsonify({'message': message}), HTTPStatus.NOT_FOUND
+    logger.info(str(HTTPStatus.NOT_FOUND.value) + ": " + message)
+    return jsonify({"message": message}), HTTPStatus.NOT_FOUND
 
 
 def duplicate_error_response(message):
     """Build a duplicate request error response."""
-    err_msg = ResourceErrorCodes.DUPLICATE_ERR + ': ' + message
-    logger.info(str(HTTPStatus.CONFLICT.value) + ': ' + message)
-    return jsonify({'message': err_msg}), HTTPStatus.CONFLICT
+    err_msg = ResourceErrorCodes.DUPLICATE_ERR + ": " + message
+    logger.info(str(HTTPStatus.CONFLICT.value) + ": " + message)
+    return jsonify({"message": err_msg}), HTTPStatus.CONFLICT
 
 
 def unauthorized_error_response(account_id):
     """Build an unauthorized error response."""
     message = UNAUTHORIZED.format(code=ResourceErrorCodes.UNAUTHORIZED_ERR.value, account_id=account_id)
-    logger.info(str(HTTPStatus.UNAUTHORIZED.value) + ': ' + message)
-    return jsonify({'message': message}), HTTPStatus.UNAUTHORIZED
+    logger.info(str(HTTPStatus.UNAUTHORIZED.value) + ": " + message)
+    return jsonify({"message": message}), HTTPStatus.UNAUTHORIZED
 
 
 def path_param_error_response(param_name):
     """Build a bad request param missing error response."""
     message = PATH_PARAM.format(code=ResourceErrorCodes.PATH_PARAM_ERR.value, param_name=param_name)
-    logger.info(str(HTTPStatus.BAD_REQUEST.value) + ': ' + message)
-    return jsonify({'message': message}), HTTPStatus.BAD_REQUEST
+    logger.info(str(HTTPStatus.BAD_REQUEST.value) + ": " + message)
+    return jsonify({"message": message}), HTTPStatus.BAD_REQUEST
 
 
 def unprocessable_error_response(description):
     """Build an unprocessable entity error response."""
-    message = f'The {description} request could not be processed (no change/results).'
-    logger.info(str(HTTPStatus.UNPROCESSABLE_ENTITY.value) + ': ' + message)
-    return jsonify({'message': message}), HTTPStatus.UNPROCESSABLE_ENTITY
+    message = f"The {description} request could not be processed (no change/results)."
+    logger.info(str(HTTPStatus.UNPROCESSABLE_ENTITY.value) + ": " + message)
+    return jsonify({"message": message}), HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -231,11 +233,9 @@ def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> Re
     return info
 
 
-def update_request_info(req: request,
-                        info: RequestInfo,
-                        doc_service_id: str,
-                        doc_class: str,
-                        staff: bool = False) -> RequestInfo:
+def update_request_info(
+    req: request, info: RequestInfo, doc_service_id: str, doc_class: str, staff: bool = False
+) -> RequestInfo:
     """Extract header and from the request and update parameters from the request payload."""
     info.from_ui = req.args.get(PARAM_FROM_UI, False)
     info.account_id = req.headers.get(PARAM_ACCOUNT_ID)
@@ -270,22 +270,24 @@ def save_to_doc_storage(document: Document, info: RequestInfo, raw_data) -> str:
     """Save request binaary data to document storage. Return a download link"""
     storage_type: str = info.document_storage_type
     content_type = info.content_type
-    logger.info(f'Save to storage type={storage_type}, content type={content_type}')
+    logger.info(f"Save to storage type={storage_type}, content type={content_type}")
     storage_name: str = model_utils.get_doc_storage_name(document, content_type)
     doc_link = GoogleStorageService.save_document_link(storage_name, raw_data, storage_type, 2, content_type)
-    logger.info(f'Save doc to storage {storage_name} successful: link= {doc_link}')
+    logger.info(f"Save doc to storage {storage_name} successful: link= {doc_link}")
     document.doc_storage_url = storage_name
     return doc_link
 
 
 def build_doc_request(info: RequestInfo, user: User, doc_id: int) -> DocumentRequest:
     """Build a document request for audit tracking from ther request properties."""
-    doc_request: DocumentRequest = DocumentRequest(request_ts=model_utils.now_ts(),
-                                                   account_id=info.account_id,
-                                                   username=user.username if user else '',
-                                                   request_type=info.request_type,
-                                                   status=HTTPStatus.OK,
-                                                   document_id=doc_id)
+    doc_request: DocumentRequest = DocumentRequest(
+        request_ts=model_utils.now_ts(),
+        account_id=info.account_id,
+        username=user.username if user else "",
+        request_type=info.request_type,
+        status=HTTPStatus.OK,
+        document_id=doc_id,
+    )
     doc_request.request_data = info.json
     return doc_request
 
@@ -293,34 +295,34 @@ def build_doc_request(info: RequestInfo, user: User, doc_id: int) -> DocumentReq
 def save_add(info: RequestInfo, token, raw_data) -> dict:
     """Save request binary data to document storage. Return a download link"""
     request_json = info.json
-    logger.info(f'save_add starting raw data size={len(raw_data)}, getting user from token...')
+    logger.info(f"save_add starting raw data size={len(raw_data)}, getting user from token...")
     user: User = User.get_or_create_user_by_jwt(token, info.account_id)
-    logger.info('save_add building Document model...')
+    logger.info("save_add building Document model...")
     document: Document = Document.create_from_json(request_json, info.document_type)
     doc_link: str = None
     if raw_data:
-        logger.info('save_add saving file data to doc storage...')
+        logger.info("save_add saving file data to doc storage...")
         doc_link = save_to_doc_storage(document, info, raw_data)
     else:
-        logger.info('save_add no payload file to save to doc storage...')
+        logger.info("save_add no payload file to save to doc storage...")
         info.request_type = RequestTypes.PENDING.value
-    logger.info('save_add building doc request model and saving...')
+    logger.info("save_add building doc request model and saving...")
     doc_request: DocumentRequest = build_doc_request(info, user, document.id)
     db.session.add(document)
     db.session.add(doc_request)
     db.session.commit()
     doc_json = document.json
     if doc_link:
-        doc_json['documentURL'] = doc_link
-    logger.info('save_add completed...')
+        doc_json["documentURL"] = doc_link
+    logger.info("save_add completed...")
     return doc_json
 
 
 def save_update(info: RequestInfo, document: Document, token) -> dict:
     """Save updated document information. Return the updated information."""
-    logger.info('save_update starting, getting user from token...')
+    logger.info("save_update starting, getting user from token...")
     user: User = User.get_or_create_user_by_jwt(token, info.account_id)
-    logger.info('save_update updating Document model...')
+    logger.info("save_update updating Document model...")
     if info.consumer_doc_id:
         document.consumer_document_id = info.consumer_doc_id
     if info.consumer_identifier:
@@ -329,39 +331,39 @@ def save_update(info: RequestInfo, document: Document, token) -> dict:
         document.consumer_filename = info.consumer_filename
     if info.consumer_filedate:
         document.consumer_filing_date = model_utils.ts_from_iso_date_noon(info.consumer_filedate)
-    logger.info('save_update saving updated document model and document_request...')
+    logger.info("save_update saving updated document model and document_request...")
     doc_request: DocumentRequest = build_doc_request(info, user, document.id)
     db.session.add(document)
     db.session.add(doc_request)
     db.session.commit()
     doc_json = document.json
-    if doc_json.get('documentURL'):
-        del doc_json['documentURL']
-    logger.info('save_update completed...')
+    if doc_json.get("documentURL"):
+        del doc_json["documentURL"]
+    logger.info("save_update completed...")
     return doc_json
 
 
 def save_replace(info: RequestInfo, document: Document, token, raw_data) -> dict:
     """Save request binary data to document storage, adding or replacing the existing document. Return a link"""
-    logger.info(f'save_replace starting raw data size={len(raw_data)}, getting user from token...')
+    logger.info(f"save_replace starting raw data size={len(raw_data)}, getting user from token...")
     service_id: str = document.document_service_id
     user: User = User.get_or_create_user_by_jwt(token, info.account_id)
     if info.consumer_filename:
         document.consumer_filename = info.consumer_filename
     if document.doc_storage_url:
-        logger.info(f'save_replace ID {service_id} replacing existing doc storage file {document.doc_storage_url}...')
+        logger.info(f"save_replace ID {service_id} replacing existing doc storage file {document.doc_storage_url}...")
     else:
-        logger.info(f'save_replace adding new file for doc service id {service_id}...')
+        logger.info(f"save_replace adding new file for doc service id {service_id}...")
     doc_link = save_to_doc_storage(document, info, raw_data)
-    logger.info('save_replace building doc request model and saving...')
+    logger.info("save_replace building doc request model and saving...")
     doc_request: DocumentRequest = build_doc_request(info, user, document.id)
     db.session.add(document)
     db.session.add(doc_request)
     db.session.commit()
     doc_json = document.json
     if doc_link:
-        doc_json['documentURL'] = doc_link
-    logger.info('save_replace completed...')
+        doc_json["documentURL"] = doc_link
+    logger.info("save_replace completed...")
     return doc_json
 
 
@@ -370,12 +372,12 @@ def get_doc_links(info: RequestInfo, results: list) -> list:
     if not results:
         return results
     for result in results:
-        storage_name = result.get('documentURL')
+        storage_name = result.get("documentURL")
         storage_type = info.document_storage_type
         if storage_name:
-            logger.info(f'getting link for type={storage_type} name={storage_name}...')
+            logger.info(f"getting link for type={storage_type} name={storage_name}...")
             doc_link = GoogleStorageService.get_document_link(storage_name, storage_type, 2)
-            result['documentURL'] = doc_link
+            result["documentURL"] = doc_link
     return results
 
 
@@ -384,12 +386,12 @@ def get_docs(info: RequestInfo) -> list:
     results = []
     query_results = []
     if info.document_service_id:
-        logger.info(f'get_docs class {info.document_class} query by service id {info.document_service_id}')
+        logger.info(f"get_docs class {info.document_class} query by service id {info.document_service_id}")
         result = Document.find_by_doc_service_id(info.document_service_id)
         if result and result.doc_type and result.doc_type.document_class == info.document_class:
             results.append(result.json)
     elif info.consumer_doc_id:
-        logger.info(f'get_docs class {info.document_class} query by document id {info.consumer_doc_id}')
+        logger.info(f"get_docs class {info.document_class} query by document id {info.consumer_doc_id}")
         query_results = Document.find_by_document_id(info.consumer_doc_id)
         if query_results:
             for result in query_results:
@@ -397,21 +399,23 @@ def get_docs(info: RequestInfo) -> list:
                 if result.doc_type and result.doc_type.document_class == info.document_class:
                     results.append(result.json)
     elif info.consumer_identifier and not (info.query_start_date or info.query_end_date):
-        logger.info(f'get_docs class {info.document_class} query by consumer id {info.consumer_identifier}')
+        logger.info(f"get_docs class {info.document_class} query by consumer id {info.consumer_identifier}")
         if info.document_type:
-            logger.info(f'Filtering on doc_type={info.document_type}')
+            logger.info(f"Filtering on doc_type={info.document_type}")
         query_results = Document.find_by_consumer_id(info.consumer_identifier, info.document_type)
         if query_results:
             for result in query_results:
                 if result.doc_type and result.doc_type.document_class == info.document_class:
                     results.append(result.json)
     elif info.query_start_date and info.query_end_date:
-        return model_utils.get_docs_by_date_range(info.document_class,
-                                                  info.query_start_date,
-                                                  info.query_end_date,
-                                                  info.document_type,
-                                                  info.consumer_identifier)
-    logger.info('get docs completed...')
+        return model_utils.get_docs_by_date_range(
+            info.document_class,
+            info.query_start_date,
+            info.query_end_date,
+            info.document_type,
+            info.consumer_identifier,
+        )
+    logger.info("get docs completed...")
     return get_doc_links(info, results)
 
 

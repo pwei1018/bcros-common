@@ -14,86 +14,88 @@
 """Data for the JWT tokens."""
 from typing import List
 
+STAFF_ROLE = "staff"
 
-STAFF_ROLE = 'staff'
 
-
-def helper_create_jwt(jwt_manager, roles: List[str] = [], username: str = 'test-user'):
+def helper_create_jwt(jwt_manager, roles: List[str] = [], username: str = "test-user"):
     """Create a jwt bearer token with the correct keys, roles and username."""
-    token_header = {
-        'alg': 'RS256',
-        'typ': 'JWT',
-        'kid': 'flask-jwt-oidc-test-client'
-    }
+    token_header = {"alg": "RS256", "typ": "JWT", "kid": "flask-jwt-oidc-test-client"}
     claims = {
-        'iss': 'https://example.localdomain/auth/realms/example',
-        'sub': '43e6a245-0bf7-4ccf-9bd0-e7fb85fd18cc',
-        'aud': 'example',
-        'exp': 2539722391,
-        'iat': 1539718791,
-        'jti': 'flask-jwt-oidc-test-support',
-        'typ': 'Bearer',
-        'username': f'{username}',
-        'firstname': 'first',
-        'lastname': 'last',
-        'idp_userid': 'IDIR\test',
-        'loginSource': 'TEST',
-        'realm_access': {
-            'roles': [] + roles
-        }
+        "iss": "https://example.localdomain/auth/realms/example",
+        "sub": "43e6a245-0bf7-4ccf-9bd0-e7fb85fd18cc",
+        "aud": "example",
+        "exp": 2539722391,
+        "iat": 1539718791,
+        "jti": "flask-jwt-oidc-test-support",
+        "typ": "Bearer",
+        "username": f"{username}",
+        "firstname": "first",
+        "lastname": "last",
+        "idp_userid": "IDIR\test",
+        "loginSource": "TEST",
+        "realm_access": {"roles": [] + roles},
     }
     return jwt_manager.create_jwt(claims, token_header)
 
 
-def create_header(jwt_manager, roles: List[str] = [], username: str = 'test-user', **kwargs):
+def create_header(jwt_manager, roles: List[str] = [], username: str = "test-user", **kwargs):
     """Return a header containing a JWT bearer token."""
     token = helper_create_jwt(jwt_manager, roles=roles, username=username)
-    headers = {**kwargs, **{'Authorization': 'Bearer ' + token}}
+    headers = {**kwargs, **{"Authorization": "Bearer " + token}}
     return headers
 
 
-def create_header_report(jwt_manager, roles: List[str] = [], username: str = 'test-user', **kwargs):
+def create_header_report(jwt_manager, roles: List[str] = [], username: str = "test-user", **kwargs):
     """Return a header containing a JWT bearer token."""
     token = helper_create_jwt(jwt_manager, roles=roles, username=username)
-    headers = {**kwargs, **{'Authorization': 'Bearer ' + token}, **{'Accept': 'application/pdf'}}
+    headers = {**kwargs, **{"Authorization": "Bearer " + token}, **{"Accept": "application/pdf"}}
     return headers
 
 
-def create_header_upload(jwt_manager, roles: List[str] = [], username: str = 'test-user', **kwargs):
+def create_header_upload(jwt_manager, roles: List[str] = [], username: str = "test-user", **kwargs):
     """Return a header containing a JWT bearer token."""
     token = helper_create_jwt(jwt_manager, roles=roles, username=username)
-    headers = {**kwargs, **{'Authorization': 'Bearer ' + token}, **{'Content-Type': 'application/pdf'}}
+    headers = {**kwargs, **{"Authorization": "Bearer " + token}, **{"Content-Type": "application/pdf"}}
     return headers
 
 
-def create_header_account(jwt_manager,
-                          roles: List[str] = [],
-                          username: str = 'test-user',
-                          account_id: str = 'PS12345', **kwargs):
+def create_header_account(
+    jwt_manager, roles: List[str] = [], username: str = "test-user", account_id: str = "PS12345", **kwargs
+):
     """Return a header containing a JWT bearer token and an account ID."""
     token = helper_create_jwt(jwt_manager, roles=roles, username=username)
-    headers = {**kwargs, **{'Authorization': 'Bearer ' + token}, **{'Account-Id': account_id}}
+    headers = {**kwargs, **{"Authorization": "Bearer " + token}, **{"Account-Id": account_id}}
     return headers
 
 
-def create_header_account_report(jwt_manager,
-                                 roles: List[str] = [],
-                                 username: str = 'test-user',
-                                 account_id: str = 'PS12345', **kwargs):
+def create_header_account_report(
+    jwt_manager, roles: List[str] = [], username: str = "test-user", account_id: str = "PS12345", **kwargs
+):
     """Return a header containing a JWT bearer token and an account ID."""
     token = helper_create_jwt(jwt_manager, roles=roles, username=username)
-    headers = {**kwargs, **{'Authorization': 'Bearer ' + token},
-               **{'Account-Id': account_id}, **{'Accept': 'application/pdf'}}
+    headers = {
+        **kwargs,
+        **{"Authorization": "Bearer " + token},
+        **{"Account-Id": account_id},
+        **{"Accept": "application/pdf"},
+    }
     return headers
 
 
-def create_header_account_upload(jwt_manager,
-                                 roles: List[str] = [],
-                                 username: str = 'test-user',
-                                 account_id: str = 'PS12345',
-                                 content_type: str = 'application/pdf', **kwargs):
+def create_header_account_upload(
+    jwt_manager,
+    roles: List[str] = [],
+    username: str = "test-user",
+    account_id: str = "PS12345",
+    content_type: str = "application/pdf",
+    **kwargs,
+):
     """Return a header containing a JWT bearer token and an account ID."""
     token = helper_create_jwt(jwt_manager, roles=roles, username=username)
-    headers = {**kwargs, **{'Authorization': 'Bearer ' + token},
-               **{'Account-Id': account_id}, **{'Content-Type': content_type}}
+    headers = {
+        **kwargs,
+        **{"Authorization": "Bearer " + token},
+        **{"Account-Id": account_id},
+        **{"Content-Type": content_type},
+    }
     return headers

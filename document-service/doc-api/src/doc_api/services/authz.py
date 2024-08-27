@@ -23,22 +23,21 @@ from urllib3.util.retry import Retry
 
 from doc_api.utils.logging import logger
 
-
-SYSTEM_ROLE = 'system'
-STAFF_ROLE = 'staff'  # Share single role/account id with ppr for search, registration history.
-PPR_STAFF_ROLE = 'ppr_staff'  # Share single role/account id with ppr for search, registration history.
-COLIN_ROLE = 'colin'
-MHR_ROLE = 'mhr'
-BC_REGISTRY = 'default-roles-bcregistry'
-VIEW = 'view'
-BASIC_USER = 'basic'
-PRO_DATA_USER = 'pro_data'
-PUBLIC_USER = 'public_user'
-USER_ORGS_PATH = 'users/orgs'
-GOV_ACCOUNT_ROLE = 'gov_account_user'
-BCOL_HELP_ROLE = 'mhr_helpdesk'
-BCOL_HELP_ACCOUNT = 'helpdesk'
-ASSETS_HELP = 'helpdesk'  # Share single account id for search, registration history.
+SYSTEM_ROLE = "system"
+STAFF_ROLE = "staff"  # Share single role/account id with ppr for search, registration history.
+PPR_STAFF_ROLE = "ppr_staff"  # Share single role/account id with ppr for search, registration history.
+COLIN_ROLE = "colin"
+MHR_ROLE = "mhr"
+BC_REGISTRY = "default-roles-bcregistry"
+VIEW = "view"
+BASIC_USER = "basic"
+PRO_DATA_USER = "pro_data"
+PUBLIC_USER = "public_user"
+USER_ORGS_PATH = "users/orgs"
+GOV_ACCOUNT_ROLE = "gov_account_user"
+BCOL_HELP_ROLE = "mhr_helpdesk"
+BCOL_HELP_ACCOUNT = "helpdesk"
+ASSETS_HELP = "helpdesk"  # Share single account id for search, registration history.
 
 
 def authorized(identifier: str, jwt: JwtManager) -> bool:
@@ -53,37 +52,42 @@ def authorized(identifier: str, jwt: JwtManager) -> bool:
     # but JWTManager.validate_roles does the same thing.
 
     # Basically verify token, the gateway checks products and verifies the JWT.
-    if jwt.validate_roles([STAFF_ROLE]) or jwt.validate_roles([PPR_STAFF_ROLE]) or jwt.validate_roles([VIEW]) or \
-            jwt.validate_roles([BASIC_USER]) or jwt.validate_roles([BC_REGISTRY]):
+    if (
+        jwt.validate_roles([STAFF_ROLE])
+        or jwt.validate_roles([PPR_STAFF_ROLE])
+        or jwt.validate_roles([VIEW])
+        or jwt.validate_roles([BASIC_USER])
+        or jwt.validate_roles([BC_REGISTRY])
+    ):
         return True
 
-#        template_url = current_app.config.get('AUTH_SVC_URL')
-#        auth_url = template_url.format(**vars())
+    #        template_url = current_app.config.get('AUTH_SVC_URL')
+    #        auth_url = template_url.format(**vars())
 
-#        token = jwt.get_token_auth_header()
-#        headers = {'Authorization': 'Bearer ' + token}
-#        try:
-#            http = Session()
-#            retries = Retry(total=5,
-#                            backoff_factor=0.1,
-#                            status_forcelist=[500, 502, 503, 504])
-#            http.mount('http://', HTTPAdapter(max_retries=retries))
-#            rv = http.get(url=auth_url, headers=headers)
+    #        token = jwt.get_token_auth_header()
+    #        headers = {'Authorization': 'Bearer ' + token}
+    #        try:
+    #            http = Session()
+    #            retries = Retry(total=5,
+    #                            backoff_factor=0.1,
+    #                            status_forcelist=[500, 502, 503, 504])
+    #            http.mount('http://', HTTPAdapter(max_retries=retries))
+    #            rv = http.get(url=auth_url, headers=headers)
 
-#           if rv.status_code != HTTPStatus.OK \
-#                    or not rv.json().get('roles'):
-#                return False
+    #           if rv.status_code != HTTPStatus.OK \
+    #                    or not rv.json().get('roles'):
+    #                return False
 
-#            if all(elem.lower() in rv.json().get('roles') for elem in action):
-#                return True
+    #            if all(elem.lower() in rv.json().get('roles') for elem in action):
+    #                return True
 
-#        except (exceptions.ConnectionError,  # pylint: disable=broad-except
-#                exceptions.Timeout,
-#                ValueError,
-#                Exception) as err:
-#            logger.error(f'template_url {template_url}, svc:{auth_url}')
-#            logger.error(f'Authorization connection failure for {identifier}, using svc:{auth_url}', err)
-#            return False
+    #        except (exceptions.ConnectionError,  # pylint: disable=broad-except
+    #                exceptions.Timeout,
+    #                ValueError,
+    #                Exception) as err:
+    #            logger.error(f'template_url {template_url}, svc:{auth_url}')
+    #            logger.error(f'Authorization connection failure for {identifier}, using svc:{auth_url}', err)
+    #            return False
 
     return False
 
@@ -96,44 +100,49 @@ def authorized_role(jwt: JwtManager, user_role: str) -> bool:
 
 
 def authorized_token(  # pylint: disable=too-many-return-statements
-        identifier: str, jwt: JwtManager, action: List[str]) -> bool:
+    identifier: str, jwt: JwtManager, action: List[str]
+) -> bool:
     """Assert that the user is authorized to submit API requests for a particular action."""
     if not action or not identifier or not jwt:
         return False
 
     # All users including staff must have the PPR role.
-    if jwt.validate_roles([STAFF_ROLE]) or jwt.validate_roles([PPR_STAFF_ROLE]) or jwt.validate_roles([VIEW]) or \
-            jwt.validate_roles([BASIC_USER]) or jwt.validate_roles([BC_REGISTRY]):
+    if (
+        jwt.validate_roles([STAFF_ROLE])
+        or jwt.validate_roles([PPR_STAFF_ROLE])
+        or jwt.validate_roles([VIEW])
+        or jwt.validate_roles([BASIC_USER])
+        or jwt.validate_roles([BC_REGISTRY])
+    ):
         return True
 
     if jwt.has_one_of_roles([BASIC_USER, PRO_DATA_USER]):
 
-        template_url = current_app.config.get('AUTH_SVC_URL')
+        template_url = current_app.config.get("AUTH_SVC_URL")
         auth_url = template_url.format(**vars())
 
         token = jwt.get_token_auth_header()
-        headers = {'Authorization': 'Bearer ' + token}
+        headers = {"Authorization": "Bearer " + token}
         try:
             with Session() as http:
-                retries = Retry(total=5,
-                                backoff_factor=0.1,
-                                status_forcelist=[500, 502, 503, 504])
-                http.mount('http://', HTTPAdapter(max_retries=retries))
+                retries = Retry(total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+                http.mount("http://", HTTPAdapter(max_retries=retries))
                 rv = http.get(url=auth_url, headers=headers)
 
-                if rv.status_code != HTTPStatus.OK \
-                        or not rv.json().get('roles'):
+                if rv.status_code != HTTPStatus.OK or not rv.json().get("roles"):
                     return False
 
-                if all(elem.lower() in rv.json().get('roles') for elem in action):
+                if all(elem.lower() in rv.json().get("roles") for elem in action):
                     return True
 
-        except (exceptions.ConnectionError,  # pylint: disable=broad-except
-                exceptions.Timeout,
-                ValueError,
-                Exception) as err:
-            logger.error(f'template_url {template_url}, svc:{auth_url}')
-            logger.error(f'Authorization connection failure for {identifier}, using svc:{auth_url}', err)
+        except (
+            exceptions.ConnectionError,  # pylint: disable=broad-except
+            exceptions.Timeout,
+            ValueError,
+            Exception,
+        ) as err:
+            logger.error(f"template_url {template_url}, svc:{auth_url}")
+            logger.error(f"Authorization connection failure for {identifier}, using svc:{auth_url}", err)
             return False
 
     return False
@@ -145,31 +154,28 @@ def user_orgs(token: str) -> dict:
     if not token:
         return response
 
-    service_url = current_app.config.get('AUTH_SVC_URL')
-    api_url = service_url + '/' if service_url[-1] != '/' else service_url
+    service_url = current_app.config.get("AUTH_SVC_URL")
+    api_url = service_url + "/" if service_url[-1] != "/" else service_url
     api_url += USER_ORGS_PATH
 
     try:
-        headers = {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
-        }
+        headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
         # logger.debug('Auth get user orgs url=' + url)
         with Session() as http:
-            retries = Retry(total=3,
-                            backoff_factor=0.1,
-                            status_forcelist=[500, 502, 503, 504])
-            http.mount('http://', HTTPAdapter(max_retries=retries))
+            retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+            http.mount("http://", HTTPAdapter(max_retries=retries))
             ret_val = http.get(url=api_url, headers=headers)
-            logger.debug('Auth get user orgs response status: ' + str(ret_val.status_code))
+            logger.debug("Auth get user orgs response status: " + str(ret_val.status_code))
             # logger.debug('Auth get user orgs response data:')
             response = ret_val.json()
             # logger.debug(response)
-    except (exceptions.ConnectionError,  # pylint: disable=broad-except
-            exceptions.Timeout,
-            ValueError,
-            Exception) as err:
-        logger.error(f'Authorization connection failure using svc:{api_url}', err)
+    except (
+        exceptions.ConnectionError,  # pylint: disable=broad-except
+        exceptions.Timeout,
+        ValueError,
+        Exception,
+    ) as err:
+        logger.error(f"Authorization connection failure using svc:{api_url}", err)
 
     return response
 
@@ -180,31 +186,28 @@ def account_org(token: str, account_id: str) -> dict:
     if not token or not account_id:
         return response
 
-    service_url = current_app.config.get('AUTH_SVC_URL')
-    api_url = service_url + '/' if service_url[-1] != '/' else service_url
-    api_url += f'orgs/{account_id}'
+    service_url = current_app.config.get("AUTH_SVC_URL")
+    api_url = service_url + "/" if service_url[-1] != "/" else service_url
+    api_url += f"orgs/{account_id}"
 
     try:
-        headers = {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
-        }
+        headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
         # logger.debug('Auth get user orgs url=' + url)
         with Session() as http:
-            retries = Retry(total=3,
-                            backoff_factor=0.1,
-                            status_forcelist=[500, 502, 503, 504])
-            http.mount('http://', HTTPAdapter(max_retries=retries))
+            retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+            http.mount("http://", HTTPAdapter(max_retries=retries))
             ret_val = http.get(url=api_url, headers=headers)
-            logger.debug('Auth get user orgs response status: ' + str(ret_val.status_code))
+            logger.debug("Auth get user orgs response status: " + str(ret_val.status_code))
             # logger.debug('Auth get account org response data:')
             response = ret_val.json()
             # logger.debug(response)
-    except (exceptions.ConnectionError,  # pylint: disable=broad-except
-            exceptions.Timeout,
-            ValueError,
-            Exception) as err:
-        logger.error(f'Authorization connection failure using svc:{api_url}', err)
+    except (
+        exceptions.ConnectionError,  # pylint: disable=broad-except
+        exceptions.Timeout,
+        ValueError,
+        Exception,
+    ) as err:
+        logger.error(f"Authorization connection failure using svc:{api_url}", err)
 
     return response
 

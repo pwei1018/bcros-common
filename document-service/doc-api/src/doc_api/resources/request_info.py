@@ -14,7 +14,7 @@
 """Common resource helper class to store new request information."""
 
 
-class RequestInfo():
+class RequestInfo:
     """Contains parameter values and other common request information."""
 
     account_id: str
@@ -48,16 +48,16 @@ class RequestInfo():
     def json(self) -> dict:
         """Return the request info as a json object for storing in document requests."""
         info = {
-            'documentServiceId': self.document_service_id if self.document_service_id else '',
-            'staff': self.staff,
-            'accept': self.accept if self.accept else '',
-            'contentType': self.content_type if self.content_type else '',
-            'consumerDocumentId': self.consumer_doc_id if self.consumer_doc_id else '',
-            'consumerFilename': self.consumer_filename if self.consumer_filename else '',
-            'consumerFilingDate': self.consumer_filedate if self.consumer_filedate else '',
-            'consumerIdentifier': self.consumer_identifier if self.consumer_identifier else '',
-            'documentType': self.document_type if self.document_type else ''
+            "documentServiceId": self.document_service_id if self.document_service_id else "",
+            "staff": self.staff,
+            "accept": self.accept if self.accept else "",
+            "contentType": self.content_type if self.content_type else "",
+            "consumerDocumentId": self.consumer_doc_id if self.consumer_doc_id else "",
+            "consumerFilename": self.consumer_filename if self.consumer_filename else "",
+            "consumerFilingDate": self.consumer_filedate if self.consumer_filedate else "",
+            "consumerIdentifier": self.consumer_identifier if self.consumer_identifier else "",
+            "documentType": self.document_type if self.document_type else "",
         }
         if self.request_path:
-            info['requestPath'] = self.request_path
+            info["requestPath"] = self.request_path
         return info

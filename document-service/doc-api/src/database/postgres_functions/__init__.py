@@ -13,5 +13,5 @@
 # limitations under the License.
 
 """Export all of the Postgres db functions."""
-from .get_service_doc_id import get_service_doc_id
 from .get_document_number import get_document_number
+from .get_service_doc_id import get_service_doc_id

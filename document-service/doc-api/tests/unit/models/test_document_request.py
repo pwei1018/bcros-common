@@ -20,51 +20,55 @@ import copy
 
 import pytest
 
-from doc_api.models import Document, DocumentRequest, utils as model_utils
+from doc_api.models import Document, DocumentRequest
+from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentTypes, RequestTypes
 
-
 DOC1 = {
-    'consumerDocumentId': 'T0000001',
-    'consumerFilename': 'test.pdf',
-    'consumerIdentifer': 'T0000002',
-    'documentType': 'PPR_MISC',
-    'consumerFilingDateTime': '2024-07-01T19:00:00+00:00'
+    "consumerDocumentId": "T0000001",
+    "consumerFilename": "test.pdf",
+    "consumerIdentifer": "T0000002",
+    "documentType": "PPR_MISC",
+    "consumerFilingDateTime": "2024-07-01T19:00:00+00:00",
 }
 REQUEST1 = {
-    'requestType': RequestTypes.ADD.value,
-    'accountId': 'T_ACCOUNT',
-    'documentId': 0,
-    'status': 200,
-    'statusMessage': 'message',
-    'requestData': DOC1
+    "requestType": RequestTypes.ADD.value,
+    "accountId": "T_ACCOUNT",
+    "documentId": 0,
+    "status": 200,
+    "statusMessage": "message",
+    "requestData": DOC1,
 }
-TEST_DOCUMENT = Document(id=1,
-                         document_service_id='1',
-                         document_type=DocumentTypes.PPR_MISC.value,
-                         add_ts=model_utils.now_ts(),
-                         consumer_document_id='T0000001',
-                         consumer_identifier='T0000002',
-                         consumer_filename='test.pdf',
-                         consumer_filing_date=model_utils.ts_from_iso_date_noon('2024-07-01'))
-TEST_REQUEST = DocumentRequest(id=1,
-                               request_type=RequestTypes.ADD.value,
-                               request_ts=model_utils.now_ts(),
-                               account_id='T_ACCOUNT',
-                               username='T_USER',
-                               status=200,
-                               status_message='message',
-                               request_data=DOC1)
+TEST_DOCUMENT = Document(
+    id=1,
+    document_service_id="1",
+    document_type=DocumentTypes.PPR_MISC.value,
+    add_ts=model_utils.now_ts(),
+    consumer_document_id="T0000001",
+    consumer_identifier="T0000002",
+    consumer_filename="test.pdf",
+    consumer_filing_date=model_utils.ts_from_iso_date_noon("2024-07-01"),
+)
+TEST_REQUEST = DocumentRequest(
+    id=1,
+    request_type=RequestTypes.ADD.value,
+    request_ts=model_utils.now_ts(),
+    account_id="T_ACCOUNT",
+    username="T_USER",
+    status=200,
+    status_message="message",
+    request_data=DOC1,
+)
 
 
 # testdata pattern is ({id}, {has_results}, doc_type, request_type)
 TEST_ID_DATA = [
     (200000001, True, DocumentTypes.PPR_MISC.value, RequestTypes.ADD.value),
-    (300000000, False, DocumentTypes.PPR_MISC.value, RequestTypes.ADD.value)
+    (300000000, False, DocumentTypes.PPR_MISC.value, RequestTypes.ADD.value),
 ]
 
 
-@pytest.mark.parametrize('id, has_results, doc_type, doc_class', TEST_ID_DATA)
+@pytest.mark.parametrize("id, has_results, doc_type, doc_class", TEST_ID_DATA)
 def test_find_by_id(session, id, has_results, doc_type, doc_class):
     """Assert that find document request by primary key contains all expected elements."""
     if not has_results:
@@ -97,6 +101,6 @@ def test_doc_request_json(session):
     doc_request: DocumentRequest = TEST_REQUEST
     request_json = doc_request.json
     test_json = copy.deepcopy(REQUEST1)
-    test_json['createDateTime'] = request_json.get('createDateTime')
-    test_json['documentId'] = request_json.get('documentId')
-    assert request_json ==test_json
+    test_json["createDateTime"] = request_json.get("createDateTime")
+    test_json["documentId"] = request_json.get("documentId")
+    assert request_json == test_json

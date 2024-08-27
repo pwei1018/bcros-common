@@ -14,7 +14,6 @@
 """Maintain db function get_document_number here."""
 from alembic_utils.pg_function import PGFunction
 
-
 get_document_number = PGFunction(
     schema="public",
     signature="get_document_number()",
@@ -28,5 +27,5 @@ get_document_number = PGFunction(
     END
     ;
     $$;
-    """
+    """,
 )

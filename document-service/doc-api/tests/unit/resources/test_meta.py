@@ -24,6 +24,6 @@ def test_meta_info_v1(session, client, jwt):
     # no setup
 
     # test
-    rv = client.get('/meta/info')
+    rv = client.get("/meta/info")
     # check
     assert rv.status_code == HTTPStatus.OK

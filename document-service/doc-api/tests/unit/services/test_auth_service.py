@@ -39,45 +39,45 @@ def test_security_account(session, client, jwt):
     """Assert that the configuration to get the GCP service account from the environment works as expected."""
     decoded_sa = None
     encoded_sa: bytes = None
-    default_sa = os.getenv('GCP_AUTH_KEY')
+    default_sa = os.getenv("GCP_AUTH_KEY")
     if default_sa:
-        encoded_sa = bytes(default_sa, 'utf-8')
+        encoded_sa = bytes(default_sa, "utf-8")
     if not encoded_sa:
-        logger.info('No GCP_AUTH_KEY env var.')
-        sa_project_id = os.getenv('GCP_CS_PROJECT_ID')
-        sa_client_email = os.getenv('GCP_CS_SA_CLIENT_EMAIL')
-        sa_client_id = os.getenv('GCP_CS_SA_CLIENT_ID')
-        sa_private_key  = os.getenv('GCP_CS_SA_PRIVATE_KEY')
-        sa_private_key_id = os.getenv('GCP_CS_SA_PRIVATE_KEY_ID')
-        sa_cert_url = os.getenv('GCP_CS_SA_CERT_URL')
+        logger.info("No GCP_AUTH_KEY env var.")
+        sa_project_id = os.getenv("GCP_CS_PROJECT_ID")
+        sa_client_email = os.getenv("GCP_CS_SA_CLIENT_EMAIL")
+        sa_client_id = os.getenv("GCP_CS_SA_CLIENT_ID")
+        sa_private_key = os.getenv("GCP_CS_SA_PRIVATE_KEY")
+        sa_private_key_id = os.getenv("GCP_CS_SA_PRIVATE_KEY_ID")
+        sa_cert_url = os.getenv("GCP_CS_SA_CERT_URL")
         service_account_info = {
-            'type': 'service_account',
-            'project_id': sa_project_id,
-            'private_key_id': sa_private_key_id,
-            'private_key': str(sa_private_key).replace('\\n', '\n'),
-            'client_email': sa_client_email,
-            'client_id': sa_client_id,
-            'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-            'token_uri': 'https://oauth2.googleapis.com/token',
-            'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
-            'client_x509_cert_url': sa_cert_url,
-            'universe_domain': 'googleapis.com'
+            "type": "service_account",
+            "project_id": sa_project_id,
+            "private_key_id": sa_private_key_id,
+            "private_key": str(sa_private_key).replace("\\n", "\n"),
+            "client_email": sa_client_email,
+            "client_id": sa_client_id,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": sa_cert_url,
+            "universe_domain": "googleapis.com",
         }
         # logger.info(service_account_info)
-        encoded_sa = base64.b64encode(json.dumps(service_account_info).encode('utf-8'))
+        encoded_sa = base64.b64encode(json.dumps(service_account_info).encode("utf-8"))
         logger.info(encoded_sa)
 
     assert encoded_sa
-    decoded_sa = json.loads(base64.b64decode(encoded_sa.decode('utf-8')))
+    decoded_sa = json.loads(base64.b64decode(encoded_sa.decode("utf-8")))
     # logger.debug(decoded_sa)
     assert decoded_sa
-    assert decoded_sa.get('type')
-    assert decoded_sa.get('project_id')
-    assert decoded_sa.get('private_key_id')
-    assert decoded_sa.get('private_key')
-    assert decoded_sa.get('client_email')
-    assert decoded_sa.get('client_id')
-    assert decoded_sa.get('auth_uri')
-    assert decoded_sa.get('token_uri')
-    assert decoded_sa.get('auth_provider_x509_cert_url')
-    assert decoded_sa.get('client_x509_cert_url')
+    assert decoded_sa.get("type")
+    assert decoded_sa.get("project_id")
+    assert decoded_sa.get("private_key_id")
+    assert decoded_sa.get("private_key")
+    assert decoded_sa.get("client_email")
+    assert decoded_sa.get("client_id")
+    assert decoded_sa.get("auth_uri")
+    assert decoded_sa.get("token_uri")
+    assert decoded_sa.get("auth_provider_x509_cert_url")
+    assert decoded_sa.get("client_x509_cert_url")
