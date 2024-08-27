@@ -1,9 +1,9 @@
-import type { DocumentInfoIF } from '~/interfaces/document-types-interface'
+import type { DocumentInfoIF, DocumentStateIF } from '~/interfaces/document-types-interface'
 
 export const useBcrosDocuments = defineStore('bcros/documents', () => {
 
   // Function to return default values
-  const getDefaultState = () => ({
+  const getDefaultState = (): DocumentStateIF => ({
     // Document Search
     searchDocumentId: '',
     searchEntityId: '',
@@ -20,7 +20,7 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     documentList: [],
 
     // Validations
-    validateIndex: undefined,
+    validateIndex: false,
     isLoading: false,
     validateDocumentSearch: false,
 
@@ -28,12 +28,13 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     displayDocumentReview: false,
     documentInfoRO: null as DocumentInfoIF,
     documentSearchResults: [],
+    documentRecord: null
   })
 
   // Initial state
   const state = reactive(getDefaultState())
 
-  // Reset function
+  // Reset state function
   const resetStore = () => {
     Object.assign(state, getDefaultState())
   }

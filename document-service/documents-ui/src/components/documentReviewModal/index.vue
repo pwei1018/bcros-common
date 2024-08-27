@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatToReadableDate } from '~/utils/dateHelper'
-
+const { getDocumentDescription } = useDocuments()
 const { displayDocumentReview, documentInfoRO } = storeToRefs(useBcrosDocuments())
 const loadingDocuments = ref(false)
 
@@ -14,25 +14,6 @@ const requestDocumentRecord = async (consumerId: string) => {
   loadingDocuments.value = true
   await getDocumentRecord(consumerId)
   loadingDocuments.value = false
-}
-
-/**
- * Retrieves the description based on the provided class or type value.
- *
- * @param value - The class or type value to look up.
- * @param isType - Boolean indicating whether the value is a type or class. Defaults to false (class).
- * @returns The description of the class or type if found, otherwise undefined.
- */
-const getDescription = (value: string, isType = false): string | undefined => {
-  const docClass = documentTypes.find(docClass =>
-    isType
-      ? docClass.documents.some(doc => doc.type === value)
-      : docClass.class === value
-  )
-
-  return isType
-    ? docClass?.documents.find(doc => doc.type === value)?.description
-    : docClass?.description
 }
 </script>
 
@@ -70,11 +51,11 @@ const getDescription = (value: string, isType = false): string | undefined => {
           </div>
           <div>
             <span class="font-bold">{{ $t('documentReview.labels.documentCategory') }}: </span>
-            <span class="px-1">{{ getDescription(documentInfoRO.documentClass) }}</span>
+            <span class="px-1">{{ getDocumentDescription(documentInfoRO.documentClass) }}</span>
           </div>
           <div>
             <span class="font-bold">{{ $t('documentReview.labels.documentType') }}: </span>
-            <span class="px-1">{{ getDescription(documentInfoRO.documentType, true) }}</span>
+            <span class="px-1">{{ getDocumentDescription(documentInfoRO.documentType, true) }}</span>
           </div>
           <div>
             <span class="font-bold">{{ $t('documentReview.labels.filingDate') }}: </span>

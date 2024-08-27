@@ -176,3 +176,36 @@ export const documentTypes: Array<DocumentClassIF> = [
     ]
   }
 ]
+
+export const documentResultColumns = [
+  {
+    key: 'consumerIdentifier',
+    label: 'Entity ID',
+    sortable: true
+  },
+  {
+    key: 'consumerDocumentId',
+    label: 'Document ID',
+    sortable: true
+  },
+  {
+    key: 'documentClass',
+    label: 'Document Category'
+  },
+  {
+    key: 'documentTypeDescription',
+    label: 'Document Type'
+  },
+  {
+    key: 'consumerFilingDateTime',
+    label: 'Filing Date'
+  },
+  {
+    key: 'documentURL',
+    label: 'Documents'
+  },
+  {
+    key: 'actions',
+    label: 'Actions'
+  }
+]

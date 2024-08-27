@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
 import type { PropType } from 'vue'
-import type { DatePickerDate } from 'v-calendar/dist/types/src/use/datePicker'
+import type { DatePickerDate, DatePickerRangeObject } from 'v-calendar/dist/types/src/use/datePicker'
 
 const emit = defineEmits(['update:modelValue'])
 
 const props = defineProps({
   modelValue: {
-    type: [String, Date] as PropType<DatePickerDate>,
+    type: [String, Date, Object] as PropType<DatePickerDate | DatePickerRangeObject>,
     default: null
   },
   disabled: {

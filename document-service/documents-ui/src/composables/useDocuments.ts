@@ -34,12 +34,22 @@ export const useDocuments = () => {
   }
 
   /**
-   * Retrieves class descriptions for the specified category
-   * @param documentClass - The document class for which to retrieve documents
-   * @returns An class descriptions or an empty string if the category is not found
+   * Retrieves the description based on the provided class or type value.
+   *
+   * @param value - The class or type value to look up.
+   * @param isType - Boolean indicating whether the value is a type or class. Defaults to false (class).
+   * @returns The description of the class or type if found, otherwise undefined.
    */
-  function getDocumentClassDescription(documentClass: string): string  {
-    return documentTypes.find(doc => doc.class === documentClass)?.description || ''
+  function getDocumentDescription(value: string, isType = false): string | undefined {
+    const docClass = documentTypes.find(docClass =>
+      isType
+        ? docClass.documents.some(doc => doc.type === value)
+        : docClass.class === value
+    )
+
+    return isType
+      ? docClass?.documents.find(doc => doc.type === value)?.description
+      : docClass?.description
   }
 
   /**
@@ -223,7 +233,7 @@ export const useDocuments = () => {
     isValidIndexData,
     findCategoryByPrefix,
     getDocumentTypesByClass,
-    getDocumentClassDescription,
+    getDocumentDescription,
     searchDocuments,
     downloadFileFromUrl,
     hasMinimumSearchCriteria,

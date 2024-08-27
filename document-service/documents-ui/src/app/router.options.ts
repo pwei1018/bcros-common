@@ -28,7 +28,7 @@ export default <RouterConfig|Ro<unknown>> {
     },
     {
       name: RouteNameE.DOCUMENT_RECORDS,
-      path: '/document-records',
+      path: '/document-records/:identifier',
       component: () => import('~/pages/DocumentRecords.vue').then(r => r.default || r),
       meta: {
         layout: 'default',

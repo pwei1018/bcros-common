@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { resetStore } = useBcrosDocuments()
 const { isValidIndexData, saveDocuments } = useDocuments()
-const { validateIndex, displayDocumentReview } = storeToRefs(useBcrosDocuments())
+const { validateIndex } = storeToRefs(useBcrosDocuments())
 // Use onScopeDispose to reset the store when the component is unmounted
 onMounted(() => { resetStore() })
 // Reset the store when the component is unmounted or scope is disposed
@@ -18,7 +18,7 @@ onScopeDispose(() => { resetStore() })
         <template #header>
           <div class="grid grid-cols-6">
             <div class="col-span-6">
-              <h1 class="text-[32px] pb-2" @click="displayDocumentReview = true">{{ $t('title.documentIndexing') }}</h1>
+              <h1 class="text-[32px] pb-2">{{ $t('title.documentIndexing') }}</h1>
               <span class="text-gray-700 font-normal text-base">{{ $t('descriptions.documentIndexing') }}</span>
             </div>
           </div>

@@ -19,7 +19,7 @@ export function getDocumentIndexingCrumb (): BreadcrumbI {
 export function getDocumentRecordsCrumb (): BreadcrumbI {
   const t = useNuxtApp().$i18n.t
   return {
-    text: ref(t('breadcrumb.documentRecords')),
+    text: ref(t('breadcrumb.documentRecords') + ' ' + useRoute()?.params?.identifier),
     to: { name: RouteNameE.DOCUMENT_RECORDS},
   }
 }

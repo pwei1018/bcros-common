@@ -1,5 +1,4 @@
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
-
 import { testAccount, testUser } from './test-utils'
 
 mockNuxtImport('useBcrosNavigate', () => {
