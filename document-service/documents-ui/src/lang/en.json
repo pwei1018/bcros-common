@@ -2,7 +2,7 @@
   "breadcrumb": {
     "documentManagement": "Document Record Services",
     "documentIndexing": "Document Indexing",
-    "documentRecords": "Document Records"
+    "documentRecords": "Document Record"
   },
   "title": {
     "documentManagement": "Document Record Services",
@@ -25,8 +25,8 @@
         "help": "Example: MH107403, BC1234567, CP1234567"
       },
       "docId": {
-        "label": "Document ID",
-        "help": "Enter the 8 digit document ID number"
+        "label": "Document Record ID",
+        "help": "Enter the 8 digit document record ID number"
       },
       "selectMenu": {
         "label": "Document Information",
@@ -75,18 +75,29 @@
     "title": "Document Information Saved",
     "description": "Your document information has been successfully uploaded and saved. To view, complete a search on the document management page using the following information",
     "labels": {
-      "documentId": "Document ID",
+      "documentId": "Document Record ID",
       "entityId": "Entity ID",
       "documentCategory": "Document Category",
       "documentType": "Document Type",
       "filingDate": "Filing Date",
       "uploadDate": "Upload Date and Time",
       "documentsUploaded": "Documents Uploaded",
-      "documentListLabel": "Documents"
+      "documentListLabel": "Documents",
+      "scanningLabel": "Scanning Information",
+      "accessionNumber": "Accession Number",
+      "batchId": "Batch ID",
+      "pagesToScan": "Pages to Scan",
+      "scannedDate": "Scanned Date",
+      "author": "Author"
     },
     "buttonLabels": {
       "cancel": "Back to Documents Services Page",
       "downloadReport": "Download Document Record Statement"
     }
+  },
+  "documentRecord": {
+    "title": "Document Record",
+    "description": "View and download your document record",
+    "subtitle": "Document Record Information"
   }
 }

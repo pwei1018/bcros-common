@@ -1,6 +1,6 @@
 {
   "name": "bcros-documents-ui",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "private": true,
   "type": "module",
   "scripts": {
@@ -21,6 +21,7 @@
     "@nuxt/ui": "^2.16.0",
     "@nuxtjs/i18n": "^8.3.1",
     "@pinia/nuxt": "^0.5.1",
+    "axios": "^1.7.5",
     "date-fns": "^3.6.0",
     "http-status-codes": "^2.1.4",
     "keycloak-js": "^24.0.4",

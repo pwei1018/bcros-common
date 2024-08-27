@@ -13,7 +13,7 @@ const docApiKey = config.public.documentsApiKey
 /**
  * Sends a GET request to fetch a document from the specified API endpoint.
  *
- * @param params - The parameters for the document request, including document class, type, and optional consumer information.
+ * @param params - The parameters for the document request, including document class, type, and consumer information.
  * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
  */
 export async function getDocuments(params: DocumentRequestIF): Promise<ApiResponseOrError> {
@@ -127,6 +127,38 @@ export async function getDocumentRecord(consumerDocumentId: string): Promise<Api
   try {
     const response = await useBcrosFetch<ApiResponseIF>(url, options)
     saveBlob(response.data.value, `${consumerDocumentId}.pdf`)
+    return {
+      data: response.data,
+      status: response.status
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
+
+/**
+ * Sends a GET request to retrieve a document scanning record by its consumerDocumentId.
+ *
+ * @param documentClass - The class of the document to be retrieved.
+ * @param documentId - The unique identifier for the document to be retrieved.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function getScanningRecord(documentClass: string, documentId: string): Promise<ApiResponseOrError> {
+  const options = {
+    method: 'GET',
+    headers: { 'x-apikey': `${docApiKey}` }
+  }
+
+  // Build the full URL
+    const url = `${baseURL}/scanning/${documentClass}/${documentId}`
+
+  try {
+    const response = await useBcrosFetch<ApiResponseIF>(url, options)
     return {
       data: response.data,
       status: response.status

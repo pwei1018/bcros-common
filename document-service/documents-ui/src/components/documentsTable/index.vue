@@ -1,40 +1,15 @@
 <script setup lang="ts">
 import { formatToReadableDate } from '~/utils/dateHelper'
-const { getDocumentClassDescription, downloadFileFromUrl } = useDocuments()
+import { documentResultColumns } from '~/utils/documentTypes'
+import type { DocumentInfoIF } from '~/interfaces/document-types-interface'
+const { getDocumentDescription, downloadFileFromUrl } = useDocuments()
 const { documentSearchResults } = storeToRefs(useBcrosDocuments())
-const { searchEntityId } = storeToRefs(useBcrosDocuments())
-const documentResultCols = [
-  {
-    key: 'consumerIdentifier',
-    label: 'Entity ID',
-    sortable: true
-  },
-  {
-    key: 'consumerDocumentId',
-    label: 'Document ID',
-    sortable: true
-  },
-  {
-    key: 'documentClass',
-    label: 'Document Category'
-  },
-  {
-    key: 'documentTypeDescription',
-    label: 'Document Type'
-  },
-  {
-    key: 'consumerFilingDateTime',
-    label: 'Filing Date'
-  },
-  {
-    key: 'documentURL',
-    label: 'Documents'
-  },
-  {
-    key: 'actions',
-    label: 'Actions'
-  }
-]
+const { documentRecord, searchEntityId } = storeToRefs(useBcrosDocuments())
+
+const openDocumentRecord = (searchResult: DocumentInfoIF) => {
+  documentRecord.value = { ...searchResult }
+  navigateTo({ name: RouteNameE.DOCUMENT_RECORDS, params: { identifier: searchResult.consumerDocumentId } })
+}
 </script>
 <template>
   <ContentWrapper
@@ -46,18 +21,6 @@ const documentResultCols = [
     <template #header>
       <div class="flex justify-between items-center">
         <span>Search Results</span>
-        <!-- Column Selection Pending User Preferences -->
-<!--        <UFormGroup>-->
-<!--          <USelectMenu-->
-<!--            v-model="selectedColumns"-->
-<!--            multiple-->
-<!--            placeholder="Columns to Show"-->
-<!--            select-class="text-gray-700"-->
-<!--            :options="documentResultCols"-->
-<!--            value-attribute="key"-->
-<!--            option-attribute="label"-->
-<!--          />-->
-<!--        </UFormGroup>-->
       </div>
     </template>
     <template #content>
@@ -70,7 +33,7 @@ const documentResultCols = [
 
       <UTable
         class="mt-8"
-        :columns="documentResultCols"
+        :columns="documentResultColumns"
         :rows="documentSearchResults || []"
         :sort-button="{
           class: 'font-bold text-sm',
@@ -82,7 +45,7 @@ const documentResultCols = [
 
         <!-- Document URL -->
         <template #documentClass-data="{ row }">
-          {{ getDocumentClassDescription(row.documentClass) }}
+          {{ getDocumentDescription(row.documentClass) }}
         </template>
 
         <!-- Consumer DateTime -->
@@ -92,15 +55,17 @@ const documentResultCols = [
 
         <!-- Document URL -->
         <template #documentURL-data="{ row }">
-            <ULink
-              v-for="(file, i) in row.consumerFilenames"
-              :key="`file-${i}`"
-              inactive-class="text-primary underline"
-              @click="downloadFileFromUrl(row.documentUrls[i], file)"
-            >
+          <span
+            v-for="(file, i) in row.consumerFilenames"
+            :key="`file-${i}`"
+          >
+             <ULink
+               inactive-class="text-primary underline"
+               @click="downloadFileFromUrl(row.documentUrls[i], file)"
+             >
               {{ file }}
             </ULink>
-          <br>
+          </span>
         </template>
 
         <!-- Actions -->
@@ -109,7 +74,7 @@ const documentResultCols = [
             class="h-[35px] px-8 text-base"
             outlined
             color="primary"
-            @click="navigateTo({ name: RouteNameE.DOCUMENT_RECORDS, params: { documentId: row.consumerDocumentId } })"
+            @click="openDocumentRecord(row)"
           >
             {{ $t('button.open') }}
           </UButton>

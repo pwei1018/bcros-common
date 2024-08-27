@@ -6,7 +6,7 @@ import type { PropType } from 'vue'
 
 const props = defineProps({
   modelValue: {
-    type: [String, Date] as PropType<DatePickerDate | DatePickerRangeObject>,
+    type: [String, Date, Object] as PropType<DatePickerDate | DatePickerRangeObject>,
     default: null
   },
   isRangedPicker: {
