@@ -19,7 +19,7 @@ import os
 
 from flask import Flask
 from flask_cors import CORS
-from flask_migrate import Migrate
+from flask_migrate import Migrate, upgrade
 
 from doc_api import errorhandlers, models
 from doc_api.config import config
@@ -43,7 +43,14 @@ def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
 
     db.init_app(app)
     Migrate(app, db)
-    logger.info("Logging, migrate set up.")
+    # logger.info("Logging, migrate set up.")
+    logger.info("Running migration upgrade.")
+    with app.app_context():
+        upgrade(directory="migrations", revision="head", sql=False, tag=None)
+
+    # Alembic has it's own logging config, we'll need to restore our logging here.
+    setup_logging(os.path.join(os.path.abspath(os.path.dirname(__file__)), "logging.yaml"))
+    logger.info("Finished migration upgrade.")
 
     meta_endpoint.init_app(app)
     ops_endpoint.init_app(app)
