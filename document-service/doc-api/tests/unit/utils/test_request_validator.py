@@ -141,7 +141,8 @@ TEST_DATA_ADD_DATES = [
     ("Valid filing date", True, "2024-07-31", None),
     ("Invalid filing date", False, "January 12, 2022", validator.INVALID_FILING_DATE),
 ]
-# test data pattern is ({description}, {valid}, {doc_class}, {doc_service_id}, {doc_id}, {cons_id}, {start}, {end}, {message_content})
+# test data pattern is ({description}, {valid}, {doc_class}, {doc_service_id},
+# {doc_id}, {cons_id}, {start}, {end}, {message_content})
 TEST_DATA_GET = [
     ("Valid service id", True, DocumentClasses.CORP, "1234", None, None, None, None, None),
     ("Valid doc id", True, DocumentClasses.CORP, None, "1234", None, None, None, None),
