@@ -1,0 +1,20 @@
+name: Documents UI CI
+
+on:
+  pull_request:
+    paths:
+      - "document-service/documents-ui/**"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./document-service/documents-ui
+
+jobs:
+  documents-ui-ci:
+    uses: bcgov/bcregistry-sre/.github/workflows/frontend-ci.yaml@main
+    with:
+      app_name: "documents-ui"
+      working_directory: "./document-service/documents-ui"
+      codecov_flag: "documentsui"

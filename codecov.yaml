@@ -18,6 +18,8 @@ coverage:
           - notifydelivery
           - reportapi
           - statusapi
+          - docapi
+          - documentsui
 
       ui:
         target: 80%
@@ -57,7 +59,11 @@ flags:
     paths:
       - status-api/src/status_api
     carryforward: true
+  docapi:
+    paths:
+      - document-service/doc-api/src/doc_api
+    carryforward: true
   documentsui:
     paths:
-      - document-service/documents-ui/src
+      - document-service/documents-ui
     carryforward: true
