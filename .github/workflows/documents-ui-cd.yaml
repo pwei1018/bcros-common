@@ -1,0 +1,30 @@
+name: Documents UI CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "document-service/documents-ui/**"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deploy To"
+        required: true
+        type: choice
+        options:
+        - dev
+        - test
+        - sandbox
+        - prod
+
+jobs:
+  documents-ui-cd:
+    uses: bcgov/bcregistry-sre/.github/workflows/frontend-cd.yaml@main
+    with:
+      target: ${{ inputs.target }}
+      app_name: "documents-ui"
+      working_directory: "./document-service/documents-ui"
+    secrets:
+      WORKLOAD_IDENTIFY_POOLS_PROVIDER: ${{ secrets.WORKLOAD_IDENTIFY_POOLS_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}

@@ -1,0 +1,20 @@
+name: Doc API CI
+
+on:
+  pull_request:
+    paths:
+      - "document-service/doc-api/**"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./document-service/doc-api
+
+jobs:
+  doc-api-ci:
+    uses: bcgov/bcregistry-sre/.github/workflows/backend-ci.yaml@main
+    with:
+      app_name: "doc-api"
+      working_directory: "./document-service/doc-api"
+      codecov_flag: "docapi"
