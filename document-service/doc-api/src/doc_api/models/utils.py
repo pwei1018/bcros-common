@@ -29,10 +29,9 @@ from doc_api.utils.logging import logger
 
 from .db import db
 
-
 QUERY_DOC_TYPE_CLAUSE = " and d.document_type = '{doc_type}'"
 QUERY_CONSUMER_ID_CLAUSE = " and d.consumer_identifier = '{consumer_id}'"
-QUERY_DEFAULT_ORDER_BY = ' order by d.consumer_document_id'
+QUERY_DEFAULT_ORDER_BY = " order by d.consumer_document_id"
 QUERY_DATES_DEFAULT = """
 select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_identifier, d.consumer_filename,
        d.consumer_filing_date, d.document_type, dt.document_type_desc, dc.document_class,
@@ -45,37 +44,37 @@ select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_ident
                     and to_timestamp(:query_val3, 'YYYY-MM-DD HH24:MI:SS')
 """
 # Local timzone
-LOCAL_TZ = pytz.timezone('America/Los_Angeles')
-CONTENT_TYPE_CSV = 'text/csv'
-CONTENT_TYPE_GIF = 'image/gif'
-CONTENT_TYPE_JPEG = 'image/jpeg'
-CONTENT_TYPE_PNG = 'image/png'
-CONTENT_TYPE_TIFF = 'image/tiff'
-CONTENT_TYPE_PDF = 'application/pdf'
-CONTENT_TYPE_EXCEL = 'application/vnd.ms-excel'
-CONTENT_TYPE_WORD = 'application/msword'
-CONTENT_TYPE_EXCELX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-CONTENT_TYPE_WORDX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-CONTENT_TYPE_ZIP = 'application/zip'
+LOCAL_TZ = pytz.timezone("America/Los_Angeles")
+CONTENT_TYPE_CSV = "text/csv"
+CONTENT_TYPE_GIF = "image/gif"
+CONTENT_TYPE_JPEG = "image/jpeg"
+CONTENT_TYPE_PNG = "image/png"
+CONTENT_TYPE_TIFF = "image/tiff"
+CONTENT_TYPE_PDF = "application/pdf"
+CONTENT_TYPE_EXCEL = "application/vnd.ms-excel"
+CONTENT_TYPE_WORD = "application/msword"
+CONTENT_TYPE_EXCELX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+CONTENT_TYPE_WORDX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+CONTENT_TYPE_ZIP = "application/zip"
 # Map from API search type to DB search type
 TO_FILE_TYPE = {
-    CONTENT_TYPE_CSV: 'csv',
-    CONTENT_TYPE_GIF: 'gif',
-    CONTENT_TYPE_JPEG: 'jpg',
-    'image/jpg': 'jpg',
-    CONTENT_TYPE_PNG: 'png',
-    'image/tif': 'tif',
-    CONTENT_TYPE_TIFF: 'tif',
-    CONTENT_TYPE_PDF: 'pdf',
-    CONTENT_TYPE_EXCEL: 'xls',
-    CONTENT_TYPE_WORD: 'doc',
-    CONTENT_TYPE_EXCELX: 'xlsx',
-    CONTENT_TYPE_WORDX: 'docx',
-    CONTENT_TYPE_ZIP: 'zip',
-    'default': 'pdf'
+    CONTENT_TYPE_CSV: "csv",
+    CONTENT_TYPE_GIF: "gif",
+    CONTENT_TYPE_JPEG: "jpg",
+    "image/jpg": "jpg",
+    CONTENT_TYPE_PNG: "png",
+    "image/tif": "tif",
+    CONTENT_TYPE_TIFF: "tif",
+    CONTENT_TYPE_PDF: "pdf",
+    CONTENT_TYPE_EXCEL: "xls",
+    CONTENT_TYPE_WORD: "doc",
+    CONTENT_TYPE_EXCELX: "xlsx",
+    CONTENT_TYPE_WORDX: "docx",
+    CONTENT_TYPE_ZIP: "zip",
+    "default": "pdf",
 }
-DEFAULT_FILE_TYPE = 'pdf'
-STORAGE_DOC_NAME = '{doc_type}-{doc_service_id}.{file_type}'
+DEFAULT_FILE_TYPE = "pdf"
+STORAGE_DOC_NAME = "{doc_type}-{doc_service_id}.{file_type}"
 
 
 def now_ts():
@@ -89,8 +88,8 @@ def format_ts(time_stamp):
     if time_stamp:
         try:
             formatted_ts = time_stamp.replace(tzinfo=timezone.utc).replace(microsecond=0).isoformat()
-        except Exception as format_exception:   # noqa: B902; return nicer error
-            current_app.logger.error('format_ts exception: ' + str(format_exception))
+        except Exception as format_exception:  # noqa: B902; return nicer error
+            current_app.logger.error("format_ts exception: " + str(format_exception))
             formatted_ts = time_stamp.isoformat()
     return formatted_ts
 
@@ -107,8 +106,8 @@ def format_local_date(base_date):
         # Explicitly set to local timezone.
         local_ts = LOCAL_TZ.localize(base_ts)
         formatted_ts = local_ts.replace(tzinfo=LOCAL_TZ).replace(microsecond=0).isoformat()
-    except Exception as format_exception:   # noqa: B902; return nicer error
-        current_app.logger.error(f'format_local_date exception ({base_date.isoformat()}): ' + str(format_exception))
+    except Exception as format_exception:  # noqa: B902; return nicer error
+        current_app.logger.error(f"format_local_date exception ({base_date.isoformat()}): " + str(format_exception))
         formatted_ts = base_date.isoformat()
     return formatted_ts  # [0:10]
 
@@ -147,9 +146,13 @@ def get_doc_storage_name(document, content_type: str) -> str:
     """Get a document storage name from the registration in the format YYYY/MM/DD/doc_type-doc_service_id.file_type."""
     name: str = document.add_ts.isoformat()[:10]
     ftype: str = TO_FILE_TYPE.get(content_type, DEFAULT_FILE_TYPE)
-    name = name.replace('-', '/') + '/' + STORAGE_DOC_NAME.format(doc_type=document.document_type.lower(),
-                                                                  doc_service_id=document.document_service_id,
-                                                                  file_type=ftype)
+    name = (
+        name.replace("-", "/")
+        + "/"
+        + STORAGE_DOC_NAME.format(
+            doc_type=document.document_type.lower(), doc_service_id=document.document_service_id, file_type=ftype
+        )
+    )
     return name
 
 
@@ -233,7 +236,7 @@ def date_offset(base_date, offset_days: int = 1, add: bool = False):
 
 def is_legacy() -> bool:
     """Check that the api is using the legacy DB2 database."""
-    return current_app.config.get('USE_LEGACY_DB', True)
+    return current_app.config.get("USE_LEGACY_DB", True)
 
 
 def date_elapsed(date_iso: str):
@@ -251,7 +254,7 @@ def get_docs_by_date_range(doc_class: str, start_date: str, end_date: str, doc_t
     """Get document info by date range and class, type is optional."""
     results = []
     if not doc_class or not start_date or not end_date:
-        logger.warning('get_docs_by_date_range missing one of required doc class, start date, end date')
+        logger.warning("get_docs_by_date_range missing one of required doc class, start date, end date")
         return results
 
     query_s = QUERY_DATES_DEFAULT
@@ -261,29 +264,29 @@ def get_docs_by_date_range(doc_class: str, start_date: str, end_date: str, doc_t
         query_s += QUERY_CONSUMER_ID_CLAUSE.format(consumer_id=cons_id)
     query_s += QUERY_DEFAULT_ORDER_BY
     query = text(query_s)
-    start: str = format_ts(ts_from_iso_date_start(start_date))[:19].replace('T', ' ')
-    end: str = format_ts(ts_from_iso_date_end(end_date))[:19].replace('T', ' ')
-    logger.info(f'get_docs class {doc_class} query by date range {start} to {end}\n query={query_s}')
+    start: str = format_ts(ts_from_iso_date_start(start_date))[:19].replace("T", " ")
+    end: str = format_ts(ts_from_iso_date_end(end_date))[:19].replace("T", " ")
+    logger.info(f"get_docs class {doc_class} query by date range {start} to {end}\n query={query_s}")
     qresults = None
-    qresults = db.session.execute(query, {'query_val1': doc_class, 'query_val2': start, 'query_val3': end})
+    qresults = db.session.execute(query, {"query_val1": doc_class, "query_val2": start, "query_val3": end})
     rows = qresults.fetchall()
     if rows is not None:
         for row in rows:
             result_json = {
-                'documentServiceId': str(row[0]),
-                'createDateTime': format_ts(row[1]),
-                'consumerDocumentId': str(row[2]) if row[2] else '',
-                'consumerIdentifier': str(row[3]) if row[3] else '',
-                'consumerFilename': str(row[4]) if row[4] else '',
-                'documentType': str(row[6]),
-                'documentTypeDescription': str(row[7]),
-                'documentClass': str(row[8])
+                "documentServiceId": str(row[0]),
+                "createDateTime": format_ts(row[1]),
+                "consumerDocumentId": str(row[2]) if row[2] else "",
+                "consumerIdentifier": str(row[3]) if row[3] else "",
+                "consumerFilename": str(row[4]) if row[4] else "",
+                "documentType": str(row[6]),
+                "documentTypeDescription": str(row[7]),
+                "documentClass": str(row[8]),
             }
             if row[5]:
-                result_json['consumerFilingDateTime'] = format_ts(row[5])
+                result_json["consumerFilingDateTime"] = format_ts(row[5])
             results.append(result_json)
     if results:
-        logger.info(f'get_docs_by_date_range returning {len(results)} results.')
+        logger.info(f"get_docs_by_date_range returning {len(results)} results.")
     else:
-        logger.info('get_docs_by_date_range no results found.')
+        logger.info("get_docs_by_date_range no results found.")
     return results

@@ -24,7 +24,7 @@ def test_health_check_v1(session, client, jwt):
     # no setup
 
     # test
-    rv = client.get('/ops/healthz')
+    rv = client.get("/ops/healthz")
     # check
     assert rv.status_code == HTTPStatus.OK
 
@@ -34,6 +34,6 @@ def test_ready_check_v1(session, client, jwt):
     # no setup
 
     # test
-    rv = client.get('/ops/readyz')
+    rv = client.get("/ops/readyz")
     # check
     assert rv.status_code == HTTPStatus.OK

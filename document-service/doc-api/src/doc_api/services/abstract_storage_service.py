@@ -20,10 +20,10 @@ from doc_api.utils.base import BaseEnum
 class DocumentTypes(BaseEnum):
     """Render an Enum of storage document types."""
 
-    BUSINESS = 'BUSINESS'
-    MHR = 'MHR'
-    NR = 'NR'
-    PPR = 'PPR'
+    BUSINESS = "BUSINESS"
+    MHR = "MHR"
+    NR = "NR"
+    PPR = "PPR"
 
 
 class StorageService(ABC):  # pylint: disable=too-few-public-methods

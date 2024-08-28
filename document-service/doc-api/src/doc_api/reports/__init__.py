@@ -12,6 +12,7 @@
 from http import HTTPStatus
 
 from flask import jsonify
+
 # from flask_babel import _
 from doc_api.exceptions import BusinessException, ResourceErrorCodes
 from doc_api.utils.logging import logger
@@ -19,9 +20,8 @@ from doc_api.utils.logging import logger
 from .report import Report
 from .report_utils import ReportTypes
 
-
-REPORT_VERSION_V2 = '2'
-DEFAULT_ERROR_MSG = '{code}: Data related error generating report.'.format(code=ResourceErrorCodes.REPORT_ERR.value)
+REPORT_VERSION_V2 = "2"
+DEFAULT_ERROR_MSG = "{code}: Data related error generating report.".format(code=ResourceErrorCodes.REPORT_ERR.value)
 
 
 def get_pdf(report_data, account_id, report_type=None):
@@ -30,7 +30,7 @@ def get_pdf(report_data, account_id, report_type=None):
         return Report(report_data, account_id, report_type).get_pdf()
     except FileNotFoundError:
         # We don't have a template for it, so it must only be available on paper.
-        return jsonify({'message': 'No PDF report found.'}), HTTPStatus.NOT_FOUND
-    except Exception as err:   # noqa: B902; return nicer default error
-        logger.error(f'Generate report failed for account {account_id}, type {report_type}: ' + str(err))
+        return jsonify({"message": "No PDF report found."}), HTTPStatus.NOT_FOUND
+    except Exception as err:  # noqa: B902; return nicer default error
+        logger.error(f"Generate report failed for account {account_id}, type {report_type}: " + str(err))
         raise BusinessException(error=DEFAULT_ERROR_MSG, status_code=HTTPStatus.INTERNAL_SERVER_ERROR) from err

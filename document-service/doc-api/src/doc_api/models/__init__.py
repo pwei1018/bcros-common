@@ -14,22 +14,19 @@
 """This exports all of the models and schemas used by the application."""
 
 from .db import db  # noqa: I001
-from .type_tables import (
-    DocumentClass,
-    DocumentType,
-    RequestType
-)
 from .document import Document
 from .document_request import DocumentRequest
 from .document_scanning import DocumentScanning
+from .type_tables import DocumentClass, DocumentType, RequestType
 from .user import User
 
-
-__all__ = ('db',
-           'Document',
-           'DocumentClass',
-           'DocumentType',
-           'DocumentRequest',
-           'DocumentScanning',
-           'RequestType',
-           'User')
+__all__ = (
+    "db",
+    "Document",
+    "DocumentClass",
+    "DocumentType",
+    "DocumentRequest",
+    "DocumentScanning",
+    "RequestType",
+    "User",
+)

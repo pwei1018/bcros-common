@@ -69,9 +69,9 @@ class Config:  # pylint: disable=too-few-public-methods
 
     GCP_AUTH_KEY = os.getenv("GCP_AUTH_KEY", "")
     # For reports
-    REPORT_SVC_URL = os.getenv('REPORT_SVC_URL', 'http://')
-    REPORT_TEMPLATE_PATH = os.getenv('REPORT_TEMPLATE_PATH', 'report-templates')
-    DEPLOYMENT_ENV = os.getenv('DEPLOYMENT_ENV', 'development')
+    REPORT_SVC_URL = os.getenv("REPORT_SVC_URL", "http://")
+    REPORT_TEMPLATE_PATH = os.getenv("REPORT_TEMPLATE_PATH", "report-templates")
+    DEPLOYMENT_ENV = os.getenv("DEPLOYMENT_ENV", "development")
 
 
 class ProductionConfig(Config):  # pylint: disable=too-few-public-methods

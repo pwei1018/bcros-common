@@ -75,13 +75,13 @@ def jwt():
 def db(app, request):  # pylint: disable=redefined-outer-name
     """Session-wide test database."""
 
-    def teardown():
-        _db.drop_all()
+    #    def teardown():
+    #        _db.drop_all()
 
-    _db.app = app
+    #    _db.app = app
 
-    _db.create_all()
-    request.addfinalizer(teardown)
+    #    _db.create_all()
+    #    request.addfinalizer(teardown)
     return _db
 
 

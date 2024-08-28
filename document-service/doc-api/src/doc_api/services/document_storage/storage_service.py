@@ -16,17 +16,16 @@ import datetime
 import os
 
 from google.cloud import storage
+
+from doc_api.services.abstract_storage_service import DocumentTypes, StorageService
 from doc_api.services.gcp_auth.auth_service import GoogleAuthService
 from doc_api.services.utils.exceptions import StorageException
-from doc_api.services.abstract_storage_service import DocumentTypes, StorageService
-
 from doc_api.utils.logging import logger
 
-
-HTTP_DELETE = 'delete'
-HTTP_GET = 'get'
-HTTP_POST = 'post'
-CONTENT_TYPE_PDF = 'application/pdf'
+HTTP_DELETE = "delete"
+HTTP_GET = "get"
+HTTP_POST = "post"
+CONTENT_TYPE_PDF = "application/pdf"
 
 
 class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-methods
@@ -36,45 +35,45 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
     """
 
     # Google cloud storage configuration.
-    GCP_BUCKET_ID_BUS = str(os.getenv('GCP_CS_BUCKET_ID_BUS'))
-    GCP_BUCKET_ID_MHR = str(os.getenv('GCP_CS_BUCKET_ID_MHR'))
-    GCP_BUCKET_ID_NR = str(os.getenv('GCP_CS_BUCKET_ID_NR'))
-    GCP_BUCKET_ID_PPR = str(os.getenv('GCP_CS_BUCKET_ID_PPR'))
+    GCP_BUCKET_ID_BUS = str(os.getenv("GCP_CS_BUCKET_ID_BUS"))
+    GCP_BUCKET_ID_MHR = str(os.getenv("GCP_CS_BUCKET_ID_MHR"))
+    GCP_BUCKET_ID_NR = str(os.getenv("GCP_CS_BUCKET_ID_NR"))
+    GCP_BUCKET_ID_PPR = str(os.getenv("GCP_CS_BUCKET_ID_PPR"))
 
     @classmethod
     def get_document(cls, name: str, doc_type: str = None):
         """Fetch the uniquely named document from cloud storage as binary data."""
         try:
-            logger.info(f'Fetching doc type={doc_type}, name={name}.')
+            logger.info(f"Fetching doc type={doc_type}, name={name}.")
             return cls.__call_cs_api(HTTP_GET, name, None, doc_type)
         except StorageException as storage_err:
             raise storage_err
         except Exception as err:  # pylint: disable=broad-except # noqa F841;
-            logger.error(f'get_document failed for doc type={doc_type}, name={name}.')
+            logger.error(f"get_document failed for doc type={doc_type}, name={name}.")
             logger.error(str(err))
-            raise StorageException('GET document failed for doc type={doc_type}, name={name}.') from err
+            raise StorageException("GET document failed for doc type={doc_type}, name={name}.") from err
 
     @classmethod
     def get_document_link(cls, name: str, doc_type: str = None, available_days: int = 1):
         """Fetch the uniquely named document from cloud storage as a time-limited download link."""
         try:
-            logger.info(f'Fetching doc type={doc_type}, name={name}.')
+            logger.info(f"Fetching doc type={doc_type}, name={name}.")
             return cls.__call_cs_api_link(name, None, doc_type, None, available_days)
         except StorageException as storage_err:
             raise storage_err
         except Exception as err:  # pylint: disable=broad-except # noqa F841;
-            logger.error(f'get_document failed for doc type={doc_type}, name={name}.')
+            logger.error(f"get_document failed for doc type={doc_type}, name={name}.")
             logger.error(str(err))
-            raise StorageException(f'GET document failed for doc type={doc_type}, name={name}.') from err
+            raise StorageException(f"GET document failed for doc type={doc_type}, name={name}.") from err
 
     @classmethod
     def delete_document(cls, name: str, doc_type: str = None):
         """Delete the uniquely named document from cloud storage (unit testing only)."""
         try:
-            logger.info(f'Deleting doc type={doc_type}, name={name}.')
+            logger.info(f"Deleting doc type={doc_type}, name={name}.")
             return cls.__call_cs_api(HTTP_DELETE, name, None, doc_type)
         except Exception as err:  # pylint: disable=broad-except # noqa F841;
-            logger.error(f'get_document failed for doc type {doc_type}, name {name}.')
+            logger.error(f"get_document failed for doc type {doc_type}, name {name}.")
             logger.error(str(err))
         return None
 
@@ -82,41 +81,39 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
     def save_document(cls, name: str, raw_data, doc_type: str = None, content_type: str = None):
         """Save or replace the named document in cloud storage with the binary data as the file contents."""
         try:
-            logger.info(f'Saving doc type={doc_type}, name={name}.')
-            return cls.__call_cs_api(HTTP_POST,
-                                     name,
-                                     raw_data,
-                                     doc_type,
-                                     content_type if content_type else CONTENT_TYPE_PDF)
+            logger.info(f"Saving doc type={doc_type}, name={name}.")
+            return cls.__call_cs_api(
+                HTTP_POST, name, raw_data, doc_type, content_type if content_type else CONTENT_TYPE_PDF
+            )
         except StorageException as storage_err:
             raise storage_err
         except Exception as err:  # pylint: disable=broad-except # noqa F841;
-            logger.error(f'save_document failed for doc type={doc_type}, name={name}.')
+            logger.error(f"save_document failed for doc type={doc_type}, name={name}.")
             logger.error(str(err))
-            raise StorageException(f'POST document failed for doc type={doc_type}, name={name}.') from err
+            raise StorageException(f"POST document failed for doc type={doc_type}, name={name}.") from err
 
     @classmethod
-    def save_document_link(cls,  # pylint: disable=too-many-arguments; just 1 more
-                           name: str,
-                           raw_data,
-                           doc_type: str = None,
-                           content_type: str = None,
-                           available_days: int = 1):
+    def save_document_link(  # pylint: disable=too-many-arguments; just 1 more
+        cls,
+        name: str,
+        raw_data,
+        doc_type: str = None,
+        content_type: str = None,
+        available_days: int = 1,
+    ):
         """Save a document to a cloud storage bucket with the binary data as the file contents. Return a link."""
         try:
             # bucket_id = cls.__get_bucket_id(doc_type)
-            logger.info(f'Saving doc type={doc_type}, name={name}.')
-            return cls.__call_cs_api_link(name,
-                                          raw_data,
-                                          doc_type,
-                                          available_days,
-                                          content_type if content_type else CONTENT_TYPE_PDF)
+            logger.info(f"Saving doc type={doc_type}, name={name}.")
+            return cls.__call_cs_api_link(
+                name, raw_data, doc_type, available_days, content_type if content_type else CONTENT_TYPE_PDF
+            )
         except StorageException as storage_err:
             raise storage_err
         except Exception as err:  # pylint: disable=broad-except # noqa F841;
-            logger.error(f'save_document failed for doc type={doc_type}, name={name}.')
+            logger.error(f"save_document failed for doc type={doc_type}, name={name}.")
             logger.error(str(err))
-            raise StorageException(f'POST document failed for doc type={doc_type}, name={name}.') from err
+            raise StorageException(f"POST document failed for doc type={doc_type}, name={name}.") from err
 
     @classmethod
     def __get_bucket_id(cls, doc_type: str = None):
@@ -132,11 +129,14 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
         return cls.GCP_BUCKET_ID_BUS
 
     @classmethod
-    def __call_cs_api(cls, method: str,  # pylint: disable=too-many-arguments; just 1 more
-                      name: str,
-                      data=None,
-                      doc_type: str = None,
-                      content_type: str = None):
+    def __call_cs_api(  # pylint: disable=too-many-arguments; just 1 more
+        cls,
+        method: str,
+        name: str,
+        data=None,
+        doc_type: str = None,
+        content_type: str = None,
+    ):
         """Call the Cloud Storage API."""
         credentials = GoogleAuthService.get_credentials()
         storage_client = storage.Client(credentials=credentials)
@@ -155,11 +155,14 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
         return None
 
     @classmethod
-    def __call_cs_api_link(cls, name: str,  # pylint: disable=too-many-arguments; just 1 more
-                           data=None,
-                           doc_type: str = None,
-                           content_type: str = None,
-                           available_days: int = 1):
+    def __call_cs_api_link(  # pylint: disable=too-many-arguments; just 1 more
+        cls,
+        name: str,
+        data=None,
+        doc_type: str = None,
+        content_type: str = None,
+        available_days: int = 1,
+    ):
         """Call the Cloud Storage API, returning a time-limited download link."""
         credentials = GoogleAuthService.get_credentials()
         storage_client = storage.Client(credentials=credentials)
@@ -169,8 +172,6 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
             media_type: str = content_type if content_type else CONTENT_TYPE_PDF
             blob.upload_from_string(data=data, content_type=media_type)
         url = blob.generate_signed_url(
-            version='v4',
-            expiration=datetime.timedelta(days=available_days, hours=0, minutes=0),
-            method='GET'
+            version="v4", expiration=datetime.timedelta(days=available_days, hours=0, minutes=0), method="GET"
         )
         return url

@@ -14,7 +14,6 @@
 """Maintain db function get_service_doc_id here."""
 from alembic_utils.pg_function import PGFunction
 
-
 get_service_doc_id = PGFunction(
     schema="public",
     signature="get_service_doc_id()",
@@ -28,5 +27,5 @@ get_service_doc_id = PGFunction(
     END
     ;
     $$;
-    """
+    """,
 )

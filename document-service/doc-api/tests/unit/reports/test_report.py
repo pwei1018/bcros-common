@@ -16,23 +16,22 @@
 
 Test-Suite to ensure that the report service registration report is working as expected.
 """
-from http import HTTPStatus
 import json
+from http import HTTPStatus
 
 from doc_api.reports.report import Report
 from doc_api.reports.report_utils import ReportTypes
 from doc_api.utils.logging import logger
 
-
-DOC_RECORD_TEST_DATAFILE = 'tests/unit/reports/data/doc-record-test-example.json'
-DOC_RECORD_TEST_PDFFILE = 'tests/unit/reports/data/doc-record-test-example.pdf'
+DOC_RECORD_TEST_DATAFILE = "tests/unit/reports/data/doc-record-test-example.json"
+DOC_RECORD_TEST_PDFFILE = "tests/unit/reports/data/doc-record-test-example.pdf"
 
 
 def test_document_record(session, client, jwt):
     """Assert that generation of a test report is as expected."""
     # setup
     json_data = get_json_from_file(DOC_RECORD_TEST_DATAFILE)
-    report = Report(json_data, 'PS12345', ReportTypes.DOC_RECORD)
+    report = Report(json_data, "PS12345", ReportTypes.DOC_RECORD)
     # test
     content, status, headers = report.get_pdf()
     assert headers
@@ -43,7 +42,7 @@ def test_document_record(session, client, jwt):
 def get_json_from_file(data_file: str):
     """Get json data from report data file."""
     text_data = None
-    with open(data_file, 'r') as data_file:
+    with open(data_file, "r") as data_file:
         text_data = data_file.read()
         data_file.close()
     # print(text_data)
@@ -56,10 +55,10 @@ def check_response(content, status_code, filename: str = None):
     assert status_code
     assert content
     if status_code != HTTPStatus.OK:
-        err_content = content.decode('ascii')
-        logger.info(f'RS Status code={status_code}. Response: {err_content}.')
+        err_content = content.decode("ascii")
+        logger.info(f"RS Status code={status_code}. Response: {err_content}.")
     elif filename:
         with open(filename, "wb") as pdf_file:
             pdf_file.write(content)
             pdf_file.close()
-    logger.debug('PDF report generation completed.')
+    logger.debug("PDF report generation completed.")

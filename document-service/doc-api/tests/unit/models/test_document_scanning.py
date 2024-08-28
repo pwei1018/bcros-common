@@ -20,52 +20,49 @@ import copy
 
 import pytest
 
-from doc_api.models import DocumentScanning, utils as model_utils
+from doc_api.models import DocumentScanning
+from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses
 
-
 DOC_SCAN1 = {
-    'consumerDocumentId': 'T0000001',
-    'scanDateTime': '2024-07-01T19:00:00+00:00',
-    'documentClass': 'MHR',
-    'accessionNumber': 'AN-0001',
-    'batchId': '1234',
-    'author': 'Jane Smith',
-    'pageCount': 3
+    "consumerDocumentId": "T0000001",
+    "scanDateTime": "2024-07-01T19:00:00+00:00",
+    "documentClass": "MHR",
+    "accessionNumber": "AN-0001",
+    "batchId": "1234",
+    "author": "Jane Smith",
+    "pageCount": 3,
 }
 DOC_SCAN2 = {
-    'scanDateTime': '2024-08-15T19:00:00+00:00',
-    'accessionNumber': 'AN-0002',
-    'batchId': '12345',
-    'author': 'Janet Smith',
-    'pageCount': 4
+    "scanDateTime": "2024-08-15T19:00:00+00:00",
+    "accessionNumber": "AN-0002",
+    "batchId": "12345",
+    "author": "Janet Smith",
+    "pageCount": 4,
 }
-TEST_DOC_SCAN = DocumentScanning(id=1,
-                                 consumer_document_id='T0000001',
-                                 scan_date=model_utils.ts_from_iso_date_noon('2024-07-01'),
-                                 document_class=DocumentClasses.MHR.value,
-                                 accession_number='AN-0001',
-                                 batch_id='1234',
-                                 author='Jane Smith',
-                                 page_count=3)
+TEST_DOC_SCAN = DocumentScanning(
+    id=1,
+    consumer_document_id="T0000001",
+    scan_date=model_utils.ts_from_iso_date_noon("2024-07-01"),
+    document_class=DocumentClasses.MHR.value,
+    accession_number="AN-0001",
+    batch_id="1234",
+    author="Jane Smith",
+    page_count=3,
+)
 
 # testdata pattern is ({id}, {has_results}, {consumer_doc_id), {doc_class})
 TEST_ID_DATA = [
-    (200000001, True, '99990000', DocumentClasses.PPR.value),
-    (300000000, False, '99990000', DocumentClasses.PPR.value)
+    (200000001, True, "99990000", DocumentClasses.PPR.value),
+    (300000000, False, "99990000", DocumentClasses.PPR.value),
 ]
 # testdata pattern is ({id}, {consumer_doc_id), {doc_class})
-TEST_UPDATE_DATA = [
-    (200000001, '99990000', DocumentClasses.PPR.value)
-]
+TEST_UPDATE_DATA = [(200000001, "99990000", DocumentClasses.PPR.value)]
 # testdata pattern is ({consumer_doc_id}, {doc_type})
-TEST_CREATE_JSON_DATA = [
-    ('99990000', DocumentClasses.PPR.value),
-    ('99990001', DocumentClasses.MHR.value)
-]
+TEST_CREATE_JSON_DATA = [("99990000", DocumentClasses.PPR.value), ("99990001", DocumentClasses.MHR.value)]
 
 
-@pytest.mark.parametrize('scan_id, has_results, cons_doc_id, doc_class', TEST_ID_DATA)
+@pytest.mark.parametrize("scan_id, has_results, cons_doc_id, doc_class", TEST_ID_DATA)
 def test_find_by_id(session, scan_id, has_results, cons_doc_id, doc_class):
     """Assert that find document scanning by primary key contains all expected elements."""
     if not has_results:
@@ -83,12 +80,12 @@ def test_find_by_id(session, scan_id, has_results, cons_doc_id, doc_class):
         assert doc_scan.document_class == doc_class
         scan_json = doc_scan.json
         assert scan_json
-        assert scan_json.get('documentClass') == doc_class
-        assert scan_json.get('consumerDocumentId') == cons_doc_id
-        assert scan_json.get('scanDateTime')
+        assert scan_json.get("documentClass") == doc_class
+        assert scan_json.get("consumerDocumentId") == cons_doc_id
+        assert scan_json.get("scanDateTime")
 
 
-@pytest.mark.parametrize('scan_id, has_results, cons_doc_id, doc_class', TEST_ID_DATA)
+@pytest.mark.parametrize("scan_id, has_results, cons_doc_id, doc_class", TEST_ID_DATA)
 def test_find_by_consumer_id(session, scan_id, has_results, cons_doc_id, doc_class):
     """Assert that find document scanning by consumer identifier and document class contains all expected elements."""
     if not has_results:
@@ -106,12 +103,12 @@ def test_find_by_consumer_id(session, scan_id, has_results, cons_doc_id, doc_cla
         assert doc_scan.document_class == doc_class
         scan_json = doc_scan.json
         assert scan_json
-        assert scan_json.get('documentClass') == doc_class
-        assert scan_json.get('consumerDocumentId') == cons_doc_id
-        assert scan_json.get('scanDateTime')
+        assert scan_json.get("documentClass") == doc_class
+        assert scan_json.get("consumerDocumentId") == cons_doc_id
+        assert scan_json.get("scanDateTime")
 
 
-@pytest.mark.parametrize('scan_id, cons_doc_id, doc_class', TEST_UPDATE_DATA)
+@pytest.mark.parametrize("scan_id, cons_doc_id, doc_class", TEST_UPDATE_DATA)
 def test_update(session, scan_id, cons_doc_id, doc_class):
     """Assert that update document scanning by consumer identifier and document class contains all expected elements."""
     save_scan: DocumentScanning = DocumentScanning.create_from_json(DOC_SCAN1, cons_doc_id, doc_class)
@@ -126,13 +123,13 @@ def test_update(session, scan_id, cons_doc_id, doc_class):
     assert doc_scan.document_class == doc_class
     scan_json = doc_scan.json
     assert scan_json
-    assert scan_json.get('documentClass') == doc_class
-    assert scan_json.get('consumerDocumentId') == cons_doc_id
-    assert scan_json.get('scanDateTime') == DOC_SCAN2.get('scanDateTime')
-    assert scan_json.get('accessionNumber') == DOC_SCAN2.get('accessionNumber')
-    assert scan_json.get('batchId') == DOC_SCAN2.get('batchId')
-    assert scan_json.get('author') == DOC_SCAN2.get('author')
-    assert scan_json.get('pageCount') == DOC_SCAN2.get('pageCount')
+    assert scan_json.get("documentClass") == doc_class
+    assert scan_json.get("consumerDocumentId") == cons_doc_id
+    assert scan_json.get("scanDateTime") == DOC_SCAN2.get("scanDateTime")
+    assert scan_json.get("accessionNumber") == DOC_SCAN2.get("accessionNumber")
+    assert scan_json.get("batchId") == DOC_SCAN2.get("batchId")
+    assert scan_json.get("author") == DOC_SCAN2.get("author")
+    assert scan_json.get("pageCount") == DOC_SCAN2.get("pageCount")
 
 
 def test_doc_scan_json(session):
@@ -140,10 +137,10 @@ def test_doc_scan_json(session):
     doc_scan: DocumentScanning = TEST_DOC_SCAN
     doc_json = doc_scan.json
     test_json = copy.deepcopy(DOC_SCAN1)
-    assert doc_json ==test_json
+    assert doc_json == test_json
 
 
-@pytest.mark.parametrize('cons_doc_id, doc_class', TEST_CREATE_JSON_DATA)
+@pytest.mark.parametrize("cons_doc_id, doc_class", TEST_CREATE_JSON_DATA)
 def test_create_from_json(session, cons_doc_id, doc_class):
     """Assert that the new document scanning record is created from a new request json data correctly."""
     json_data = copy.deepcopy(DOC_SCAN1)
@@ -153,7 +150,7 @@ def test_create_from_json(session, cons_doc_id, doc_class):
     assert doc_scan.consumer_document_id == cons_doc_id
     assert doc_scan.scan_date
     assert doc_scan.document_class == doc_class
-    assert doc_scan.batch_id == json_data.get('batchId')
-    assert doc_scan.accession_number == json_data.get('accessionNumber')
-    assert doc_scan.author == json_data.get('author')
-    assert doc_scan.page_count == json_data.get('pageCount')
+    assert doc_scan.batch_id == json_data.get("batchId")
+    assert doc_scan.accession_number == json_data.get("accessionNumber")
+    assert doc_scan.author == json_data.get("author")
+    assert doc_scan.page_count == json_data.get("pageCount")

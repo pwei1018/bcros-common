@@ -27,10 +27,7 @@ ops_endpoint = VersionEndpoint(name="OPS", path=EndpointVersionPath.OPS, bps=[op
 v1_endpoint = VersionEndpoint(  # pylint: disable=invalid-name
     name="API_V1",
     path=EndpointVersionPath.API_V1,
-    bps=[business_bp, document_bp, mhr_bp, nr_bp, ppr_bp, report_bp, scanning_bp, search_bp]
+    bps=[business_bp, document_bp, mhr_bp, nr_bp, ppr_bp, report_bp, scanning_bp, search_bp],
 )
 
-TRACING_EXCLUED_URLS = [
-    "/meta",
-    "/ops"
-]
+TRACING_EXCLUED_URLS = ["/meta", "/ops"]
