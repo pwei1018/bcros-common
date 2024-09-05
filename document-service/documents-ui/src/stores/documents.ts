@@ -14,6 +14,7 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     // Document Meta
     consumerIdentifier: '',
     noIdCheckbox: false,
+    noDocIdCheckbox: false,
     documentClass: '',
     documentType: '',
     consumerFilingDate: '',

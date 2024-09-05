@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { formatToReadableDate } from '~/utils/dateHelper'
 import { getScanningRecord } from '~/utils/documentRequests'
+
+const emit = defineEmits(['openEdit'])
 const { documentRecord } = storeToRefs(useBcrosDocuments())
 const { downloadFileFromUrl, getDocumentDescription } = useDocuments()
 const identifier = useRoute()?.params?.identifier as string
+
 onMounted(async () => {
   if (!documentRecord.value) {
     // TODO: Fetch Record if absent (ie coming from another app with identifier) Requires isolated DocumentID Endpoint
@@ -27,7 +30,20 @@ onMounted(async () => {
     class="mt-7 pb-10"
     data-cy="document-record"
   >
-    <template #header>{{ $t('documentRecord.subtitle') }}</template>
+    <template #header>
+      <div class="flex justify-between ...">
+        <div>{{ $t('documentRecord.subtitle') }}</div>
+        <div>
+          <UButton
+            variant="ghost"
+            icon="i-mdi-pencil"
+            :label="$t('documentRecord.editButton')"
+            data-cy="edit-record-button"
+            @click="emit('openEdit')"
+          />
+        </div>
+      </div>
+    </template>
     <template #content>
       <div class="grid grid-cols-3 auto-rows-max">
 

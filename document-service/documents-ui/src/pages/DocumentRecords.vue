@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import EditRecord from '~/components/documentRecord/EditRecord.vue'
+
 const showNavActions = ref(false)
+const isEditing = ref(false)
 </script>
 <template>
   <div
@@ -11,14 +14,15 @@ const showNavActions = ref(false)
         <template #header>
           <div class="grid grid-cols-6">
             <div class="col-span-6">
-              <h1 class="text-[32px] pb-2">{{ $t('documentRecord.title') }}</h1>
+              <h1 class="text-[32px] pb-2">{{isEditing ? 'Edit' : ''}} {{ $t('documentRecord.title') }}</h1>
               <span class="text-gray-700 font-normal text-base">{{ $t('documentRecord.description') }}</span>
             </div>
           </div>
         </template>
 
         <template #default>
-          <DocumentRecord />
+          <DocumentRecord v-if="!isEditing" @open-edit="isEditing = true" />
+          <EditRecord v-else />
         </template>
       </BcrosSection>
     </div>

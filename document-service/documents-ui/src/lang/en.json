@@ -48,13 +48,26 @@
         "description": "Enter the entity ID of this document filing. The entity ID must be entered if there is one.",
         "help": "Example: MH107403, BC1234567, CP1234567"
       },
+      "docId": {
+        "label": "Document ID",
+        "description": "Enter the Document ID of this application.",
+        "help": "Example: 1234567, 7654321"
+      },
       "checkbox": {
         "label": "I do not have an Entity ID"
+      },
+      "docIdCheckbox": {
+        "label": "I do not have a Document ID"
       },
       "selectMenu": {
         "label": "Document Information",
         "categoryLabel": "Document Category",
         "typeLabel": "Document Type"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Description Text",
+        "help": "Max 1000 characters"
       },
       "dateSelect": {
         "label": "Filing Date",
@@ -98,6 +111,7 @@
   "documentRecord": {
     "title": "Document Record",
     "description": "View and download your document record",
-    "subtitle": "Document Record Information"
+    "subtitle": "Document Record Information",
+    "editButton": "Edit Record"
   }
 }

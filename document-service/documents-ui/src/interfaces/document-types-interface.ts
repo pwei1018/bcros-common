@@ -14,6 +14,7 @@ export interface DocumentStateIF {
   // Document Meta
   consumerIdentifier: string
   noIdCheckbox: boolean
+  noDocIdCheckbox: boolean
   documentClass: string
   documentType: string
   consumerFilingDate: string
@@ -53,7 +54,8 @@ export interface DocumentInfoIF {
   documentClass: string
   documentServiceId: string
   documentType: string
-  documentTypeDescription: string
+  documentTypeDescription?: string
+  documentDescription: string
   documentURL: string
   filenames: Array<string>
   consumerFilenames?: Array<string>
