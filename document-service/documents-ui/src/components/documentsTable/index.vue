@@ -3,11 +3,11 @@ import { formatToReadableDate } from '~/utils/dateHelper'
 import { documentResultColumns } from '~/utils/documentTypes'
 import type { DocumentInfoIF } from '~/interfaces/document-types-interface'
 const { getDocumentDescription, downloadFileFromUrl } = useDocuments()
-const { documentSearchResults } = storeToRefs(useBcrosDocuments())
-const { documentRecord, searchEntityId } = storeToRefs(useBcrosDocuments())
+const { documentList, documentRecord, documentSearchResults, searchEntityId } = storeToRefs(useBcrosDocuments())
 
 const openDocumentRecord = (searchResult: DocumentInfoIF) => {
-  documentRecord.value = { ...searchResult }
+  documentRecord.value = { ...searchResult, }
+  documentList.value = searchResult.consumerFilenames?.map(file => ({ name: file }))
   navigateTo({ name: RouteNameE.DOCUMENT_RECORDS, params: { identifier: searchResult.consumerDocumentId } })
 }
 </script>

@@ -31,7 +31,7 @@ onMounted(async () => {
     data-cy="document-record"
   >
     <template #header>
-      <div class="flex justify-between ...">
+      <div class="flex justify-between">
         <div>{{ $t('documentRecord.subtitle') }}</div>
         <div>
           <UButton

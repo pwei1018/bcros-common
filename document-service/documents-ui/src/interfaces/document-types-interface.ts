@@ -18,7 +18,7 @@ export interface DocumentStateIF {
   documentClass: string
   documentType: string
   consumerFilingDate: string
-  documentList: any[]
+  documentList: Array<any>
 
   // Validations
   validateIndex: boolean
@@ -60,6 +60,7 @@ export interface DocumentInfoIF {
   filenames: Array<string>
   consumerFilenames?: Array<string>
   documentUrls?: Array<string>
+  documentList?: Array<any>
 
   // Scanning properties
   scanDateTime: string

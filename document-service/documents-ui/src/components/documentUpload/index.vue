@@ -79,23 +79,31 @@ const removeFile = (index: number) => {
       </UFormGroup>
 
       <section v-if="documentList.length" class="mt-6 ml-1">
-        <h4 class="text-gray-700 font-bold text-sm">Documents:</h4>
         <div
           v-for="(supportingDocument, index) in documentList"
           :key="supportingDocument.name"
         >
-          <div class="flex flex-row items-center mt-2">
-            <img
-              class="mr-1 h-[18px] w-[18px]"
-              src="~/assets/icons/attach_dark.svg"
-              alt="Attach icon"
+          <div class="flex justify-between mt-2 pl-4 rounded items-center bg-bcGovColor-ltBlue h-[50px] text-gray-900">
+            <div class="flex">
+              <img
+                class="mr-2 h-[18px] w-[18px]"
+                src="~/assets/icons/attach_dark.svg"
+                alt="Attach icon"
+              >
+              <span>{{ supportingDocument.name }}</span>
+            </div>
+            <UButton
+              class="py-2 px-6 text-base font-normal float-right"
+              color="primary"
+              variant="ghost"
+              @click="removeFile(index)"
             >
-            <span>{{ supportingDocument.name }}</span>
-            <UIcon
-              name="i-mdi-delete"
-              class="h-[18px] w-[18px] ml-1 cursor-pointer"
-              @click="() => removeFile(index)"
-            />
+              Remove
+              <UIcon
+                name="i-mdi-close"
+                class="h-[18px] w-[18px] ml-1"
+              />
+            </UButton>
           </div>
         </div>
       </section>
