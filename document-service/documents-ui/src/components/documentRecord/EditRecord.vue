@@ -170,12 +170,6 @@ const hasDateError = computed(() => {
     <!-- Divider -->
     <div class="w-full h-[35px] bg-gray-100" />
 
-    <!-- Document Scanning Edit -->
-    <div class="mt-4 h-[200px]">Scanning Edit Block Placeholder</div>
-
-    <!-- Divider -->
-    <div class="w-full h-[35px] bg-gray-100" />
-
     <!-- Document Upload Edit -->
     <DocumentUpload class="mt-4" />
   </div>

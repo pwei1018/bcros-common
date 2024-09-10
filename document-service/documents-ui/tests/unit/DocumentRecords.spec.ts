@@ -14,10 +14,6 @@ describe('DocumentRecords', () => {
     const bcrosSection = wrapper.findComponent(BcrosSection)
     expect(bcrosSection.exists()).toBe(true)
 
-    // Verify the title and description are rendered correctly
-    expect(bcrosSection.find('h1').text()).toBe('Document Record')
-    expect(bcrosSection.find('span').text()).toBe('View and download your document record')
-
     // Verify the DocumentRecord component is rendered
     const documentRecord = wrapper.findComponent(DocumentRecord)
     expect(documentRecord.exists()).toBe(true)

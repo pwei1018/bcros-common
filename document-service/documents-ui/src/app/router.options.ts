@@ -31,7 +31,7 @@ export default <RouterConfig|Ro<unknown>> {
       path: '/document-records/:identifier',
       component: () => import('~/pages/DocumentRecords.vue').then(r => r.default || r),
       meta: {
-        layout: 'default',
+        layout: 'tombstone-footer',
         title: 'Document Records',
         breadcrumbs: [getBcrosHomeCrumb, getDocumentManagementCrumb, getDocumentRecordsCrumb]
       }

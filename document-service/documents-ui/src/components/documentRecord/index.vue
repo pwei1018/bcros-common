@@ -27,7 +27,7 @@ onMounted(async () => {
   <ContentWrapper
     v-if="!!documentRecord"
     name="document-record"
-    class="mt-7 pb-10"
+    class="pb-10"
     data-cy="document-record"
   >
     <template #header>

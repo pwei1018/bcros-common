@@ -30,6 +30,9 @@ export interface DocumentStateIF {
   documentInfoRO: DocumentInfoIF | null
   documentSearchResults: DocumentRequestIF[]
   documentRecord: DocumentInfoIF | null
+
+  // Document Editing
+  isEditing: boolean
 }
 
 export interface DocumentDetailIF {

@@ -29,7 +29,10 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     displayDocumentReview: false,
     documentInfoRO: null as DocumentInfoIF,
     documentSearchResults: [],
-    documentRecord: null
+    documentRecord: null,
+
+    // Document Editing
+    isEditing: false
   })
 
   // Initial state
