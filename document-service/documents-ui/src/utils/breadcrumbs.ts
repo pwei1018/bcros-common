@@ -1,5 +1,13 @@
 import { RouteNameE } from '~/enums/route-name-e'
 
+export function getBcrosHomeCrumb (): BreadcrumbI {
+  const t = useNuxtApp().$i18n.t
+  return {
+    text: ref(t('breadcrumb.accountDashboard')),
+    href: useRuntimeConfig().public.registryHomeURL + 'dashboard'
+  }
+}
+
 export function getDocumentManagementCrumb (): BreadcrumbI {
   const t = useNuxtApp().$i18n.t
   return {

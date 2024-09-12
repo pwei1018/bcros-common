@@ -1,5 +1,6 @@
 {
   "breadcrumb": {
+    "accountDashboard": "Staff Dashboard",
     "documentManagement": "Document Record Services",
     "documentIndexing": "Document Indexing",
     "documentRecords": "Document Record"
