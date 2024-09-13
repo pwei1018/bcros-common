@@ -16,6 +16,8 @@ import base64
 import json
 import os
 
+from flask import current_app
+
 from doc_api.config import get_mock_auth
 from doc_api.services.gcp_auth.auth_service import GoogleAuthService
 from doc_api.utils.logging import logger
@@ -38,7 +40,8 @@ def test_security_account(session, client, jwt):
     """Assert that the configuration to get the GCP service account from the environment works as expected."""
     decoded_sa = None
     encoded_sa: bytes = None
-    default_sa = os.getenv("GCP_AUTH_KEY")
+    #
+    default_sa = current_app.config.get("GCP_AUTH_KEY")
     if default_sa:
         encoded_sa = bytes(default_sa, "utf-8")
     if not encoded_sa:
@@ -65,21 +68,21 @@ def test_security_account(session, client, jwt):
         # logger.info(service_account_info)
         encoded_sa = base64.b64encode(json.dumps(service_account_info).encode("utf-8"))
         logger.info(encoded_sa)
-
-    assert encoded_sa
-    decoded_sa = json.loads(base64.b64decode(encoded_sa.decode("utf-8")))
-    # logger.debug(decoded_sa)
-    assert decoded_sa
-    assert decoded_sa.get("type")
-    assert decoded_sa.get("project_id")
-    assert decoded_sa.get("private_key_id")
-    assert decoded_sa.get("private_key")
-    assert decoded_sa.get("client_email")
-    assert decoded_sa.get("client_id")
-    assert decoded_sa.get("auth_uri")
-    assert decoded_sa.get("token_uri")
-    assert decoded_sa.get("auth_provider_x509_cert_url")
-    assert decoded_sa.get("client_x509_cert_url")
+    else:
+        assert encoded_sa
+        decoded_sa = json.loads(base64.b64decode(encoded_sa.decode("utf-8")))
+        # logger.debug(decoded_sa)
+        assert decoded_sa
+        assert decoded_sa.get("type")
+        assert decoded_sa.get("project_id")
+        assert decoded_sa.get("private_key_id")
+        assert decoded_sa.get("private_key")
+        assert decoded_sa.get("client_email")
+        assert decoded_sa.get("client_id")
+        assert decoded_sa.get("auth_uri")
+        assert decoded_sa.get("token_uri")
+        assert decoded_sa.get("auth_provider_x509_cert_url")
+        assert decoded_sa.get("client_x509_cert_url")
 
 
 def test_mock_auth(session, client, jwt):

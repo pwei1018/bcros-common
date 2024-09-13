@@ -72,7 +72,7 @@ SEARCH_FILTER_CREATE_DATE = (
     + "TO_TIMESTAMP('query_end', 'YYYY-MM-DD HH24:MI:SS')"
 )
 SEARCH_PAGE_SIZE: int = 100
-SEARCH_PAGE_OFFSET = " LIMIT " + str(SEARCH_PAGE_SIZE) + " OFFSET ?"
+SEARCH_PAGE_OFFSET = " as q LIMIT " + str(SEARCH_PAGE_SIZE) + " OFFSET ?"
 
 
 def build_page_clause(request_info: RequestInfo) -> str:

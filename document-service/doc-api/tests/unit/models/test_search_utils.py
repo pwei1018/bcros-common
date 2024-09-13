@@ -23,7 +23,7 @@ from doc_api.resources.request_info import RequestInfo
 # from doc_api.utils.logging import logger
 
 
-PAGE_CLAUSE: str = " ORDER BY d.add_ts DESC) LIMIT {page_size} OFFSET {page_offset}"
+PAGE_CLAUSE: str = " ORDER BY d.add_ts DESC) as q LIMIT {page_size} OFFSET {page_offset}"
 # testdata pattern is ({doc_class}, {start_offset}, {doc_type}, {cons_id}, {no_results})
 TEST_DATA_DOC_DATES = [
     (None, 10, None, None, True),
