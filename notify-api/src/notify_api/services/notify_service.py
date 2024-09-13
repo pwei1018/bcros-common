@@ -48,12 +48,7 @@ class NotifyService:
 
     def queue_publish(self, notification_request: NotificationRequest) -> Notification:
         """Send the notification."""
-        notification: Notification = Notification.create_notification(notification_request)
-
         provider: str = self.get_provider(notification_request.notify_type, notification_request.content.body)
-
-        notification_status: str = Notification.NotificationStatus.QUEUED
-        is_safe_to_send = True
 
         # Email must set in safe list of Dev and Test environment
         if current_app.config.get("DEVELOPMENT"):
@@ -65,52 +60,62 @@ class NotifyService:
             unsafe_recipients = [r for r in notification_request.recipients.split(",") if r.strip() not in recipients]
             if unsafe_recipients:
                 logger.info(f"{unsafe_recipients} are not in the safe list")
-            if not recipients:
-                is_safe_to_send = False
-            else:
-                notification_request.recipients = ",".join(recipients)
 
-        if is_safe_to_send:
-            deliery_topic = current_app.config.get("NOTIFY_DELIVERY_GCNOTIFY_TOPIC")
-            data = {
-                "notificationId": notification.id,
-            }
+            notification_request.recipients = ",".join(recipients) if len(recipients) > 0 else None
 
-            if provider == Notification.NotificationProvider.SMTP:
-                deliery_topic = current_app.config.get("NOTIFY_DELIVERY_SMTP_TOPIC")
-                data = {
-                    "notificationId": notification.id,
-                    "notificationProvider": provider,
-                    "notificationRequest": notification_request.model_dump_json(),
-                }
+        notification_status: str = Notification.NotificationStatus.QUEUED
 
-            cloud_event = SimpleCloudEvent(
-                id=str(uuid.uuid4()),
-                source="notify-api",
-                subject=None,
-                time=datetime.now(tz=timezone.utc).isoformat(),
-                type=f"bc.registry.notify.{provider}",
-                data=data,
-            )
+        if notification_request.recipients:
+            for recipient in notification_request.recipients.split(","):
+                try:
+                    notification: Notification = Notification.create_notification(
+                        notification_request, recipient.strip()
+                    )
 
-            publish_future = queue.publish(deliery_topic, GcpQueue.to_queue_message(cloud_event))
-            logger.info(publish_future)
+                    deliery_topic = current_app.config.get("NOTIFY_DELIVERY_GCNOTIFY_TOPIC")
+                    data = {
+                        "notificationId": notification.id,
+                    }
 
-        notification.status_code = notification_status
-        notification.provider_code = provider
-        notification.sent_date = datetime.now(timezone.utc)
-        notification.update_notification()
+                    if provider == Notification.NotificationProvider.SMTP:
+                        deliery_topic = current_app.config.get("NOTIFY_DELIVERY_SMTP_TOPIC")
+                        data = {
+                            "notificationId": notification.id,
+                            "notificationProvider": provider,
+                            "notificationRequest": notification_request.model_dump_json(),
+                        }
 
-        if not is_safe_to_send or provider == Notification.NotificationProvider.SMTP:
-            # recipint is not in the safe list (dev or test);
-            # SMTP service handle by OpenShift;
-            if provider == Notification.NotificationProvider.SMTP:
-                notification.status_code = Notification.NotificationStatus.FORWARDED
-            notification_history: NotificationHistory = NotificationHistory.create_history(notification)
-            notification.delete_notification()
-            return notification_history
+                    cloud_event = SimpleCloudEvent(
+                        id=str(uuid.uuid4()),
+                        source="notify-api",
+                        subject=None,
+                        time=datetime.now(tz=timezone.utc).isoformat(),
+                        type=f"bc.registry.notify.{provider}",
+                        data=data,
+                    )
 
-        return notification
+                    publish_future = queue.publish(deliery_topic, GcpQueue.to_queue_message(cloud_event))
+                    logger.info(f"Queued {recipient} {notification_request.content.subject} {publish_future}")
+
+                    notification.status_code = notification_status
+                    notification.provider_code = provider
+                    notification.sent_date = datetime.now(timezone.utc)
+                    notification.update_notification()
+
+                    if provider == Notification.NotificationProvider.SMTP:
+                        # SMTP service handle by OpenShift;
+                        notification.status_code = Notification.NotificationStatus.FORWARDED
+                        NotificationHistory.create_history(notification)
+                        notification.delete_notification()
+                except Exception as err:  # NOQA # pylint: disable=broad-except
+                    logger.error(err)
+                    notification.status_code = Notification.NotificationStatus.FAILURE
+                    notification.provider_code = provider
+                    notification.sent_date = datetime.now(timezone.utc)
+                    notification.update_notification()
+                    return Notification(recipients=recipient, status_code=Notification.NotificationStatus.FAILURE)
+
+        return Notification(recipients=notification_request.recipients, status_code=notification_status)
 
     def queue_republish(self):
         """Republish notifications to queue."""
@@ -133,7 +138,7 @@ class NotifyService:
             )
 
             publish_future = queue.publish(deliery_topic, GcpQueue.to_queue_message(cloud_event))
-            logger.info(publish_future)
+            logger.info(f"resend {notification.recipients} {publish_future}")
 
             notification.status_code = Notification.NotificationStatus.QUEUED
             notification.update_notification()
