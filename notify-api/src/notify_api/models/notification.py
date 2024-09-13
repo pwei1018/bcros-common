@@ -116,12 +116,12 @@ class Notification(db.Model):
         notification_json = {
             "id": self.id,
             "recipients": self.recipients,
-            "requestDate": self.request_date.isoformat() if self.request_date is not None else None,
+            "requestDate": getattr(self.request_date, "isoformat", lambda: None)(),
             "requestBy": self.request_by,
-            "sentDate": self.sent_date.isoformat() if self.sent_date is not None else None,
-            "notifyType": self.type_code.name if self.type_code is not None else None,
-            "notifyStatus": self.status_code.name if self.status_code is not None else None,
-            "notifyProvider": self.provider_code.name if self.provider_code is not None else "",
+            "sentDate": getattr(self.sent_date, "isoformat", lambda: None)(),
+            "notifyType": getattr(self.type_code, "name", None),
+            "notifyStatus": getattr(self.status_code, "name", None),
+            "notifyProvider": getattr(self.provider_code, "name", None),
         }
 
         if len(self.content) > 0:
