@@ -159,10 +159,10 @@ class Notification(db.Model):
         return notifications
 
     @classmethod
-    def create_notification(cls, notification: NotificationRequest, recipient: str = None):
+    def create_notification(cls, notification: NotificationRequest, recipient: str = ""):
         """Create notification."""
         db_notification = Notification(
-            recipients=recipient if recipient is not None else notification.recipients,
+            recipients=recipient or notification.recipients,
             request_by=notification.request_by,
             type_code=notification.notify_type,
         )
