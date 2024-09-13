@@ -116,15 +116,16 @@ class Notification(db.Model):
         notification_json = {
             "id": self.id,
             "recipients": self.recipients,
-            "requestDate": self.request_date.isoformat(),
+            "requestDate": getattr(self.request_date, "isoformat", lambda: None)(),
             "requestBy": self.request_by,
-            "sentDate": self.request_date.isoformat(),
-            "notifyType": self.type_code.name or "",
-            "notifyStatus": self.status_code.name or "",
-            "notifyProvider": self.provider_code.name if self.provider_code else "",
+            "sentDate": getattr(self.sent_date, "isoformat", lambda: None)(),
+            "notifyType": getattr(self.type_code, "name", None),
+            "notifyStatus": getattr(self.status_code, "name", None),
+            "notifyProvider": getattr(self.provider_code, "name", None),
         }
 
-        notification_json["content"] = self.content[0].json
+        if len(self.content) > 0:
+            notification_json["content"] = self.content[0].json
 
         return notification_json
 
@@ -158,10 +159,10 @@ class Notification(db.Model):
         return notifications
 
     @classmethod
-    def create_notification(cls, notification: NotificationRequest):
+    def create_notification(cls, notification: NotificationRequest, recipient: str = ""):
         """Create notification."""
         db_notification = Notification(
-            recipients=notification.recipients,
+            recipients=recipient or notification.recipients,
             request_by=notification.request_by,
             type_code=notification.notify_type,
         )
