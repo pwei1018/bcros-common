@@ -35,6 +35,7 @@ class RequestInfo:
     document_storage_type: str = None
     document_class: str = None
     has_payload: bool = False
+    page_number: int = 1
 
     def __init__(self, request_type: str, request_path: str, doc_type: str, doc_storage_type):
         """Set common base initialization."""
@@ -57,7 +58,10 @@ class RequestInfo:
             "consumerFilingDate": self.consumer_filedate if self.consumer_filedate else "",
             "consumerIdentifier": self.consumer_identifier if self.consumer_identifier else "",
             "documentType": self.document_type if self.document_type else "",
+            "documentClass": self.document_class if self.document_class else "",
         }
         if self.request_path:
             info["requestPath"] = self.request_path
+        if self.page_number:
+            info["pageNumber"] = self.page_number
         return info

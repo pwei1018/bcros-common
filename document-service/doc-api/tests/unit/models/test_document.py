@@ -29,6 +29,7 @@ DOC1 = {
     "consumerFilename": "test.pdf",
     "consumerIdentifier": "T0000002",
     "documentType": "PPR_MISC",
+    "documentClass": "PPR",
     "consumerFilingDateTime": "2024-07-01T19:00:00+00:00",
 }
 DOC_SCAN = {
@@ -42,6 +43,7 @@ TEST_DOCUMENT = Document(
     id=1,
     document_service_id="1",
     document_type=DocumentTypes.PPR_MISC.value,
+    document_class=DocumentClasses.PPR.value,
     add_ts=model_utils.now_ts(),
     consumer_document_id="T0000001",
     consumer_identifier="T0000002",

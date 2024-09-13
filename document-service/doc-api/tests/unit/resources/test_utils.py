@@ -36,6 +36,7 @@ TEST_DOCUMENT = Document(
     id=200000000,
     document_service_id="UT9999999",
     document_type=DocumentTypes.PPR_MISC.value,
+    document_class=DocumentClasses.PPR.value,
     add_ts=model_utils.now_ts(),
     consumer_document_id="T0000001",
     consumer_identifier="T0000002",

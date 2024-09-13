@@ -14,7 +14,6 @@
 """This maintains access tokens for API calls."""
 import base64
 import json
-import os
 
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -31,24 +30,33 @@ class GoogleAuthService(AuthService):  # pylint: disable=too-few-public-methods
     """
 
     # Google APIs and cloud storage os.getenv('GCP
-    GCP_AUTH_KEY = os.getenv("GCP_AUTH_KEY")
+    gcp_auth_key = None
     # https://developers.google.com/identity/protocols/oauth2/scopes
-    GCP_SA_SCOPES = [os.getenv("GCP_CS_SA_SCOPES", "https://www.googleapis.com/auth/cloud-platform")]
+    gcp_sa_scopes = None
 
     service_account_info = None
     credentials = None
     # Use service account env var if available.
-    if GCP_AUTH_KEY:
-        sa_bytes = bytes(GCP_AUTH_KEY, "utf-8")
+    if gcp_auth_key:
+        sa_bytes = bytes(gcp_auth_key, "utf-8")
         service_account_info = json.loads(base64.b64decode(sa_bytes.decode("utf-8")))
     # Otherwise leave as none and use the service account attached to the Cloud service.
+
+    @staticmethod
+    def init_app(app):
+        """Set up the service"""
+        GoogleAuthService.gcp_auth_key = app.config.get("GCP_AUTH_KEY")
+        GoogleAuthService.gcp_sa_scopes = [app.config.get("GCP_CS_SA_SCOPES")]
+        if GoogleAuthService.gcp_auth_key:
+            sa_bytes = bytes(GoogleAuthService.gcp_auth_key, "utf-8")
+            GoogleAuthService.service_account_info = json.loads(base64.b64decode(sa_bytes.decode("utf-8")))
 
     @classmethod
     def get_token(cls):
         """Generate an OAuth access token with cloud storage access."""
         if cls.credentials is None:
             cls.credentials = service_account.Credentials.from_service_account_info(
-                cls.service_account_info, scopes=cls.GCP_SA_SCOPES
+                cls.service_account_info, scopes=cls.gcp_sa_scopes
             )
         request = google.auth.transport.requests.Request()
         cls.credentials.refresh(request)
@@ -71,7 +79,7 @@ class GoogleAuthService(AuthService):  # pylint: disable=too-few-public-methods
         """Generate GCP auth credentials to pass to a GCP client."""
         if cls.credentials is None:
             cls.credentials = service_account.Credentials.from_service_account_info(
-                cls.service_account_info, scopes=cls.GCP_SA_SCOPES
+                cls.service_account_info, scopes=cls.gcp_sa_scopes
             )
         current_app.logger.info("Call successful: obtained credentials.")
         return cls.credentials

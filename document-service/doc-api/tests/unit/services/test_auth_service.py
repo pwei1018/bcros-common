@@ -16,8 +16,7 @@ import base64
 import json
 import os
 
-from flask import current_app
-
+from doc_api.config import get_mock_auth
 from doc_api.services.gcp_auth.auth_service import GoogleAuthService
 from doc_api.utils.logging import logger
 
@@ -81,3 +80,10 @@ def test_security_account(session, client, jwt):
     assert decoded_sa.get("token_uri")
     assert decoded_sa.get("auth_provider_x509_cert_url")
     assert decoded_sa.get("client_x509_cert_url")
+
+
+def test_mock_auth(session, client, jwt):
+    """Assert that the mock auth sa works as expected."""
+    value = get_mock_auth()
+    logger.info(value)
+    assert value

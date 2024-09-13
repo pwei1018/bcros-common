@@ -17,7 +17,7 @@ from http import HTTPStatus
 from flask import jsonify, request
 
 from doc_api.exceptions import ResourceErrorCodes
-from doc_api.models import Document, DocumentRequest, User, db
+from doc_api.models import Document, DocumentRequest, User, db, search_utils
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, RequestTypes
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
@@ -59,6 +59,8 @@ PARAM_CONSUMER_FILENAME = "consumerFilename"
 PARAM_CONSUMER_FILEDATE = "consumerFilingDate"
 PARAM_CONSUMER_IDENTIFIER = "consumerIdentifier"
 PARAM_DOCUMENT_TYPE = "documentType"
+PARAM_DOCUMENT_CLASS = "documentClass"
+PARAM_PAGE_NUMBER = "pageNumber"
 
 TO_STORAGE_TYPE = {
     DocumentClasses.MHR: StorageDocTypes.MHR,
@@ -230,6 +232,10 @@ def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> Re
         info.content_type = info.content_type.lower()
     if not info.document_type and req.args.get(PARAM_DOCUMENT_TYPE):
         info.document_type = req.args.get(PARAM_DOCUMENT_TYPE)
+    if req.args.get(PARAM_PAGE_NUMBER):
+        info.page_number = req.args.get(PARAM_PAGE_NUMBER)
+    if req.args.get(PARAM_DOCUMENT_CLASS):
+        info.document_class = req.args.get(PARAM_DOCUMENT_CLASS)
     return info
 
 
@@ -408,7 +414,7 @@ def get_docs(info: RequestInfo) -> list:
                 if result.doc_type and result.doc_type.document_class == info.document_class:
                     results.append(result.json)
     elif info.query_start_date and info.query_end_date:
-        return model_utils.get_docs_by_date_range(
+        return search_utils.get_docs_by_date_range(
             info.document_class,
             info.query_start_date,
             info.query_end_date,

@@ -13,7 +13,6 @@
 # limitations under the License.
 """This class is a wrapper for document storage API calls."""
 import datetime
-import os
 
 from google.cloud import storage
 
@@ -35,10 +34,18 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
     """
 
     # Google cloud storage configuration.
-    GCP_BUCKET_ID_BUS = str(os.getenv("GCP_CS_BUCKET_ID_BUS"))
-    GCP_BUCKET_ID_MHR = str(os.getenv("GCP_CS_BUCKET_ID_MHR"))
-    GCP_BUCKET_ID_NR = str(os.getenv("GCP_CS_BUCKET_ID_NR"))
-    GCP_BUCKET_ID_PPR = str(os.getenv("GCP_CS_BUCKET_ID_PPR"))
+    GCP_BUCKET_ID_BUS = None
+    GCP_BUCKET_ID_MHR = None
+    GCP_BUCKET_ID_NR = None
+    GCP_BUCKET_ID_PPR = None
+
+    @staticmethod
+    def init_app(app):
+        """Set up the service"""
+        GoogleStorageService.GCP_BUCKET_ID_BUS = app.config.get("GCP_CS_BUCKET_ID_BUS")
+        GoogleStorageService.GCP_BUCKET_ID_MHR = app.config.get("GCP_CS_BUCKET_ID_MHR")
+        GoogleStorageService.GCP_BUCKET_ID_NR = app.config.get("GCP_CS_BUCKET_ID_NR")
+        GoogleStorageService.GCP_BUCKET_ID_PPR = app.config.get("GCP_CS_BUCKET_ID_PPR")
 
     @classmethod
     def get_document(cls, name: str, doc_type: str = None):

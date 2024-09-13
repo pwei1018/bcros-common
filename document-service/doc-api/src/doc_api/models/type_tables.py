@@ -36,11 +36,13 @@ class DocumentClasses(BaseEnum):
     COOP = "COOP"
     CORP = "CORP"
     FIRM = "FIRM"
+    LP_LLP = "LP_LLP"
     MHR = "MHR"
     NR = "NR"
     OTHER = "OTHER"
     PPR = "PPR"
     SOCIETY = "SOCIETY"
+    XP = "XP"
 
 
 class DocumentTypes(BaseEnum):
@@ -98,9 +100,11 @@ class DocumentTypes(BaseEnum):
     COOP_MISC = "COOP_MISC"
     CORP_MISC = "CORP_MISC"
     FIRM_MISC = "FIRM_MISC"
+    LP_LLP_MISC = "LP_LLP_MISC"
     NR_MISC = "NR_MISC"
     PPR_MISC = "PPR_MISC"
     SOC_MISC = "SOC_MISC"
+    XP_MISC = "XP_MISC"
     COFI = "COFI"
     DISS = "DISS"
     DISD = "DISD"

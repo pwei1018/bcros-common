@@ -26,6 +26,7 @@ from doc_api.config import config
 from doc_api.metadata import APP_RUNNING_ENVIRONMENT
 from doc_api.models import db
 from doc_api.resources import meta_endpoint, ops_endpoint, v1_endpoint
+from doc_api.services import auth_service, storage_service
 from doc_api.utils.auth import jwt
 from doc_api.utils.logging import logger, setup_logging
 
@@ -43,15 +44,17 @@ def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
 
     db.init_app(app)
     Migrate(app, db)
-    # logger.info("Logging, migrate set up.")
-    logger.info("Running migration upgrade.")
-    with app.app_context():
-        upgrade(directory="migrations", revision="head", sql=False, tag=None)
-
-    # Alembic has it's own logging config, we'll need to restore our logging here.
-    setup_logging(os.path.join(os.path.abspath(os.path.dirname(__file__)), "logging.yaml"))
-    logger.info("Finished migration upgrade.")
-
+    if app.config.get("DEPLOYMENT_ENV", "") == "testing":  # CI only run upgrade for unit testing.
+        logger.info("Running migration upgrade.")
+        with app.app_context():
+            upgrade(directory="migrations", revision="head", sql=False, tag=None)
+        # Alembic has it's own logging config, we'll need to restore our logging here.
+        setup_logging(os.path.join(os.path.abspath(os.path.dirname(__file__)), "logging.yaml"))
+        logger.info("Finished migration upgrade.")
+    else:
+        logger.info("Logging, migrate set up.")
+    auth_service.init_app(app)
+    storage_service.init_app(app)
     meta_endpoint.init_app(app)
     ops_endpoint.init_app(app)
     v1_endpoint.init_app(app)

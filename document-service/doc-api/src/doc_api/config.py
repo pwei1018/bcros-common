@@ -19,7 +19,24 @@ All modules and lookups get their configuration from the
 Flask config, rather than reading environment variables directly
 or by accessing this configuration directly.
 """
+import json
 import os
+
+import requests
+
+
+def get_mock_auth() -> str:
+    """For CI unit tests get mock auth value."""
+    try:
+        url: str = "https://bcregistry-bcregistry-mock.apigee.net/mockTarget/auth/api/v1/testing/mock-sa-doc"
+        headers = {"Content-Type": "application/json"}
+        response = requests.get(url, headers=headers, timeout=10.0)
+        if response and response.text:
+            resp_json = json.loads(response.text)
+            return resp_json.get("response", "")
+        return ""
+    except Exception:
+        return ""
 
 
 class Config:  # pylint: disable=too-few-public-methods
@@ -67,11 +84,20 @@ class Config:  # pylint: disable=too-few-public-methods
     except (TypeError, ValueError):
         JWT_OIDC_JWKS_CACHE_TIMEOUT = 300
 
-    GCP_AUTH_KEY = os.getenv("GCP_AUTH_KEY", "")
+    GCP_AUTH_KEY = os.getenv("GCP_AUTH_KEY")
+    GCP_CS_SA_SCOPES = os.getenv("GCP_CS_SA_SCOPES", "https://www.googleapis.com/auth/cloud-platform")
     # For reports
-    REPORT_SVC_URL = os.getenv("REPORT_SVC_URL", "http://")
+    REPORT_SVC_URL = os.getenv("REPORT_SVC_URL", "https://report-api-gotenberg-dev-5qwaveuroa-nn.a.run.app")
     REPORT_TEMPLATE_PATH = os.getenv("REPORT_TEMPLATE_PATH", "report-templates")
+    # For storage
+    GCP_CS_BUCKET_ID_BUS = os.getenv("GCP_CS_BUCKET_ID_BUS", "docs_business_dev")
+    GCP_CS_BUCKET_ID_MHR = os.getenv("GCP_CS_BUCKET_ID_MHR", "docs_mhr_dev")
+    GCP_CS_BUCKET_ID_NR = os.getenv("GCP_CS_BUCKET_ID_NR", "docs_nr_dev")
+    GCP_CS_BUCKET_ID_PPR = os.getenv("GCP_CS_BUCKET_ID_PPR", "docs_ppr_dev")
+
     DEPLOYMENT_ENV = os.getenv("DEPLOYMENT_ENV", "development")
+    if not GCP_AUTH_KEY and DEPLOYMENT_ENV in ("unitTesting", "testing"):
+        GCP_AUTH_KEY = get_mock_auth()
 
 
 class ProductionConfig(Config):  # pylint: disable=too-few-public-methods
