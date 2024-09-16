@@ -240,7 +240,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/documents/CORP/CORP_MISC?consumerIdentifier=BC0700000&consumerFilename=address_change.pdf&consumerFilingDate=2024-08-08",
+							"raw": "{{base_url}}/api/v1/documents/CORP/CORP_MISC?consumerIdentifier=BC0700100&consumerFilename=address_change.pdf&consumerFilingDate=2024-08-08&description=Testing",
 							"host": [
 								"{{base_url}}"
 							],
@@ -254,7 +254,7 @@
 							"query": [
 								{
 									"key": "consumerIdentifier",
-									"value": "BC0700000"
+									"value": "BC0700100"
 								},
 								{
 									"key": "consumerFilename",
@@ -263,6 +263,10 @@
 								{
 									"key": "consumerFilingDate",
 									"value": "2024-08-08"
+								},
+								{
+									"key": "description",
+									"value": "Testing"
 								}
 							]
 						}
@@ -394,7 +398,7 @@
 			"description": "Submit requests to add a document or replace an existing document by document service ID."
 		},
 		{
-			"name": "searches",
+			"name": "searches_by_class",
 			"item": [
 				{
 					"name": "Query By Service ID",
@@ -622,6 +626,276 @@
 			"description": "Query document storage information."
 		},
 		{
+			"name": "searches",
+			"item": [
+				{
+					"name": "Query No Filter",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Document Id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches?documentClass=MHR&consumerDocumentId=99999999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches"
+							],
+							"query": [
+								{
+									"key": "documentClass",
+									"value": "MHR"
+								},
+								{
+									"key": "consumerDocumentId",
+									"value": "99999999"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Document Class",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches?documentClass=MHR",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches"
+							],
+							"query": [
+								{
+									"key": "documentClass",
+									"value": "MHR"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Consumer/Entity Id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches?documentClass=CORP&consumerIdentifier=BC0700001",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches"
+							],
+							"query": [
+								{
+									"key": "documentClass",
+									"value": "CORP"
+								},
+								{
+									"key": "consumerIdentifier",
+									"value": "BC0700001"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query No Results",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches?documentClass=CORP&consumerIdentifier=XXX-JUNK",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches"
+							],
+							"query": [
+								{
+									"key": "documentClass",
+									"value": "CORP"
+								},
+								{
+									"key": "consumerIdentifier",
+									"value": "XXX-JUNK"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Dates",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches?documentClass=CORP&queryStartDate=2024-08-10&queryEndDate=2024-08-12",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches"
+							],
+							"query": [
+								{
+									"key": "documentClass",
+									"value": "CORP"
+								},
+								{
+									"key": "queryStartDate",
+									"value": "2024-08-10"
+								},
+								{
+									"key": "queryEndDate",
+									"value": "2024-08-12"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query By Dates and Doc Type",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/searches?documentClass=CORP&queryStartDate=2024-08-01&queryEndDate=2024-08-03&documentType=CORP_MISC",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"searches"
+							],
+							"query": [
+								{
+									"key": "documentClass",
+									"value": "CORP"
+								},
+								{
+									"key": "queryStartDate",
+									"value": "2024-08-01"
+								},
+								{
+									"key": "queryEndDate",
+									"value": "2024-08-03"
+								},
+								{
+									"key": "documentType",
+									"value": "CORP_MISC"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Query document storage information."
+		},
+		{
 			"name": "patch_update",
 			"item": [
 				{
@@ -678,7 +952,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"consumerDocumentId\": \"UT000006\",\n  \"consumerFilename\": \"change_address2.pdf\",\n  \"consumerIdentifier\": \"BC0700002\",\n  \"consumerFilingDate\": \"2024-08-02\"\n}\n",
+							"raw": "{\n  \"consumerDocumentId\": \"UT000006\",\n  \"consumerFilename\": \"change_address2.pdf\",\n  \"consumerIdentifier\": \"BC0700002\",\n  \"consumerFilingDate\": \"2024-08-02\",\n  \"description\": \"Test description here\"\n}\n",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -793,6 +1067,44 @@
 						"body": {
 							"mode": "raw",
 							"raw": "{\n  \"consumerIdentifier\": \"BC0700001\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100003",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100003"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Description",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Test update description here.\"\n}\n",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1071,7 +1383,7 @@
 		},
 		{
 			"key": "account_id",
-			"value": "PROVIDE"
+			"value": "PROVIDe"
 		},
 		{
 			"key": "base_url_prism",

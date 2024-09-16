@@ -151,6 +151,7 @@ def validate_patch(info: RequestInfo, error_msg: str) -> str:
             and not info.consumer_identifier
             and not info.consumer_filename
             and not info.consumer_doc_id
+            and not info.description
         ):
             error_msg += MISSING_PATCH_PARAMS
         error_msg += validate_filingdate(info)

@@ -30,17 +30,18 @@ QUERY_DEFAULT_ORDER_BY = " order by d.consumer_document_id"
 QUERY_DATES_DEFAULT = """
 select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_identifier, d.consumer_filename,
        d.consumer_filing_date, d.document_type, dt.document_type_desc, dc.document_class,
-       dc.document_class_desc
+       dc.document_class_desc, d.description
   from documents d, document_types dt, document_classes dc
  where d.document_type = dt.document_type
-   and dt.document_class = dc.document_class
-   and dc.document_class = :query_val1
+   and d.document_class = dc.document_class
+   and d.document_class = :query_val1
    and d.add_ts between to_timestamp(:query_val2, 'YYYY-MM-DD HH24:MI:SS')
                     and to_timestamp(:query_val3, 'YYYY-MM-DD HH24:MI:SS')
 """
 SEARCH_ANY_BASE = """
 select d2.document_service_id, d2.add_ts, d2.consumer_document_id, d2.consumer_identifier, d2.consumer_filename,
-       d2.consumer_filing_date, d2.document_type, dt.document_type_desc, d2.document_class, dc.document_class_desc
+       d2.consumer_filing_date, d2.document_type, dt.document_type_desc, d2.document_class, dc.document_class_desc,
+       d2.description
   from documents d2, document_types dt, document_classes dc
  where d2.document_type = dt.document_type
    and d2.document_class = dc.document_class
@@ -98,6 +99,7 @@ def build_result_json(row, merge_doc_id: bool = False) -> dict:
         "documentType": str(row[6]),
         "documentTypeDescription": str(row[7]),
         "documentClass": str(row[8]),
+        "description": str(row[10]) if row[10] else "",
     }
     if merge_doc_id:
         filenames = []

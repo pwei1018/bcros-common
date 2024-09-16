@@ -182,14 +182,15 @@ TEST_DATA_SEARCH_DATES = [
     ("Invalid start date", False, "January 12, 2022", None, validator.INVALID_START_DATE),
     ("Invalid end date", False, None, "January 12, 2022", validator.INVALID_END_DATE),
 ]
-# test data pattern is ({description},{valid},{doc_id},{cons_id},{filename},{filing_date},{message_content})
+# test data pattern is ({description},{valid},{doc_id},{cons_id},{filename},{filing_date},{desc},{message_content})
 TEST_DATA_PATCH = [
-    ("Valid doc id", True, "89999999", None, None, None, None),
-    ("Valid consumer id", True, None, "BC0700000", None, None, None),
-    ("Valid filename", True, None, None, "change_address.pdf", None, None),
-    ("Valid filing date", True, None, None, None, "2024-07-31", None),
-    ("Invalid no change", False, None, None, None, None, validator.MISSING_PATCH_PARAMS),
-    ("Invalid filing date", False, None, None, None, "January 12, 2022", validator.INVALID_FILING_DATE),
+    ("Valid doc id", True, "89999999", None, None, None, None, None),
+    ("Valid consumer id", True, None, "BC0700000", None, None, None, None),
+    ("Valid filename", True, None, None, "change_address.pdf", None, None, None),
+    ("Valid filing date", True, None, None, None, "2024-07-31", None, None),
+    ("Valid description", True, None, None, None, None, "Important description", None),
+    ("Invalid no change", False, None, None, None, None, None, validator.MISSING_PATCH_PARAMS),
+    ("Invalid filing date", False, None, None, None, "January 12, 2022", None, validator.INVALID_FILING_DATE),
 ]
 # test data pattern is ({description}, {valid}, {payload}, {doc_type}, {content_type}, {doc_class}, {message_content})
 TEST_DATA_REPLACE = [
@@ -339,8 +340,8 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
             assert error_msg.find(err_msg) != -1
 
 
-@pytest.mark.parametrize("desc,valid,doc_id,cons_id,filename,filing_date,message_content", TEST_DATA_PATCH)
-def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_date, message_content):
+@pytest.mark.parametrize("desc,valid,doc_id,cons_id,filename,filing_date,description,message_content", TEST_DATA_PATCH)
+def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_date, description, message_content):
     """Assert that patch request validation works as expected."""
     # setup
     info: RequestInfo = RequestInfo(RequestTypes.UPDATE, "NA", DocumentTypes.CORP_MISC, "NA")
@@ -355,6 +356,8 @@ def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_
         info.consumer_filename = filename
     if filing_date:
         info.consumer_filedate = filing_date
+    if description:
+        info.description = description
     error_msg = validator.validate_request(info)
     if valid:
         assert error_msg == ""

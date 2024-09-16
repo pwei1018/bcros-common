@@ -31,6 +31,7 @@ DOC1 = {
     "documentType": "PPR_MISC",
     "documentClass": "PPR",
     "consumerFilingDateTime": "2024-07-01T19:00:00+00:00",
+    "description": "A meaningful description of the document.",
 }
 DOC_SCAN = {
     "scanDateTime": "2024-08-15T19:00:00+00:00",
@@ -49,6 +50,7 @@ TEST_DOCUMENT = Document(
     consumer_identifier="T0000002",
     consumer_filename="test.pdf",
     consumer_filing_date=model_utils.ts_from_iso_date_noon("2024-07-01"),
+    description="A meaningful description of the document.",
 )
 
 # testdata pattern is ({id}, {has_results}, {doc_type), {doc_class})
@@ -143,6 +145,7 @@ def test_find_by_document_id(session, id, has_results, doc_type, doc_class, has_
         assert doc_json
         assert doc_json.get("documentClass") == doc_class
         assert doc_json.get("documentTypeDescription")
+        assert doc_json.get("description") == DOC1.get("description")
         if has_scan:
             assert doc_json.get("scanningInformation")
         else:
@@ -172,6 +175,7 @@ def test_find_by_consumer_id(session, id, has_results, doc_type, doc_class, quer
         assert doc_json
         assert doc_json.get("documentClass") == doc_class
         assert doc_json.get("documentTypeDescription")
+        assert doc_json.get("description") == DOC1.get("description")
 
 
 def test_document_json(session):
@@ -207,3 +211,4 @@ def test_create_from_json(session, has_doc_id, doc_type):
     assert document.consumer_filing_date
     assert document.consumer_filename == json_data.get("consumerFilename")
     assert document.consumer_identifier == json_data.get("consumerIdentifier")
+    assert document.description == json_data.get("description")

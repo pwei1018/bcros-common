@@ -36,6 +36,7 @@ class RequestInfo:
     document_class: str = None
     has_payload: bool = False
     page_number: int = 1
+    description: str = None
 
     def __init__(self, request_type: str, request_path: str, doc_type: str, doc_storage_type):
         """Set common base initialization."""
@@ -60,6 +61,8 @@ class RequestInfo:
             "documentType": self.document_type if self.document_type else "",
             "documentClass": self.document_class if self.document_class else "",
         }
+        if self.description:
+            info["description"] = self.description
         if self.request_path:
             info["requestPath"] = self.request_path
         if self.page_number:

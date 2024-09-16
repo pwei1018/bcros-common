@@ -139,6 +139,7 @@ def test_search_docs(session, doc_class, doc_type, start_dt, end_dt, cons_id, do
             assert 'consumerDocumentId' in result
             assert 'consumerIdentifier' in result
             assert 'consumerFilenames' in result
+            assert 'description' in result
 
 
 @pytest.mark.parametrize("doc_class,start_offset,doc_type,cons_id,no_results", TEST_DATA_DOC_DATES)
@@ -157,3 +158,4 @@ def test_get_docs_by_dates(session, doc_class, start_offset, doc_type, cons_id, 
             assert result.get("documentTypeDescription")
             assert result.get("documentClass")
             assert "documentURL" not in result
+            assert 'description' in result

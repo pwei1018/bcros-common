@@ -58,6 +58,7 @@ PARAM_CONSUMER_DOC_ID = "consumerDocumentId"
 PARAM_CONSUMER_FILENAME = "consumerFilename"
 PARAM_CONSUMER_FILEDATE = "consumerFilingDate"
 PARAM_CONSUMER_IDENTIFIER = "consumerIdentifier"
+PARAM_DESCRIPTION = "description"
 PARAM_DOCUMENT_TYPE = "documentType"
 PARAM_DOCUMENT_CLASS = "documentClass"
 PARAM_PAGE_NUMBER = "pageNumber"
@@ -69,8 +70,10 @@ TO_STORAGE_TYPE = {
     DocumentClasses.CORP: StorageDocTypes.BUSINESS,
     DocumentClasses.COOP: StorageDocTypes.BUSINESS,
     DocumentClasses.FIRM: StorageDocTypes.BUSINESS,
+    DocumentClasses.LP_LLP: StorageDocTypes.BUSINESS,
     DocumentClasses.OTHER: StorageDocTypes.BUSINESS,
     DocumentClasses.SOCIETY: StorageDocTypes.BUSINESS,
+    DocumentClasses.XP: StorageDocTypes.BUSINESS,
 }
 STORAGE_TYPE_DEFAULT = StorageDocTypes.BUSINESS
 
@@ -227,6 +230,7 @@ def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> Re
     info.consumer_identifier = req.args.get(PARAM_CONSUMER_IDENTIFIER)
     info.query_start_date = req.args.get(PARAM_QUERY_START_DATE)
     info.query_end_date = req.args.get(PARAM_QUERY_END_DATE)
+    info.description = req.args.get(PARAM_DESCRIPTION)
     info.staff = staff
     if info.content_type:
         info.content_type = info.content_type.lower()
@@ -253,6 +257,7 @@ def update_request_info(
         info.consumer_filename = request_json.get(PARAM_CONSUMER_FILENAME)
         info.consumer_filedate = request_json.get(PARAM_CONSUMER_FILEDATE)
         info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
+        info.description = request_json.get(PARAM_DESCRIPTION)
     info.staff = staff
     info.content_type = req.headers.get(PARAM_CONTENT_TYPE)
     if info.content_type:
@@ -335,6 +340,8 @@ def save_update(info: RequestInfo, document: Document, token) -> dict:
         document.consumer_identifier = info.consumer_identifier
     if info.consumer_filename:
         document.consumer_filename = info.consumer_filename
+    if info.description:
+        document.description = info.description
     if info.consumer_filedate:
         document.consumer_filing_date = model_utils.ts_from_iso_date_noon(info.consumer_filedate)
     logger.info("save_update saving updated document model and document_request...")
