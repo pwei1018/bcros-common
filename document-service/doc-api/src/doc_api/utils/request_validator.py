@@ -125,16 +125,17 @@ def validate_add(info: RequestInfo, error_msg: str) -> str:
 def validate_get(info: RequestInfo, error_msg: str) -> str:
     """Validate the get request."""
     try:
-        if not info.document_class:
-            error_msg += MISSING_DOC_CLASS
-        if (
-            not info.consumer_doc_id
-            and not info.consumer_identifier
-            and not info.document_service_id
-            and not info.query_start_date
-            and not info.query_end_date
-        ):
-            error_msg += MISSING_QUERY_PARAMS
+        if not info.request_path or not info.request_path.endswith("*"):
+            if not info.document_class:
+                error_msg += MISSING_DOC_CLASS
+            if (
+                not info.consumer_doc_id
+                and not info.consumer_identifier
+                and not info.document_service_id
+                and not info.query_start_date
+                and not info.query_end_date
+            ):
+                error_msg += MISSING_QUERY_PARAMS
         error_msg += validate_search_dates(info)
     except Exception as validation_exception:  # noqa: B902; eat all errors
         logger.error("validate_get exception: " + str(validation_exception))

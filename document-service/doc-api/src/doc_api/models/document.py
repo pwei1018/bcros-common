@@ -23,7 +23,7 @@ from doc_api.utils.logging import logger
 
 from .db import db
 from .document_scanning import DocumentScanning
-from .type_tables import DocumentTypes
+from .type_tables import DocumentClasses, DocumentTypes
 
 QUERY_KEYS = """
 select nextval('document_id_seq') AS doc_id,
@@ -46,9 +46,10 @@ class Document(db.Model):
     add_ts = db.mapped_column("add_ts", db.DateTime, nullable=False, index=True)
     consumer_document_id = db.mapped_column("consumer_document_id", db.String(20), nullable=False, index=True)
     consumer_identifier = db.mapped_column("consumer_identifier", db.String(20), nullable=True, index=True)
-    consumer_filename = db.mapped_column("consumer_filename", db.String(1000), nullable=True)
+    consumer_filename = db.mapped_column("consumer_filename", db.String(1000), nullable=True, index=True)
     consumer_filing_date = db.mapped_column("consumer_filing_date", db.DateTime, nullable=True, index=True)
     doc_storage_url = db.mapped_column("doc_storage_url", db.String(1000), nullable=True)
+    description = db.mapped_column("description", db.String(1000), nullable=True)
 
     # parent keys
     document_type = db.mapped_column(
@@ -56,6 +57,15 @@ class Document(db.Model):
         PG_ENUM(DocumentTypes, name="documenttype"),
         db.ForeignKey("document_types.document_type"),
         nullable=False,
+        index=True,
+    )
+    # Added for searching
+    document_class = db.mapped_column(
+        "document_class",
+        PG_ENUM(DocumentClasses, name="documentclass"),
+        db.ForeignKey("document_classes.document_class"),
+        nullable=False,
+        index=True,
     )
 
     # Relationships
@@ -78,6 +88,8 @@ class Document(db.Model):
             "documentClass": self.doc_type.document_class if self.doc_type else "",
             "documentURL": self.doc_storage_url if self.doc_storage_url else "",
         }
+        if self.description:
+            document["description"] = self.description
         if self.consumer_filing_date:
             document["consumerFilingDateTime"] = model_utils.format_ts(self.consumer_filing_date)
         if len(self.consumer_document_id) < 10 and document.get("documentClass"):
@@ -125,7 +137,7 @@ class Document(db.Model):
             try:
                 documents = (
                     db.session.query(Document)
-                    .filter(Document.consumer_document_id == doc_id)
+                    .filter(Document.consumer_document_id == doc_id.upper())
                     .order_by(Document.id)
                     .all()
                 )
@@ -144,14 +156,18 @@ class Document(db.Model):
                     logger.info(f"querying by consumer ID {consumer_id} and doc type {doc_type}")
                     documents = (
                         db.session.query(Document)
-                        .filter(and_(Document.consumer_identifier == consumer_id, Document.document_type == doc_type))
+                        .filter(
+                            and_(
+                                Document.consumer_identifier == consumer_id.upper(), Document.document_type == doc_type
+                            )
+                        )
                         .order_by(Document.consumer_document_id)
                         .all()
                     )
                 else:
                     documents = (
                         db.session.query(Document)
-                        .filter(Document.consumer_identifier == consumer_id)
+                        .filter(Document.consumer_identifier == consumer_id.upper())
                         .order_by(Document.consumer_document_id)
                         .all()
                     )
@@ -185,15 +201,18 @@ class Document(db.Model):
     def create_from_json(doc_json: dict, doc_type: str):
         """Create a new document object from a new save document request."""
         doc = Document(add_ts=model_utils.now_ts(), document_type=doc_type)
+        doc.document_class = doc_json.get("documentClass")
         if doc_json.get("consumerDocumentId"):
-            doc.consumer_document_id = doc_json.get("consumerDocumentId")
+            doc.consumer_document_id = str(doc_json.get("consumerDocumentId")).upper()
         if doc_json.get("consumerFilename"):
             doc.consumer_filename = doc_json.get("consumerFilename")
         if doc_json.get("consumerIdentifier"):
-            doc.consumer_identifier = doc_json.get("consumerIdentifier")
+            doc.consumer_identifier = str(doc_json.get("consumerIdentifier")).upper()
         if doc_json.get("consumerFilingDateTime"):
             doc.consumer_filing_date = model_utils.ts_from_iso_date_noon(doc_json["consumerFilingDateTime"])
         elif doc_json.get("consumerFilingDate"):
             doc.consumer_filing_date = model_utils.ts_from_iso_date_noon(doc_json["consumerFilingDate"])
+        if doc_json.get("description"):
+            doc.description = doc_json.get("description")
         doc.get_generated_values()
         return doc

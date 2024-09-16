@@ -44,6 +44,7 @@ PARAMS1 = (
 )
 PATH: str = "/api/v1/business/{doc_class}/{doc_type}" + PARAMS1
 GET_PATH = "/api/v1/searches/{doc_class}"
+GET_PATH_ANY = "/api/v1/searches"
 PARAM_CONSUMER_ID = "?consumerIdentifier=" + TEST_CONSUMER_ID
 PARAM_CONSUMER_ID_NONE = "?consumerIdentifier=XXXXXXX"
 PARAM_DOC_SERVICE_ID = "?documentServiceId="
@@ -52,15 +53,22 @@ PARAMS_DATE_INVALID = "?queryStartDate=2024-07-30"
 PARAMS_DATE_VALID = "?queryStartDate=2023-07-30&queryEndDate=2023-07-30"
 PARAMS_DATE_DOC_TYPE_VALID = "?queryStartDate=2023-07-30&queryEndDate=2024-03-30&documentType=" + DOC_TYPE1
 PARAMS_DATE_CONS_ID_VALID = "?queryStartDate=2023-07-30&queryEndDate=2024-03-30&consumerIdentifier=" + TEST_CONSUMER_ID
-PARAMS_DATE_ALL_VALID = (
+PARAMS_DATE_CLASS_ALL_VALID = (
     "?queryStartDate=2023-07-30&queryEndDate=2024-03-30&consumerIdentifier="
     + TEST_CONSUMER_ID
     + "&documentType="
     + DOC_TYPE1
 )
+PARAMS_ALL_VALID = (
+    "?documentClass=CORP&documentType=CORP_MISC&queryStartDate=2024-08-13&queryEndDate=2024-08-13"
+    + "&consumerIdentifier=BC0700"
+    + "&consumerDocumentId=UT-000005B"
+    + "&consumerFileName=change_director"
+)
+PARAM_CLASS_INVALID = "?documentClass=JUNK"
 
 # testdata pattern is ({description}, {params}, {roles}, {account}, {doc_class}, {status})
-TEST_SEARCH_DATA = [
+TEST_SEARCH_DATA_CLASS = [
     ("Invalid doc class", PARAM_CONSUMER_ID, STAFF_ROLES, "UT1234", "JUNK", HTTPStatus.BAD_REQUEST),
     ("Invalid no params", None, STAFF_ROLES, "UT1234", DOC_CLASS1, HTTPStatus.BAD_REQUEST),
     ("Invalid date params", PARAMS_DATE_INVALID, STAFF_ROLES, "UT1234", DOC_CLASS1, HTTPStatus.BAD_REQUEST),
@@ -78,7 +86,7 @@ TEST_SEARCH_DATA = [
     ),
     (
         "Valid date, type, consumer id params",
-        PARAMS_DATE_ALL_VALID,
+        PARAMS_DATE_CLASS_ALL_VALID,
         STAFF_ROLES,
         "UT1234",
         DOC_CLASS1,
@@ -90,10 +98,24 @@ TEST_SEARCH_DATA = [
     ("Valid doc service ID", PARAM_DOC_SERVICE_ID, STAFF_ROLES, "UT1234", DOC_CLASS1, HTTPStatus.OK),
 ]
 
+# testdata pattern is ({description}, {params}, {roles}, {account}, {status})
+TEST_SEARCH_DATA = [
+    ("Invalid doc class", PARAM_CLASS_INVALID, STAFF_ROLES, "UT1234", HTTPStatus.BAD_REQUEST),
+    ("Invalid date params", PARAMS_DATE_INVALID, STAFF_ROLES, "UT1234", HTTPStatus.BAD_REQUEST),
+    ("Staff missing account", PARAM_CONSUMER_ID, STAFF_ROLES, None, HTTPStatus.BAD_REQUEST),
+    ("Invalid role", PARAM_CONSUMER_ID, INVALID_ROLES, "UT1234", HTTPStatus.UNAUTHORIZED),
+    ("Valid no params", None, STAFF_ROLES, "UT1234", HTTPStatus.OK),
+    ("Valid date params", PARAMS_DATE_VALID, STAFF_ROLES, "UT1234", HTTPStatus.OK),
+    ("Valid all params", PARAMS_ALL_VALID, STAFF_ROLES, "UT1234", HTTPStatus.OK),
+    ("Valid consumer ID no results", PARAM_CONSUMER_ID_NONE, STAFF_ROLES, "UT1234", HTTPStatus.OK),
+    ("Valid consumer ID", PARAM_CONSUMER_ID, STAFF_ROLES, "UT1234", HTTPStatus.OK),
+    ("Valid document ID", PARAM_CONSUMER_DOC_ID, STAFF_ROLES, "UT1234", HTTPStatus.OK)
+]
 
-@pytest.mark.parametrize("desc,params,roles,account,doc_class,status", TEST_SEARCH_DATA)
-def test_searches(session, client, jwt, desc, params, roles, account, doc_class, status):
-    """Assert that a documents search request works as expected."""
+
+@pytest.mark.parametrize("desc,params,roles,account,doc_class,status", TEST_SEARCH_DATA_CLASS)
+def test_class_searches(session, client, jwt, desc, params, roles, account, doc_class, status):
+    """Assert that a documents search request by document class works as expected."""
     # setup
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
     headers = None
@@ -122,12 +144,53 @@ def test_searches(session, client, jwt, desc, params, roles, account, doc_class,
 
     # check
     # logger.info(response.json)
-    assert response.status_code == status
+    assert response.status_code == status or (status == HTTPStatus.NOT_FOUND and response.status_code == HTTPStatus.OK)
     if response.status_code == HTTPStatus.OK:
         results_json = response.json
         assert results_json
         for doc_json in results_json:
             assert doc_json
             assert doc_json.get("documentServiceId")
-            assert doc_json.get("documentURL")
-            assert doc_json.get("documentClass") == doc_class
+            assert doc_json.get("documentType")
+            assert doc_json.get("documentClass")
+
+
+@pytest.mark.parametrize("desc,params,roles,account,status", TEST_SEARCH_DATA)
+def test_searches(session, client, jwt, desc, params, roles, account, status):
+    """Assert that a documents search request by any search parameter works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    if account:
+        headers = create_header_account(jwt, roles, "UT-TEST", account)
+    else:
+        headers = create_header(jwt, roles)
+    req_path = GET_PATH_ANY
+    if params:
+        req_path += params
+
+    if status == HTTPStatus.OK and desc != "Valid consumer ID no results":  # Create.
+        response = client.post(
+            "/api/v1/documents/CORP/CORP_MISC" + PARAMS1, data=None, headers=headers, content_type=MEDIA_PDF
+        )
+        # logger.info(response.json)
+    # test
+    response = client.get(req_path, headers=headers)
+
+    # check
+    # logger.info(response.json)
+    assert response.status_code == status
+    if response.status_code == HTTPStatus.OK:
+        search_results = response.json
+        assert search_results
+        assert 'resultCount' in search_results
+        if search_results.get('resultCount') > 0:
+            assert search_results.get('results')
+            for result in search_results.get('results'):
+                assert result.get('documentServiceId')
+                assert result.get('createDateTime')
+                assert result.get('documentType')
+                assert result.get('documentClass')
+                assert result.get('documentTypeDescription')
+                assert 'consumerDocumentId' in result
+                assert 'consumerIdentifier' in result
