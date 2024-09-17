@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "notify-delivery"
-version = "1.2.1"
+version = "1.2.2"
 description = "This module is the service worker for delivery emails."
 authors = ["pwei1018 <patrick.wei@gov.bc.ca>"]
 license = "BSD-3-Clause"
@@ -9,7 +9,7 @@ packages = [{include = "notify_delivery", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-notify-api = { git = "https://github.com/bcgov/bcros-common.git", subdirectory = "notify-api",  branch = "main" }
+notify-api = { git = "https://github.com/bcgov/bcros-common.git", subdirectory = "notify-service/notify-api",  branch = "main" }
 
 [tool.poetry.group.dev.dependencies]
 psycopg2 = "^2.9.9"
