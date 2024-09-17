@@ -67,10 +67,10 @@ class EmailSMTP:  # pylint: disable=too-few-public-methods
         response_list: List[NotificationSendResponse] = []
 
         try:
-            server = smtplib.SMTP()
-            server.connect(host=self.mail_server, port=self.mail_port)
             for email in message["To"].split(","):
                 try:
+                    server = smtplib.SMTP()
+                    server.connect(host=self.mail_server, port=self.mail_port)
                     server.sendmail(message["From"], [email], message.as_string())
                     sent_response = NotificationSendResponse(response_id=None, recipient=email)
                     response_list.append(sent_response)
