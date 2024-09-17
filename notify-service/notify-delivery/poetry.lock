@@ -1243,7 +1243,7 @@ requests = ">=2.0.0"
 
 [[package]]
 name = "notify-api"
-version = "3.1.0"
+version = "3.1.3"
 description = ""
 optional = false
 python-versions = "^3.12"
@@ -1275,7 +1275,7 @@ type = "git"
 url = "https://github.com/bcgov/bcros-common.git"
 reference = "main"
 resolved_reference = "ce2b396be040260e8869416449a2513a99d39a39"
-subdirectory = "notify-api"
+subdirectory = "notify-service/notify-api"
 
 [[package]]
 name = "packaging"
@@ -2210,4 +2210,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "e41675c46fcf896afd8b2d62bfe5208c0ee27d33ea6cc8b4e7eac4145862f5a0"
+content-hash = "0f973f30b061788e5821266fe1434055073a95365fd90a14fd70f14bb1ec4bcc"
