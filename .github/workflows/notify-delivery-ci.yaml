@@ -3,18 +3,18 @@ name: Notify Delivery CI
 on:
   pull_request:
     paths:
-      - "notify-delivery/**"
+      - "notify-service/notify-delivery/**"
   workflow_dispatch:
 
 defaults:
   run:
     shell: bash
-    working-directory: ./notify-delivery
+    working-directory: ./notify-service/notify-delivery
 
 jobs:
   notify-delivery-ci:
     uses: bcgov/bcregistry-sre/.github/workflows/backend-ci.yaml@main
     with:
       app_name: "notify-delivery"
-      working_directory: "./notify-delivery"
+      working_directory: "./notify-service/notify-delivery"
       codecov_flag: "notifydelivery"

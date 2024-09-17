@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "notify-delivery/**"
+      - "notify-service/notify-delivery/**"
   workflow_dispatch:
     inputs:
       target:
@@ -24,7 +24,7 @@ jobs:
     with:
       target: ${{ inputs.target }}
       app_name: "notify-delivery"
-      working_directory: "./notify-delivery"
+      working_directory: "./notify-service/notify-delivery"
     secrets:
       WORKLOAD_IDENTIFY_POOLS_PROVIDER: ${{ secrets.WORKLOAD_IDENTIFY_POOLS_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
