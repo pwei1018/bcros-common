@@ -82,3 +82,72 @@ export function formatIsoToYYYYMMDD(isoString) {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+export const datePickerOptions = [
+  {
+    label: 'Last 7 days',
+    value: 'd-7'
+  },
+  {
+    label: 'Last 14 days',
+    value: 'd-14'
+  },
+  {
+    label: 'Last 30 days',
+    value: 'd-30'
+  },
+  {
+    label: 'Last 3 months',
+    value: 'm-3'
+  },
+  {
+    label: 'Last 6 months',
+    value: 'm-6'
+  },
+  {
+    label: 'Last year',
+    value: 'y-1'
+  },
+]
+
+/**
+ * This function calculates a previous date based on the given input format.
+ * The input format is a string like 'd-7', 'm-3', or 'y-1', where:
+ *  - 'd' stands for days (e.g., 'd-7' means 7 days ago)
+ *  - 'm' stands for months (e.g., 'm-3' means 3 months ago)
+ *  - 'y' stands for years (e.g., 'y-1' means 1 year ago)
+ * 
+ * @param {string} input - A string representing the time offset. It follows the pattern 'd-N', 'm-N', or 'y-N'
+ * 
+ * @returns {Date} - The calculated date based on the current date minus the provided time offset.
+ */
+export function calculatePreviousDate(input: string): Date {
+  // Extract the unit (d, m, y) and the amount (number)
+  const regex = /^([dmy])-([0-9]+)$/;
+  const match = input.match(regex);
+
+  if (!match) {
+      throw new Error("Invalid input format. Expected format: d-7, m-3, y-1, etc.");
+  }
+
+  const unit = match[1];
+  const amount = parseInt(match[2], 10);
+
+  const currentDate = new Date();
+
+  switch (unit) {
+      case 'd':
+          currentDate.setDate(currentDate.getDate() - amount);
+          break;
+      case 'm':
+          currentDate.setMonth(currentDate.getMonth() - amount);
+          break;
+      case 'y':
+          currentDate.setFullYear(currentDate.getFullYear() - amount);
+          break;
+      default:
+          throw new Error("Invalid unit. Use 'd' for days, 'm' for months, or 'y' for years.");
+  }
+
+  return currentDate;
+}

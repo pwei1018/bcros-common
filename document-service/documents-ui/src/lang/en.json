@@ -10,7 +10,7 @@
     "documentIndexing": "Document Indexing"
   },
   "descriptions": {
-    "documentManagement": "Upload registrations through our document indexing service or complete a document search.",
+    "documentManagement": "Use our document record service to create a new record or search for existing ones. To edit a record, simply search for and open the document record.",
     "documentIndexing": "Index your documents using our document indexing service for easy access and search."
   },
   "button": {
@@ -20,6 +20,10 @@
   "documentSearch": {
     "title": "Document Search",
     "description": "Search for original registration documents and filings. Enter Entity ID or Document category to selected a date range to search by.",
+    "helpTitle": {
+      "inactive": "Help with Document Record Search",
+      "active": "Hide help"
+    },
     "form": {
       "id": {
         "label": "Entity ID",
@@ -38,6 +42,22 @@
         "label": "Filing Date",
         "help": "Date range of registered documents you would like to search"
       }
+    },
+    "table": {
+      "title": "Document Records",
+      "headers": {
+        "sortBy": "sort By:",
+        "filterBy": "filter By:",
+        "documentID": "Document ID",
+        "entityID": "Entity ID",
+        "documents": "Documents",
+        "filingDate": "Filing Date",
+        "documentType": "Document Type",
+        "actions": "Actions"
+      },
+      "downloadAll": "Download All",
+      "noResult": "No results found.",
+      "clearFilter": "Clear Filter"
     }
   },
   "documentIndexing": {

@@ -4,6 +4,7 @@ export interface DocumentStateIF {
   // Document Search
   searchDocumentId: string
   searchEntityId: string
+  searchDocuments: string
   searchDocumentClass: string
   searchDocumentType: string
   searchDateRange: {

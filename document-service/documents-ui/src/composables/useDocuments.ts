@@ -29,8 +29,13 @@ export const useDocuments = () => {
    * @param documentClass - The document class for which to retrieve documents
    * @returns An array of document descriptions or an empty array if the category is not found
    */
-  function getDocumentTypesByClass(documentClass: string): Array<DocumentDetailIF>|[]  {
-    return documentTypes.find(doc => doc.class === documentClass)?.documents || []
+  function getDocumentTypesByClass(documentClass: string = undefined): Array<DocumentDetailIF>|[]  {
+    return documentClass 
+    ? documentTypes.find(doc => doc.class === documentClass)?.documents || []
+    : documentTypes.reduce((docTypes: Array<DocumentDetailIF>, currentValue) => {
+      docTypes.push(...currentValue.documents); // Assuming currentValue.documents is an array
+      return docTypes;
+    }, [])
   }
 
   /**
@@ -110,7 +115,7 @@ export const useDocuments = () => {
   }
 
   /** Validate and Search Documents **/
-  const searchDocuments = async (): Promise<void> => {
+  const searchDocumentRecords = async (): Promise<void> => {
     validateDocumentSearch.value = true
 
     if (hasMinimumSearchCriteria.value) {
@@ -165,11 +170,12 @@ export const useDocuments = () => {
       && !!consumerFilingDate.value
   })
 
+  const debouncedSearch = debounce(searchDocumentRecords)
+
   /** Validate and Save Document Indexing */
   const saveDocuments = async (): Promise<void> => {
     // Validate Document Indexing
     validateIndex.value = true
-
     if (isValidIndexData.value) {
       isLoading.value = true
 
@@ -229,14 +235,22 @@ export const useDocuments = () => {
     }
   }
 
+  watch(() => searchEntityId.value, (id: string) => {
+    // Format Entity Identifier
+    searchEntityId.value = id.replace(/\s+/g, '')?.toUpperCase()
+    // Assign and populate a prefix if a match is found
+    if (id.length >= 1) findCategoryByPrefix(id, true)
+  })
+
   return {
     isValidIndexData,
     findCategoryByPrefix,
     getDocumentTypesByClass,
     getDocumentDescription,
-    searchDocuments,
+    searchDocumentRecords,
     downloadFileFromUrl,
     hasMinimumSearchCriteria,
-    saveDocuments
+    saveDocuments,
+    debouncedSearch
   }
 }
