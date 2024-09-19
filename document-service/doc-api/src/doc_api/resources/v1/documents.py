@@ -28,6 +28,7 @@ from doc_api.utils.logging import logger
 
 POST_REQUEST_PATH = "/documents/{doc_class}/{doc_type}"
 CHANGE_REQUEST_PATH = "/documents/{doc_service_id}"
+VERIFY_REQUEST_PATH = "/documents/verify{consumer_doc_id}"
 
 bp = Blueprint("DOCUMENTS1", __name__, url_prefix="/documents")  # pylint: disable=invalid-name
 
@@ -128,6 +129,38 @@ def replace_document(doc_service_id: str):
         if extra_validation_msg != "":
             return resource_utils.extra_validation_error_response(extra_validation_msg)
         response_json = resource_utils.save_replace(info, document, g.jwt_oidc_token_info, request.get_data())
+        return jsonify(response_json), HTTPStatus.OK
+    except DatabaseException as db_exception:
+        return resource_utils.db_exception_response(db_exception, account_id, "PUT document")
+    except BusinessException as exception:
+        return resource_utils.business_exception_response(exception)
+    except Exception as default_exception:  # noqa: B902; return nicer default error
+        return resource_utils.default_exception_response(default_exception)
+
+
+@bp.route("/verify/<string:consumer_doc_id>", methods=["GET", "OPTIONS"])
+@jwt.requires_auth
+def verify_document_id(consumer_doc_id: str):
+    """Add or replace the document that is associated with the document service ID."""
+    try:
+        req_path: str = VERIFY_REQUEST_PATH.format(consumer_doc_id=consumer_doc_id)
+        account_id = resource_utils.get_account_id(request)
+        if account_id is None:
+            return resource_utils.account_required_response()
+        logger.info(f"Starting verify document consumer ID request {req_path}, account={account_id}")
+        if not is_staff(jwt):
+            logger.error("User not staff: currently requests are staff only.")
+            return resource_utils.unauthorized_error_response(account_id)
+        documents = Document.find_by_document_id(consumer_doc_id)
+        if not documents:
+            logger.info(f"No documents found for document consumer id={consumer_doc_id}.")
+            return resource_utils.not_found_error_response("GET documents by document ID", consumer_doc_id)
+        response_json = []
+        for document in documents:
+            doc_json = document.json
+            if doc_json.get("documentURL"):
+                del doc_json["documentURL"]
+            response_json.append(doc_json)
         return jsonify(response_json), HTTPStatus.OK
     except DatabaseException as db_exception:
         return resource_utils.db_exception_response(db_exception, account_id, "PUT document")

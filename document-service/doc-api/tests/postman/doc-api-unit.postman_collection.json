@@ -210,6 +210,90 @@
 			"name": "documents",
 			"item": [
 				{
+					"name": "Get Verify doc ID - exists",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/verify/99999999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"verify",
+								"99999999"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Verify doc ID - new",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/verify/00000000",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"verify",
+								"00000000"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Upload CORP class all params except doc ID",
 					"protocolProfileBehavior": {
 						"disabledSystemHeaders": {
@@ -1383,7 +1467,7 @@
 		},
 		{
 			"key": "account_id",
-			"value": "PROVIDe"
+			"value": "PROVIDE"
 		},
 		{
 			"key": "base_url_prism",

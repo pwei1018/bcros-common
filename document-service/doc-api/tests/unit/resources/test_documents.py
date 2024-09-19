@@ -47,6 +47,7 @@ PARAMS1 = (
 )
 PATH: str = "/api/v1/documents/{doc_class}/{doc_type}" + PARAMS1
 CHANGE_PATH = "/api/v1/documents/{doc_service_id}"
+VERIFY_PATH = "/api/v1/documents/verify/{doc_id}"
 PATCH_PAYLOAD_INVALID = {}
 PATCH_PAYLOAD = {
     "consumerDocumentId": "P0000001",
@@ -78,6 +79,13 @@ TEST_PUT_DATA = [
     ("Invalid role", INVALID_ROLES, "UT1234", "INVALID", HTTPStatus.UNAUTHORIZED),
     ("Invalid doc service id", STAFF_ROLES, "UT1234", "INVALID", HTTPStatus.NOT_FOUND),
     ("Valid staff", STAFF_ROLES, "UT1234", None, HTTPStatus.OK),
+]
+# testdata pattern is ({description}, {roles}, {account}, {doc_id}, {status})
+TEST_DOC_ID_DATA = [
+    ("Staff missing account", STAFF_ROLES, None, "INVALID", HTTPStatus.BAD_REQUEST),
+    ("Invalid role", INVALID_ROLES, "UT1234", "INVALID", HTTPStatus.UNAUTHORIZED),
+    ("Not found doc id", STAFF_ROLES, "UT1234", "UT-99990001", HTTPStatus.NOT_FOUND),
+    ("Doc ID exists", STAFF_ROLES, "UT1234", "UT999999", HTTPStatus.OK),
 ]
 
 
@@ -200,3 +208,38 @@ def test_replace(session, client, jwt, desc, roles, account, doc_service_id, sta
         assert doc_json.get("consumerIdentifier")
         assert doc_json.get("consumerFilename") == TEST_FILENAME
         assert doc_json.get("documentURL")
+
+
+@pytest.mark.parametrize("desc,roles,account,doc_id,status", TEST_DOC_ID_DATA)
+def test_verify_doc_id(session, client, jwt, desc, roles, account, doc_id, status):
+    """Assert that a request to verify a consumer document ID works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    if account:
+        headers = create_header_account_upload(jwt, roles, "UT-TEST", account, MEDIA_PDF)
+    else:
+        headers = create_header_upload(jwt, roles, MEDIA_PDF)
+    req_path = VERIFY_PATH.format(doc_id=doc_id)
+
+    # test
+    if status == HTTPStatus.OK:  # Create.
+        response = client.post(
+            PATH.format(doc_class=DOC_CLASS1, doc_type=DOC_TYPE1), data=None, headers=headers, content_type=MEDIA_PDF
+        )
+        # logger.info(response.json)
+    # test
+    response = client.get(req_path, headers=headers)
+
+    # check
+    # logger.info(response.json)
+    assert response.status_code == status
+    if response.status_code == HTTPStatus.OK:
+        docs_json = response.json
+        assert docs_json
+        for doc_json in docs_json:
+            assert doc_json.get("documentServiceId")
+            assert doc_json.get("documentClass")
+            assert doc_json.get("documentType")
+            assert doc_json.get("consumerDocumentId") == doc_id
+            assert not doc_json.get("documentURL")
