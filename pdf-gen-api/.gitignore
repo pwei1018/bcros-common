@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+**/__pycache__/**
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Business Schemas Local Downloads
+business_schemas/
+
+# Demo / test Outputs
+demo_output/
+pdf_outputs/
+the_website/
+**/test_pdf_output/**
+
+# Packaging
+*.egg-info/
+*.egg
+*.pyc
+.eggs/
+lib/
+lib64/
+.Python
+
+# pyenv
+.python-version
+
+# OS specific
+/**/.DS_Store
+/**/node_modules
+
+# IDE
+/**/.vscode
+*/*/.idea/*
+/**/.idea/*
+.idea/*
+*.iml

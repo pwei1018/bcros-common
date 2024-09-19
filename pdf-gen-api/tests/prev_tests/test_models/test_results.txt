@@ -1,0 +1,1006 @@
+========== Tests for Parsing Business Schemas ==========
+Test #1: Test loading schemas
+Loading Schemas 
+All Schemas loaded, total: 48
+========================================================================================================================
+Test Passed. All schemas loaded
+Local path library:
+{'#/definitions/actions': 'https://bcrs.gov.bc.ca/.well_known/schemas/change_of_directors',
+ '#/definitions/alternateName': 'https://bcrs.gov.bc.ca/.well_known/schemas/business',
+ '#/definitions/amalgamatedEntities': 'https://bcrs.gov.bc.ca/.well_known/schemas/business_document',
+ '#/definitions/changeFilingInfo': 'https://bcrs.gov.bc.ca/.well_known/schemas/business_document',
+ '#/definitions/changeOfAddress': 'https://bcrs.gov.bc.ca/.well_known/schemas/change_of_address',
+ '#/definitions/changeStateFilingInfo': 'https://bcrs.gov.bc.ca/.well_known/schemas/business_document',
+ '#/definitions/datetimeUTC': 'https://bcrs.gov.bc.ca/.well_known/schemas/business_document',
+ '#/definitions/director': 'https://bcrs.gov.bc.ca/.well_known/schemas/directors',
+ '#/definitions/entityAct': 'https://bcrs.gov.bc.ca/.well_known/schemas/business_document',
+ '#/definitions/entityDescription': 'https://bcrs.gov.bc.ca/.well_known/schemas/business_document',
+ '#/definitions/filing_header': 'https://bcrs.gov.bc.ca/.well_known/schemas/filing',
+ '#/definitions/identifier': 'https://bcrs.gov.bc.ca/.well_known/schemas/business',
+ '#/definitions/legalName': 'https://bcrs.gov.bc.ca/.well_known/schemas/business',
+ '#/definitions/legalType': 'https://bcrs.gov.bc.ca/.well_known/schemas/business',
+ '#/definitions/liquidation': 'https://bcrs.gov.bc.ca/.well_known/schemas/business_document',
+ '#/definitions/nrNumber': 'https://bcrs.gov.bc.ca/.well_known/schemas/name_request',
+ '#/definitions/office': 'https://bcrs.gov.bc.ca/.well_known/schemas/filing',
+ '#/definitions/offices': 'https://bcrs.gov.bc.ca/.well_known/schemas/business_document',
+ '#/definitions/party': 'https://bcrs.gov.bc.ca/.well_known/schemas/parties',
+ '#/definitions/partyRole': 'https://bcrs.gov.bc.ca/.well_known/schemas/parties',
+ '#/definitions/person': 'https://bcrs.gov.bc.ca/.well_known/schemas/parties',
+ '#/definitions/registrarInfo': 'https://bcrs.gov.bc.ca/.well_known/schemas/business_document',
+ '#/definitions/shareClass': 'https://bcrs.gov.bc.ca/.well_known/schemas/share_structure',
+ '#/definitions/shareSeries': 'https://bcrs.gov.bc.ca/.well_known/schemas/share_structure',
+ '#/definitions/warning': 'https://bcrs.gov.bc.ca/.well_known/schemas/business'}
+----------------------------------------------------------------------------------------------------
+Test #2: Test load a json file and return a Python Dictionary
+Loading Schemas 
+All Schemas loaded, total: 48
+========================================================================================================================
+Test Passed.
+----------------------------------------------------------------------------------------------------
+Test #3: Test parse a $ref link and return a Tuple: (schema_id, property_address)
+Loading Schemas 
+All Schemas loaded, total: 48
+========================================================================================================================
+Part 1 Passed
+Part 2 Passed
+Part 3 Passed
+Test Passed
+----------------------------------------------------------------------------------------------------
+Test #4: Test resolve $ref(s)
+This test's results need to be eye-balled
+Loading Schemas 
+All Schemas loaded, total: 48
+========================================================================================================================
+The original version:
+{'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/office',
+ '$schema': 'http://json-schema.org/draft-07/schema#',
+ 'properties': {'deliveryAddress': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/address'},
+                'mailingAddress': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/address'},
+                'officeType': {'type': 'string'}},
+ 'required': ['mailingAddress', 'deliveryAddress'],
+ 'title': 'The Office Schema',
+ 'type': 'object'}
+----------------------------------------------------------------------------------------------------
+Resolving references ......
+----------------------------------------------------------------------------------------------------
+Resolved version:
+{'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/office',
+ '$schema': 'http://json-schema.org/draft-07/schema#',
+ 'properties': {'deliveryAddress': {'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/address',
+                                    '$schema': 'http://json-schema.org/draft-07/schema#',
+                                    'definitions': {},
+                                    'properties': {'addressCity': {'maxLength': 40,
+                                                                   'type': 'string'},
+                                                   'addressCountry': {'type': 'string'},
+                                                   'addressRegion': {'maxLength': 2,
+                                                                     'type': ['string',
+                                                                              'null']},
+                                                   'deliveryInstructions': {'maxLength': 80,
+                                                                            'type': ['string',
+                                                                                     'null']},
+                                                   'postalCode': {'maxLength': 15,
+                                                                  'type': 'string'},
+                                                   'streetAddress': {'maxLength': 50,
+                                                                     'type': 'string'},
+                                                   'streetAddressAdditional': {'maxLength': 50,
+                                                                               'type': ['string',
+                                                                                        'null']}},
+                                    'required': ['streetAddress',
+                                                 'addressCity',
+                                                 'addressCountry',
+                                                 'postalCode'],
+                                    'title': 'The Address Schema',
+                                    'type': 'object'},
+                'mailingAddress': {'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/address',
+                                   '$schema': 'http://json-schema.org/draft-07/schema#',
+                                   'definitions': {},
+                                   'properties': {'addressCity': {'maxLength': 40,
+                                                                  'type': 'string'},
+                                                  'addressCountry': {'type': 'string'},
+                                                  'addressRegion': {'maxLength': 2,
+                                                                    'type': ['string',
+                                                                             'null']},
+                                                  'deliveryInstructions': {'maxLength': 80,
+                                                                           'type': ['string',
+                                                                                    'null']},
+                                                  'postalCode': {'maxLength': 15,
+                                                                 'type': 'string'},
+                                                  'streetAddress': {'maxLength': 50,
+                                                                    'type': 'string'},
+                                                  'streetAddressAdditional': {'maxLength': 50,
+                                                                              'type': ['string',
+                                                                                       'null']}},
+                                   'required': ['streetAddress',
+                                                'addressCity',
+                                                'addressCountry',
+                                                'postalCode'],
+                                   'title': 'The Address Schema',
+                                   'type': 'object'},
+                'officeType': {'type': 'string'}},
+ 'required': ['mailingAddress', 'deliveryAddress'],
+ 'title': 'The Office Schema',
+ 'type': 'object'}
+----------------------------------------------------------------------------------------------------
+Test #5: Test flatten resolved schemas
+This test's results need to be eye-balled
+Loading Schemas 
+All Schemas loaded, total: 48
+========================================================================================================================
+Resolving references ......
+The resolved version:
+{'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/office',
+ '$schema': 'http://json-schema.org/draft-07/schema#',
+ 'properties': {'deliveryAddress': {'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/address',
+                                    '$schema': 'http://json-schema.org/draft-07/schema#',
+                                    'definitions': {},
+                                    'properties': {'addressCity': {'maxLength': 40,
+                                                                   'type': 'string'},
+                                                   'addressCountry': {'type': 'string'},
+                                                   'addressRegion': {'maxLength': 2,
+                                                                     'type': ['string',
+                                                                              'null']},
+                                                   'deliveryInstructions': {'maxLength': 80,
+                                                                            'type': ['string',
+                                                                                     'null']},
+                                                   'postalCode': {'maxLength': 15,
+                                                                  'type': 'string'},
+                                                   'streetAddress': {'maxLength': 50,
+                                                                     'type': 'string'},
+                                                   'streetAddressAdditional': {'maxLength': 50,
+                                                                               'type': ['string',
+                                                                                        'null']}},
+                                    'required': ['streetAddress',
+                                                 'addressCity',
+                                                 'addressCountry',
+                                                 'postalCode'],
+                                    'title': 'The Address Schema',
+                                    'type': 'object'},
+                'mailingAddress': {'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/address',
+                                   '$schema': 'http://json-schema.org/draft-07/schema#',
+                                   'definitions': {},
+                                   'properties': {'addressCity': {'maxLength': 40,
+                                                                  'type': 'string'},
+                                                  'addressCountry': {'type': 'string'},
+                                                  'addressRegion': {'maxLength': 2,
+                                                                    'type': ['string',
+                                                                             'null']},
+                                                  'deliveryInstructions': {'maxLength': 80,
+                                                                           'type': ['string',
+                                                                                    'null']},
+                                                  'postalCode': {'maxLength': 15,
+                                                                 'type': 'string'},
+                                                  'streetAddress': {'maxLength': 50,
+                                                                    'type': 'string'},
+                                                  'streetAddressAdditional': {'maxLength': 50,
+                                                                              'type': ['string',
+                                                                                       'null']}},
+                                   'required': ['streetAddress',
+                                                'addressCity',
+                                                'addressCountry',
+                                                'postalCode'],
+                                   'title': 'The Address Schema',
+                                   'type': 'object'},
+                'officeType': {'type': 'string'}},
+ 'required': ['mailingAddress', 'deliveryAddress'],
+ 'title': 'The Office Schema',
+ 'type': 'object'}
+----------------------------------------------------------------------------------------------------
+Flattened version:
+Flattening schema ......
+{'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/office',
+ '$schema': 'http://json-schema.org/draft-07/schema#',
+ 'deliveryAddress': {'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/address',
+                     '$schema': 'http://json-schema.org/draft-07/schema#',
+                     'addressCity': {'maxLength': 40, 'type': 'string'},
+                     'addressCountry': {'type': 'string'},
+                     'addressRegion': {'maxLength': 2,
+                                       'type': ['string', 'null']},
+                     'definitions': {},
+                     'deliveryInstructions': {'maxLength': 80,
+                                              'type': ['string', 'null']},
+                     'postalCode': {'maxLength': 15, 'type': 'string'},
+                     'required': ['streetAddress',
+                                  'addressCity',
+                                  'addressCountry',
+                                  'postalCode'],
+                     'streetAddress': {'maxLength': 50, 'type': 'string'},
+                     'streetAddressAdditional': {'maxLength': 50,
+                                                 'type': ['string', 'null']},
+                     'title': 'The Address Schema',
+                     'type': 'object'},
+ 'mailingAddress': {'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/address',
+                    '$schema': 'http://json-schema.org/draft-07/schema#',
+                    'addressCity': {'maxLength': 40, 'type': 'string'},
+                    'addressCountry': {'type': 'string'},
+                    'addressRegion': {'maxLength': 2,
+                                      'type': ['string', 'null']},
+                    'definitions': {},
+                    'deliveryInstructions': {'maxLength': 80,
+                                             'type': ['string', 'null']},
+                    'postalCode': {'maxLength': 15, 'type': 'string'},
+                    'required': ['streetAddress',
+                                 'addressCity',
+                                 'addressCountry',
+                                 'postalCode'],
+                    'streetAddress': {'maxLength': 50, 'type': 'string'},
+                    'streetAddressAdditional': {'maxLength': 50,
+                                                'type': ['string', 'null']},
+                    'title': 'The Address Schema',
+                    'type': 'object'},
+ 'officeType': {'type': 'string'},
+ 'required': ['mailingAddress', 'deliveryAddress'],
+ 'title': 'The Office Schema',
+ 'type': 'object'}
+----------------------------------------------------------------------------------------------------
+Test #6: Test the functionality of removing unnecessary items from schemas
+Loading Schemas 
+All Schemas loaded, total: 48
+========================================================================================================================
+Resolving references ......
+Flattening schema ......
+Test Passed.
+{'deliveryAddress': {'addressCity': {'maxLength': 40, 'type': 'string'},
+                     'addressCountry': {'type': 'string'},
+                     'addressRegion': {'maxLength': 2,
+                                       'type': ['string', 'null']},
+                     'deliveryInstructions': {'maxLength': 80,
+                                              'type': ['string', 'null']},
+                     'postalCode': {'maxLength': 15, 'type': 'string'},
+                     'streetAddress': {'maxLength': 50, 'type': 'string'},
+                     'streetAddressAdditional': {'maxLength': 50,
+                                                 'type': ['string', 'null']},
+                     'title': 'The Address Schema',
+                     'type': 'object'},
+ 'mailingAddress': {'addressCity': {'maxLength': 40, 'type': 'string'},
+                    'addressCountry': {'type': 'string'},
+                    'addressRegion': {'maxLength': 2,
+                                      'type': ['string', 'null']},
+                    'deliveryInstructions': {'maxLength': 80,
+                                             'type': ['string', 'null']},
+                    'postalCode': {'maxLength': 15, 'type': 'string'},
+                    'streetAddress': {'maxLength': 50, 'type': 'string'},
+                    'streetAddressAdditional': {'maxLength': 50,
+                                                'type': ['string', 'null']},
+                    'title': 'The Address Schema',
+                    'type': 'object'},
+ 'officeType': {'type': 'string'},
+ 'title': 'The Office Schema',
+ 'type': 'object'}
+----------------------------------------------------------------------------------------------------
+Test #7: The main parsing functionality
+This test's results need to be eye-balled
+Some known issues are documented, like there will be 2 item not cleaned up
+Loading Schemas 
+All Schemas loaded, total: 48
+========================================================================================================================
+Original version:
+{'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/name_request',
+ '$schema': 'http://json-schema.org/draft-07/schema#',
+ 'definitions': {'nrNumber': {'examples': ['NR 1234567'],
+                              'maxLength': 10,
+                              'type': 'string'}},
+ 'properties': {'address': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/address'},
+                'consent': {'type': 'string'},
+                'expires': {'examples': ['1970-01-01T00:00:00+00:00'],
+                            'format': 'date-time',
+                            'type': 'string'},
+                'legalName': {'type': 'string'},
+                'legalType': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/business#/definitions/legalType'},
+                'nrNumber': {'$ref': '#/definitions/nrNumber'},
+                'requestType': {'examples': ['New Business'],
+                                'title': 'The type of Name Request',
+                                'type': 'string'},
+                'status': {'type': 'string'},
+                'submittedBy': {'type': 'string'}},
+ 'required': ['legalType'],
+ 'title': 'Name Request Schema',
+ 'type': 'object'}
+----------------------------------------------------------------------------------------------------
+Resolving references ......
+Flattening schema ......
+Cleaning up schema ......
+Parsed version:
+{'address': {'addressCity': {'maxLength': 40, 'type': 'string'},
+             'addressCountry': {'type': 'string'},
+             'addressRegion': {'maxLength': 2, 'type': ['string', 'null']},
+             'deliveryInstructions': {'maxLength': 80,
+                                      'type': ['string', 'null']},
+             'postalCode': {'maxLength': 15, 'type': 'string'},
+             'streetAddress': {'maxLength': 50, 'type': 'string'},
+             'streetAddressAdditional': {'maxLength': 50,
+                                         'type': ['string', 'null']},
+             'title': 'The Address Schema',
+             'type': 'object'},
+ 'consent': {'type': 'string'},
+ 'expires': {'examples': ['1970-01-01T00:00:00+00:00'],
+             'format': 'date-time',
+             'type': 'string'},
+ 'legalName': {'type': 'string'},
+ 'legalType': {'default': 'BC',
+               'enum': ['A',
+                        'B',
+                        'BC',
+                        'BEN',
+                        'CBEN',
+                        'C',
+                        'CC',
+                        'CCC',
+                        'CEM',
+                        'CP',
+                        'CS',
+                        'CUL',
+                        'EPR',
+                        'FI',
+                        'FOR',
+                        'GP',
+                        'LIC',
+                        'LIB',
+                        'LL',
+                        'LLC',
+                        'LP',
+                        'MF',
+                        'PA',
+                        'PAR',
+                        'PFS',
+                        'QA',
+                        'QB',
+                        'QC',
+                        'QD',
+                        'QE',
+                        'REG',
+                        'RLY',
+                        'S',
+                        'SB',
+                        'SP',
+                        'T',
+                        'TMY',
+                        'ULC',
+                        'UQA',
+                        'UQB',
+                        'UQC',
+                        'UQD',
+                        'UQE',
+                        'XCP',
+                        'XL',
+                        'XP',
+                        'XS'],
+               'title': 'The Legal Type of the business.',
+               'type': 'string'},
+ 'nrNumber': {'examples': ['NR 1234567'], 'maxLength': 10, 'type': 'string'},
+ 'requestType': {'examples': ['New Business'],
+                 'title': 'The type of Name Request',
+                 'type': 'string'},
+ 'status': {'type': 'string'},
+ 'submittedBy': {'type': 'string'},
+ 'title': 'Name Request Schema',
+ 'type': 'object'}
+----------------------------------------------------------------------------------------------------
+Test #8: Test parsing Amalgamation Application Schema (nested)
+This test's results need to be eye-balled
+Loading Schemas 
+All Schemas loaded, total: 48
+========================================================================================================================
+Original version:
+{'$id': 'https://bcrs.gov.bc.ca/.well_known/schemas/amalgamation_application',
+ '$schema': 'http://json-schema.org/draft-07/schema#',
+ 'definitions': {},
+ 'properties': {'amalgamationApplication': {'allOf': [{'if': {'properties': {'type': {'enum': ['regular']}}},
+                                                       'then': {'properties': {'offices': {'recordsOffice': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/office'},
+                                                                                           'registeredOffice': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/office'},
+                                                                                           'required': ['registeredOffice']},
+                                                                               'shareStructure': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/share_structure'}},
+                                                                'required': ['offices',
+                                                                             'shareStructure']}}],
+                                            'properties': {'amalgamatingBusinesses': {'items': {'dependencies': {'foreignJurisdiction': ['legalName'],
+                                                                                                                 'legalName': ['foreignJurisdiction']},
+                                                                                                'properties': {'foreignJurisdiction': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/foreign_jurisdiction'},
+                                                                                                               'identifier': {'type': 'string'},
+                                                                                                               'legalName': {'type': 'string'},
+                                                                                                               'role': {'enum': ['amalgamating',
+                                                                                                                                 'holding',
+                                                                                                                                 'primary'],
+                                                                                                                        'type': 'string'}},
+                                                                                                'required': ['role',
+                                                                                                             'identifier']},
+                                                                                      'type': 'array'},
+                                                           'contactPoint': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/contactPoint'},
+                                                           'courtApproval': {'title': 'Amalgamation '
+                                                                                      'statement',
+                                                                             'type': 'boolean'},
+                                                           'courtOrder': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/court_order#/properties/courtOrder'},
+                                                           'nameRequest': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/name_request',
+                                                                           'title': 'The '
+                                                                                    'resulting '
+                                                                                    'business '
+                                                                                    'name '
+                                                                                    'and '
+                                                                                    'type'},
+                                                           'nameTranslations': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/name_translations'},
+                                                           'parties': {'items': {'$ref': 'https://bcrs.gov.bc.ca/.well_known/schemas/parties#/definitions/party'},
+                                                                       'type': 'array'},
+                                                           'type': {'enum': ['regular',
+                                                                             'vertical',
+                                                                             'horizontal'],
+                                                                    'title': 'The '
+                                                                             'type '
+                                                                             'of '
+                                                                             'Amalgamation',
+                                                                    'type': 'string'}},
+                                            'required': ['type',
+                                                         'amalgamatingBusinesses',
+                                                         'nameRequest',
+                                                         'parties',
+                                                         'contactPoint',
+                                                         'courtApproval'],
+                                            'type': 'object'}},
+ 'required': ['amalgamationApplication'],
+ 'title': 'Amalgamation Application Schema',
+ 'type': 'object'}
+----------------------------------------------------------------------------------------------------
+Resolving references ......
+Flattening schema ......
+Cleaning up schema ......
+Parsed version:
+{'amalgamationApplication': {'allOf': [{'then': {'offices': {'recordsOffice': {'deliveryAddress': {'addressCity': {'maxLength': 40,
+                                                                                                                   'type': 'string'},
+                                                                                                   'addressCountry': {'type': 'string'},
+                                                                                                   'addressRegion': {'maxLength': 2,
+                                                                                                                     'type': ['string',
+                                                                                                                              'null']},
+                                                                                                   'deliveryInstructions': {'maxLength': 80,
+                                                                                                                            'type': ['string',
+                                                                                                                                     'null']},
+                                                                                                   'postalCode': {'maxLength': 15,
+                                                                                                                  'type': 'string'},
+                                                                                                   'streetAddress': {'maxLength': 50,
+                                                                                                                     'type': 'string'},
+                                                                                                   'streetAddressAdditional': {'maxLength': 50,
+                                                                                                                               'type': ['string',
+                                                                                                                                        'null']},
+                                                                                                   'title': 'The '
+                                                                                                            'Address '
+                                                                                                            'Schema',
+                                                                                                   'type': 'object'},
+                                                                               'mailingAddress': {'addressCity': {'maxLength': 40,
+                                                                                                                  'type': 'string'},
+                                                                                                  'addressCountry': {'type': 'string'},
+                                                                                                  'addressRegion': {'maxLength': 2,
+                                                                                                                    'type': ['string',
+                                                                                                                             'null']},
+                                                                                                  'deliveryInstructions': {'maxLength': 80,
+                                                                                                                           'type': ['string',
+                                                                                                                                    'null']},
+                                                                                                  'postalCode': {'maxLength': 15,
+                                                                                                                 'type': 'string'},
+                                                                                                  'streetAddress': {'maxLength': 50,
+                                                                                                                    'type': 'string'},
+                                                                                                  'streetAddressAdditional': {'maxLength': 50,
+                                                                                                                              'type': ['string',
+                                                                                                                                       'null']},
+                                                                                                  'title': 'The '
+                                                                                                           'Address '
+                                                                                                           'Schema',
+                                                                                                  'type': 'object'},
+                                                                               'officeType': {'type': 'string'},
+                                                                               'title': 'The '
+                                                                                        'Office '
+                                                                                        'Schema',
+                                                                               'type': 'object'},
+                                                             'registeredOffice': {'deliveryAddress': {'addressCity': {'maxLength': 40,
+                                                                                                                      'type': 'string'},
+                                                                                                      'addressCountry': {'type': 'string'},
+                                                                                                      'addressRegion': {'maxLength': 2,
+                                                                                                                        'type': ['string',
+                                                                                                                                 'null']},
+                                                                                                      'deliveryInstructions': {'maxLength': 80,
+                                                                                                                               'type': ['string',
+                                                                                                                                        'null']},
+                                                                                                      'postalCode': {'maxLength': 15,
+                                                                                                                     'type': 'string'},
+                                                                                                      'streetAddress': {'maxLength': 50,
+                                                                                                                        'type': 'string'},
+                                                                                                      'streetAddressAdditional': {'maxLength': 50,
+                                                                                                                                  'type': ['string',
+                                                                                                                                           'null']},
+                                                                                                      'title': 'The '
+                                                                                                               'Address '
+                                                                                                               'Schema',
+                                                                                                      'type': 'object'},
+                                                                                  'mailingAddress': {'addressCity': {'maxLength': 40,
+                                                                                                                     'type': 'string'},
+                                                                                                     'addressCountry': {'type': 'string'},
+                                                                                                     'addressRegion': {'maxLength': 2,
+                                                                                                                       'type': ['string',
+                                                                                                                                'null']},
+                                                                                                     'deliveryInstructions': {'maxLength': 80,
+                                                                                                                              'type': ['string',
+                                                                                                                                       'null']},
+                                                                                                     'postalCode': {'maxLength': 15,
+                                                                                                                    'type': 'string'},
+                                                                                                     'streetAddress': {'maxLength': 50,
+                                                                                                                       'type': 'string'},
+                                                                                                     'streetAddressAdditional': {'maxLength': 50,
+                                                                                                                                 'type': ['string',
+                                                                                                                                          'null']},
+                                                                                                     'title': 'The '
+                                                                                                              'Address '
+                                                                                                              'Schema',
+                                                                                                     'type': 'object'},
+                                                                                  'officeType': {'type': 'string'},
+                                                                                  'title': 'The '
+                                                                                           'Office '
+                                                                                           'Schema',
+                                                                                  'type': 'object'}},
+                                                 'shareStructure': {'resolutionDates': {'items': {'format': 'date',
+                                                                                                  'type': 'string'},
+                                                                                        'type': 'array'},
+                                                                    'shareClasses': {'items': {'currency': {'examples': ['CAD'],
+                                                                                                            'type': ['string',
+                                                                                                                     'null']},
+                                                                                               'hasMaximumShares': {'title': 'Has '
+                                                                                                                             'maximum '
+                                                                                                                             'number '
+                                                                                                                             'of '
+                                                                                                                             'shares?',
+                                                                                                                    'type': 'boolean'},
+                                                                                               'hasParValue': {'title': 'Has '
+                                                                                                                        'initial '
+                                                                                                                        'value '
+                                                                                                                        'of '
+                                                                                                                        'each '
+                                                                                                                        'share?',
+                                                                                                               'type': 'boolean'},
+                                                                                               'hasRightsOrRestrictions': {'title': 'Has '
+                                                                                                                                    'special '
+                                                                                                                                    'rights '
+                                                                                                                                    'or '
+                                                                                                                                    'restrictions?',
+                                                                                                                           'type': 'boolean'},
+                                                                                               'maxNumberOfShares': {'title': 'Maximum '
+                                                                                                                              'number '
+                                                                                                                              'of '
+                                                                                                                              'shares '
+                                                                                                                              'in '
+                                                                                                                              'the '
+                                                                                                                              'class. ',
+                                                                                                                     'type': ['number',
+                                                                                                                              'null']},
+                                                                                               'name': {'title': 'The '
+                                                                                                                 'name '
+                                                                                                                 'of '
+                                                                                                                 'the '
+                                                                                                                 'share '
+                                                                                                                 'class.',
+                                                                                                        'type': 'string'},
+                                                                                               'parValue': {'title': 'Initial '
+                                                                                                                     'value '
+                                                                                                                     'of '
+                                                                                                                     'each '
+                                                                                                                     'share. ',
+                                                                                                            'type': ['number',
+                                                                                                                     'null']},
+                                                                                               'priority': {'title': 'The '
+                                                                                                                     'display '
+                                                                                                                     'order '
+                                                                                                                     'of '
+                                                                                                                     'the '
+                                                                                                                     'shares '
+                                                                                                                     'that '
+                                                                                                                     'indicates '
+                                                                                                                     'priority. ',
+                                                                                                            'type': 'integer'},
+                                                                                               'series': {'items': {'hasMaximumShares': {'title': 'Has '
+                                                                                                                                                  'maximum '
+                                                                                                                                                  'number '
+                                                                                                                                                  'of '
+                                                                                                                                                  'shares?',
+                                                                                                                                         'type': 'boolean'},
+                                                                                                                    'hasRightsOrRestrictions': {'title': 'Has '
+                                                                                                                                                         'special '
+                                                                                                                                                         'rights '
+                                                                                                                                                         'or '
+                                                                                                                                                         'restrictions?',
+                                                                                                                                                'type': 'boolean'},
+                                                                                                                    'maxNumberOfShares': {'title': 'Maximum '
+                                                                                                                                                   'number '
+                                                                                                                                                   'of '
+                                                                                                                                                   'shares '
+                                                                                                                                                   'in '
+                                                                                                                                                   'the '
+                                                                                                                                                   'series. ',
+                                                                                                                                          'type': ['number',
+                                                                                                                                                   'null']},
+                                                                                                                    'name': {'title': 'The '
+                                                                                                                                      'name '
+                                                                                                                                      'of '
+                                                                                                                                      'the '
+                                                                                                                                      'share '
+                                                                                                                                      'series.',
+                                                                                                                             'type': 'string'},
+                                                                                                                    'priority': {'title': 'The '
+                                                                                                                                          'display '
+                                                                                                                                          'order '
+                                                                                                                                          'that '
+                                                                                                                                          'indicates '
+                                                                                                                                          'priority. ',
+                                                                                                                                 'type': 'integer'},
+                                                                                                                    'type': 'object'},
+                                                                                                          'type': 'array'},
+                                                                                               'type': 'object'},
+                                                                                     'type': 'array'},
+                                                                    'title': 'Share '
+                                                                             'Structure '
+                                                                             'Schema',
+                                                                    'type': 'object'}}}],
+                             'amalgamatingBusinesses': {'items': {'foreignJurisdiction': {'country': {'examples': ['CA',
+                                                                                                                   'US'],
+                                                                                                      'type': 'string'},
+                                                                                          'region': {'examples': ['--Canada--',
+                                                                                                                  'AB',
+                                                                                                                  'MB',
+                                                                                                                  'NB',
+                                                                                                                  'NL',
+                                                                                                                  'NS',
+                                                                                                                  'NT',
+                                                                                                                  'NU',
+                                                                                                                  'ON',
+                                                                                                                  'PE',
+                                                                                                                  'QC',
+                                                                                                                  'SK',
+                                                                                                                  'YT',
+                                                                                                                  'FEDERAL',
+                                                                                                                  '--US--',
+                                                                                                                  'AK',
+                                                                                                                  'AL',
+                                                                                                                  'AR',
+                                                                                                                  'AS',
+                                                                                                                  'AZ',
+                                                                                                                  'CA',
+                                                                                                                  'CO',
+                                                                                                                  'CT',
+                                                                                                                  'DC',
+                                                                                                                  'DE',
+                                                                                                                  'FL',
+                                                                                                                  'GA',
+                                                                                                                  'GU',
+                                                                                                                  'HI',
+                                                                                                                  'IA',
+                                                                                                                  'ID',
+                                                                                                                  'IL',
+                                                                                                                  'IN',
+                                                                                                                  'KS',
+                                                                                                                  'KY',
+                                                                                                                  'LA',
+                                                                                                                  'MA',
+                                                                                                                  'MD',
+                                                                                                                  'ME',
+                                                                                                                  'MI',
+                                                                                                                  'MN',
+                                                                                                                  'MO',
+                                                                                                                  'MP',
+                                                                                                                  'MS',
+                                                                                                                  'MT',
+                                                                                                                  'NC',
+                                                                                                                  'ND',
+                                                                                                                  'NE',
+                                                                                                                  'NH',
+                                                                                                                  'NJ',
+                                                                                                                  'NM',
+                                                                                                                  'NV',
+                                                                                                                  'NY',
+                                                                                                                  'OH',
+                                                                                                                  'OK',
+                                                                                                                  'OR',
+                                                                                                                  'PA',
+                                                                                                                  'PR',
+                                                                                                                  'RI',
+                                                                                                                  'SC',
+                                                                                                                  'SD',
+                                                                                                                  'TN',
+                                                                                                                  'TX',
+                                                                                                                  'UM',
+                                                                                                                  'UT',
+                                                                                                                  'VA',
+                                                                                                                  'VI',
+                                                                                                                  'VT',
+                                                                                                                  'WA',
+                                                                                                                  'WI',
+                                                                                                                  'WV',
+                                                                                                                  'WY'],
+                                                                                                     'title': 'The '
+                                                                                                              'foreign '
+                                                                                                              'jurisdiction '
+                                                                                                              'if '
+                                                                                                              'country '
+                                                                                                              'is '
+                                                                                                              'Canada '
+                                                                                                              'or '
+                                                                                                              'USA.',
+                                                                                                     'type': ['string',
+                                                                                                              'null']},
+                                                                                          'title': 'Foreign '
+                                                                                                   'Jurisdiction '
+                                                                                                   'Schema',
+                                                                                          'type': 'object'},
+                                                                  'identifier': {'type': 'string'},
+                                                                  'legalName': {'type': 'string'},
+                                                                  'role': {'enum': ['amalgamating',
+                                                                                    'holding',
+                                                                                    'primary'],
+                                                                           'type': 'string'}},
+                                                        'type': 'array'},
+                             'contactPoint': {'email': {'format': 'email',
+                                                        'type': 'string'},
+                                              'extension': {'type': 'number'},
+                                              'phone': {'format': 'phone',
+                                                        'type': 'string'},
+                                              'title': 'Business Contact Point '
+                                                       'Schema',
+                                              'type': 'object'},
+                             'courtApproval': {'title': 'Amalgamation '
+                                                        'statement',
+                                               'type': 'boolean'},
+                             'courtOrder': {'effectOfOrder': {'description': 'planOfArrangement',
+                                                              'maxLength': 500,
+                                                              'minLength': 0,
+                                                              'type': 'string'},
+                                            'fileKey': {'title': 'The '
+                                                                 'Identifier '
+                                                                 'for court '
+                                                                 'order file '
+                                                                 'in file '
+                                                                 'server',
+                                                        'type': 'string'},
+                                            'fileNumber': {'description': 'The '
+                                                                          'court '
+                                                                          'assigns '
+                                                                          'each '
+                                                                          'court '
+                                                                          'order '
+                                                                          'a '
+                                                                          'unique '
+                                                                          'file '
+                                                                          'number '
+                                                                          'up '
+                                                                          'to '
+                                                                          '20 '
+                                                                          'characters '
+                                                                          'in '
+                                                                          'length.',
+                                                           'maxLength': 20,
+                                                           'minLength': 5,
+                                                           'type': 'string'},
+                                            'orderDate': {'description': 'The '
+                                                                         'date '
+                                                                         'and '
+                                                                         'time '
+                                                                         'of '
+                                                                         'the '
+                                                                         'court '
+                                                                         'order.',
+                                                          'examples': ['1970-01-01T00:00:00+00:00'],
+                                                          'format': 'date-time',
+                                                          'type': 'string'},
+                                            'orderDetails': {'description': 'A '
+                                                                            'brief '
+                                                                            'note '
+                                                                            'to '
+                                                                            'explain '
+                                                                            'the '
+                                                                            'purpose '
+                                                                            'of '
+                                                                            'the '
+                                                                            'Court '
+                                                                            'Order.',
+                                                             'maxLength': 2000,
+                                                             'minLength': 0,
+                                                             'type': 'string'},
+                                            'type': 'object'},
+                             'nameRequest': {'address': {'addressCity': {'maxLength': 40,
+                                                                         'type': 'string'},
+                                                         'addressCountry': {'type': 'string'},
+                                                         'addressRegion': {'maxLength': 2,
+                                                                           'type': ['string',
+                                                                                    'null']},
+                                                         'deliveryInstructions': {'maxLength': 80,
+                                                                                  'type': ['string',
+                                                                                           'null']},
+                                                         'postalCode': {'maxLength': 15,
+                                                                        'type': 'string'},
+                                                         'streetAddress': {'maxLength': 50,
+                                                                           'type': 'string'},
+                                                         'streetAddressAdditional': {'maxLength': 50,
+                                                                                     'type': ['string',
+                                                                                              'null']},
+                                                         'title': 'The Address '
+                                                                  'Schema',
+                                                         'type': 'object'},
+                                             'consent': {'type': 'string'},
+                                             'expires': {'examples': ['1970-01-01T00:00:00+00:00'],
+                                                         'format': 'date-time',
+                                                         'type': 'string'},
+                                             'legalName': {'type': 'string'},
+                                             'legalType': {'default': 'BC',
+                                                           'enum': ['A',
+                                                                    'B',
+                                                                    'BC',
+                                                                    'BEN',
+                                                                    'CBEN',
+                                                                    'C',
+                                                                    'CC',
+                                                                    'CCC',
+                                                                    'CEM',
+                                                                    'CP',
+                                                                    'CS',
+                                                                    'CUL',
+                                                                    'EPR',
+                                                                    'FI',
+                                                                    'FOR',
+                                                                    'GP',
+                                                                    'LIC',
+                                                                    'LIB',
+                                                                    'LL',
+                                                                    'LLC',
+                                                                    'LP',
+                                                                    'MF',
+                                                                    'PA',
+                                                                    'PAR',
+                                                                    'PFS',
+                                                                    'QA',
+                                                                    'QB',
+                                                                    'QC',
+                                                                    'QD',
+                                                                    'QE',
+                                                                    'REG',
+                                                                    'RLY',
+                                                                    'S',
+                                                                    'SB',
+                                                                    'SP',
+                                                                    'T',
+                                                                    'TMY',
+                                                                    'ULC',
+                                                                    'UQA',
+                                                                    'UQB',
+                                                                    'UQC',
+                                                                    'UQD',
+                                                                    'UQE',
+                                                                    'XCP',
+                                                                    'XL',
+                                                                    'XP',
+                                                                    'XS'],
+                                                           'title': 'The Legal '
+                                                                    'Type of '
+                                                                    'the '
+                                                                    'business.',
+                                                           'type': 'string'},
+                                             'nrNumber': {'examples': ['NR '
+                                                                       '1234567'],
+                                                          'maxLength': 10,
+                                                          'type': 'string'},
+                                             'requestType': {'examples': ['New '
+                                                                          'Business'],
+                                                             'title': 'The '
+                                                                      'type of '
+                                                                      'Name '
+                                                                      'Request',
+                                                             'type': 'string'},
+                                             'status': {'type': 'string'},
+                                             'submittedBy': {'type': 'string'},
+                                             'title': 'Name Request Schema',
+                                             'type': 'object'},
+                             'nameTranslations': {'items': {'id': {'type': 'string'},
+                                                            'name': {'maxLength': 50,
+                                                                     'pattern': '^[ '
+                                                                                'A-Za-zÀ-ÿ_@./#’&+-]*$',
+                                                                     'title': 'Name '
+                                                                              'Translation',
+                                                                     'type': 'string'},
+                                                            'type': {'enum': ['TRANSLATION',
+                                                                              'DBA'],
+                                                                     'title': 'The '
+                                                                              'type '
+                                                                              'of '
+                                                                              'translation.',
+                                                                     'type': 'string'}},
+                                                  'title': 'Name Translations',
+                                                  'type': 'array'},
+                             'parties': {'items': {'deliveryAddress': {'addressCity': {'maxLength': 40,
+                                                                                       'type': 'string'},
+                                                                       'addressCountry': {'type': 'string'},
+                                                                       'addressRegion': {'maxLength': 2,
+                                                                                         'type': ['string',
+                                                                                                  'null']},
+                                                                       'deliveryInstructions': {'maxLength': 80,
+                                                                                                'type': ['string',
+                                                                                                         'null']},
+                                                                       'postalCode': {'maxLength': 15,
+                                                                                      'type': 'string'},
+                                                                       'streetAddress': {'maxLength': 50,
+                                                                                         'type': 'string'},
+                                                                       'streetAddressAdditional': {'maxLength': 50,
+                                                                                                   'type': ['string',
+                                                                                                            'null']},
+                                                                       'title': 'The '
+                                                                                'Address '
+                                                                                'Schema',
+                                                                       'type': 'object'},
+                                                   'mailingAddress': {'addressCity': {'maxLength': 40,
+                                                                                      'type': 'string'},
+                                                                      'addressCountry': {'type': 'string'},
+                                                                      'addressRegion': {'maxLength': 2,
+                                                                                        'type': ['string',
+                                                                                                 'null']},
+                                                                      'deliveryInstructions': {'maxLength': 80,
+                                                                                               'type': ['string',
+                                                                                                        'null']},
+                                                                      'postalCode': {'maxLength': 15,
+                                                                                     'type': 'string'},
+                                                                      'streetAddress': {'maxLength': 50,
+                                                                                        'type': 'string'},
+                                                                      'streetAddressAdditional': {'maxLength': 50,
+                                                                                                  'type': ['string',
+                                                                                                           'null']},
+                                                                      'title': 'The '
+                                                                               'Address '
+                                                                               'Schema',
+                                                                      'type': 'object'},
+                                                   'officer': {'anyOf': [{'partyType': {'const': 'person'}},
+                                                                         {'partyType': {'const': 'organization'}}],
+                                                               'email': {'format': 'email',
+                                                                         'type': 'string'},
+                                                               'firstName': {'maxLength': 30,
+                                                                             'type': 'string'},
+                                                               'identifier': {'default': '',
+                                                                              'examples': ['CP1234567'],
+                                                                              'pattern': '^[A-Z]{1,3}[0-9]{7}$',
+                                                                              'title': 'The '
+                                                                                       'Identifier/Incorporation '
+                                                                                       'Number '
+                                                                                       'if '
+                                                                                       'available '
+                                                                                       'for '
+                                                                                       'Organization',
+                                                                              'type': 'string'},
+                                                               'lastName': {'maxLength': 30,
+                                                                            'type': 'string'},
+                                                               'middleInitial': {'maxLength': 30,
+                                                                                 'type': 'string'},
+                                                               'organizationName': {'maxLength': 150,
+                                                                                    'type': 'string'},
+                                                               'partyType': {'enum': ['organization',
+                                                                                      'person'],
+                                                                             'title': 'The '
+                                                                                      'type '
+                                                                                      'of '
+                                                                                      'party',
+                                                                             'type': 'string'},
+                                                               'type': 'object'},
+                                                   'roles': {'items': {'appointmentDate': {'format': 'date',
+                                                                                           'type': 'string'},
+                                                                       'cessationDate': {'format': 'date',
+                                                                                         'type': ['string',
+                                                                                                  'null']},
+                                                                       'roleType': {'enum': ['Completing '
+                                                                                             'Party',
+                                                                                             'Custodian',
+                                                                                             'Liquidator',
+                                                                                             'Director',
+                                                                                             'Incorporator',
+                                                                                             'Proprietor',
+                                                                                             'Partner',
+                                                                                             'Applicant']},
+                                                                       'type': 'object'},
+                                                             'type': 'array'},
+                                                   'then': {'officer': {'lastName': {'minLength': 1},
+                                                                        'type': 'object'}},
+                                                   'title': {'type': 'string'},
+                                                   'type': 'object'},
+                                         'type': 'array'},
+                             'type': {'enum': ['regular',
+                                               'vertical',
+                                               'horizontal'],
+                                      'title': 'The type of Amalgamation',
+                                      'type': 'string'}},
+ 'title': 'Amalgamation Application Schema',
+ 'type': 'object'}
+----------------------------------------------------------------------------------------------------
