@@ -6,7 +6,11 @@ import { formatIsoToYYYYMMDD } from '~/utils/dateHelper'
 
 export const useDocuments = () => {
   const {
+    consumerDocumentId,
+    noDocIdCheckbox,
     consumerIdentifier,
+    noIdCheckbox,
+    description,
     documentClass,
     documentType,
     consumerFilingDate,
@@ -164,10 +168,12 @@ export const useDocuments = () => {
 
   /** Computed validation flag to check for required document meta data **/
   const isValidIndexData = computed(() => {
-    return !!consumerIdentifier.value
+    return (!!consumerIdentifier.value || !!noIdCheckbox.value)
+      && (!!consumerDocumentId.value || !!noDocIdCheckbox.value)
       && !!documentClass.value
       && !!documentType.value
       && !!consumerFilingDate.value
+      && description.value.length <= 1000
   })
 
   const debouncedSearch = debounce(searchDocumentRecords)
@@ -194,6 +200,7 @@ export const useDocuments = () => {
               consumerIdentifier: consumerIdentifier.value,
               documentClass: documentClass.value,
               documentType: documentType.value,
+              description: description.value,
               consumerFilingDate: formatDateToISO(consumerFilingDate.value),
               consumerFilename: document.name,
               // If a consumerDocumentId is needed for subsequent requests, it can be added here
@@ -235,6 +242,19 @@ export const useDocuments = () => {
     }
   }
 
+  /** Scroll to the first error element on the page */
+  const scrollToFirstError = () => {
+    // Find the first element with the class "placeholder:text-red-500"
+    const errorElement = document.querySelector('.placeholder\\:text-red-500');
+
+    // If found, scroll to it
+    if (errorElement) {
+      errorElement.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      console.warn('No error found.');
+    }
+  }
+
   watch(() => searchEntityId.value, (id: string) => {
     // Format Entity Identifier
     searchEntityId.value = id.replace(/\s+/g, '')?.toUpperCase()
@@ -251,6 +271,7 @@ export const useDocuments = () => {
     downloadFileFromUrl,
     hasMinimumSearchCriteria,
     saveDocuments,
-    debouncedSearch
+    debouncedSearch,
+    scrollToFirstError
   }
 }

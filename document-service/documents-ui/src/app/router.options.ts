@@ -21,9 +21,19 @@ export default <RouterConfig|Ro<unknown>> {
       path: '/document-indexing',
       component: () => import('~/pages/DocumentIndexing.vue').then(r => r.default || r),
       meta: {
-        layout: 'default',
+        layout: 'create',
         title: 'Document Indexing',
-        breadcrumbs: [getBcrosHomeCrumb, getDocumentManagementCrumb, getDocumentIndexingCrumb]
+        breadcrumbs: [getBcrosHomeCrumb, getDocumentManagementCrumb, getDocumentIndexingCrumb],
+      }
+    },
+    {
+      name: RouteNameE.DOCUMENT_INDEXING_REVIEW,
+      path: '/document-indexing-review',
+      component: () => import('~/pages/DocumentIndexingReview.vue').then(r => r.default || r),
+      meta: {
+        layout: 'create',
+        title: 'Document Indexing',
+        breadcrumbs: [getBcrosHomeCrumb, getDocumentManagementCrumb, getDocumentIndexingCrumb],
       }
     },
     {
@@ -31,7 +41,7 @@ export default <RouterConfig|Ro<unknown>> {
       path: '/document-records/:identifier',
       component: () => import('~/pages/DocumentRecords.vue').then(r => r.default || r),
       meta: {
-        layout: 'tombstone-footer',
+        layout: 'edit',
         title: 'Document Records',
         breadcrumbs: [getBcrosHomeCrumb, getDocumentManagementCrumb, getDocumentRecordsCrumb]
       }

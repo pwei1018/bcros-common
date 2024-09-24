@@ -138,7 +138,6 @@ const hasDateError = computed(() => {
 
           <UFormGroup
             :label="$t('documentIndexing.form.description.label')"
-            :error="hasDateError && 'Select a filing date'"
             :help="$t('documentIndexing.form.description.help')"
           >
             <UTextarea

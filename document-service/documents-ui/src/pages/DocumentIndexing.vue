@@ -1,15 +1,13 @@
 <script setup lang="ts">
-const { resetStore } = useBcrosDocuments()
-const { isValidIndexData, saveDocuments } = useDocuments()
+const { isValidIndexData } = useDocuments()
 const { validateIndex } = storeToRefs(useBcrosDocuments())
-// Use onScopeDispose to reset the store when the component is unmounted
-onMounted(() => { resetStore() })
-// Reset the store when the component is unmounted or scope is disposed
-onScopeDispose(() => { resetStore() })
 
 </script>
 <template>
-  <div :data-cy="'document-indexing'" class="grid grid-cols-8 gap-4 mt-12 mb-16">
+  <div
+    class="grid grid-cols-8 gap-4 mt-12 mb-16"
+    :data-cy="'document-indexing'"
+  >
     <!-- Document Review Modal -->
     <DocumentReviewModal />
 
@@ -27,6 +25,7 @@ onScopeDispose(() => { resetStore() })
         <template #default>
           <DocumentIndexingForm
             class="mt-7"
+            :class="(validateIndex && !isValidIndexData) ? 'border-error-left' : ''"
             :validate="validateIndex"
           />
         </template>
@@ -42,12 +41,6 @@ onScopeDispose(() => { resetStore() })
       </BcrosSection>
     </div>
 
-    <div class="col-span-2 pl-6">
-      <NavActionsAside
-        :validation-error="validateIndex && !isValidIndexData"
-        @cancel="navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })"
-        @submit="saveDocuments"
-      />
-    </div>
+    <div class="col-span-2 pl-6"/>
   </div>
 </template>

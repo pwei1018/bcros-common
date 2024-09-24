@@ -16,7 +16,10 @@ const crumbConstructors = computed(() => (route?.meta?.breadcrumbs || []) as (()
     </div>
     <NavFooter
       v-if="isEditing"
+      cancel-btn="Cancel"
+      :next-btn="'Review and Confirm'"
       @cancel="isEditing = false"
+      @next="console.log('next')"
     />
     <BcrosFooter />
   </div>

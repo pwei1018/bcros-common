@@ -10,7 +10,7 @@ const props = defineProps({
   },
   column: {
     type: Object as PropType<TableColumnIF>,
-    default: {},
+    default: () => {},
   },
 });
 

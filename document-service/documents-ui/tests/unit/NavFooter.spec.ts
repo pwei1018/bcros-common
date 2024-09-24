@@ -10,29 +10,43 @@ describe('FooterNav.vue', () => {
   beforeEach(() => {
     const { isEditing } = storeToRefs(useBcrosDocuments())
     isEditing.value = true
-    wrapper = mount(NavFooter)
+    wrapper = mount(NavFooter, {props: { backBtn: 'Back', nextBtn: 'next', cancelBtn: 'Cancel' }})
   })
 
   it('renders two buttons: "Save and Record" and "Cancel"', () => {
     // Find the buttons
-    const submitButton = wrapper.find('[data-cy="nav-footer-save-btn"]')
+    const nextButton = wrapper.find('[data-cy="nav-footer-next-btn"]')
     const cancelButton = wrapper.find('[data-cy="nav-footer-cancel-btn"]')
+    const backButton = wrapper.find('[data-cy="nav-footer-back-btn"]')
 
     // Assert both buttons are found
-    expect(submitButton.exists()).toBe(true)
+    expect(nextButton.exists()).toBe(true)
+    expect(backButton.exists()).toBe(true)
     expect(cancelButton.exists()).toBe(true)
   })
 
   it('emits "submit" event when "Save and Record" button is clicked', async () => {
     // Find the "Save and Record" button
-    const submitButton = wrapper.find('[data-cy="nav-footer-save-btn"]')
+    const nextButton = wrapper.find('[data-cy="nav-footer-next-btn"]')
 
     // Trigger click
-    await submitButton.trigger('click')
+    await nextButton.trigger('click')
 
     // Assert that the "submit" event is emitted
-    expect(wrapper.emitted('submit')).toBeTruthy()
-    expect(wrapper.emitted('submit').length).toBe(1)
+    expect(wrapper.emitted('next')).toBeTruthy()
+    expect(wrapper.emitted('next').length).toBe(1)
+  })
+
+  it('emits "submit" event when "Back" button is clicked', async () => {
+    // Find the "Save and Record" button
+    const backButton = wrapper.find('[data-cy="nav-footer-back-btn"]')
+
+    // Trigger click
+    await backButton.trigger('click')
+
+    // Assert that the "submit" event is emitted
+    expect(wrapper.emitted('back')).toBeTruthy()
+    expect(wrapper.emitted('back').length).toBe(1)
   })
 
   it('emits "cancel" event when "Cancel" button is clicked', async () => {

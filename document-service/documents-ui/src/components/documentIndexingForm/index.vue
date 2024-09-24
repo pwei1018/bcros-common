@@ -9,10 +9,13 @@ const props = defineProps({
 })
 
 const {
+  consumerDocumentId,
   consumerIdentifier,
   noIdCheckbox,
+  noDocIdCheckbox,
   documentClass,
   documentType,
+  description,
   consumerFilingDate
 } = storeToRefs(useBcrosDocuments())
 
@@ -21,6 +24,9 @@ const {
   getDocumentTypesByClass
 } = useDocuments()
 
+const hasDocIdError = computed(() => {
+  return props.validate && !consumerDocumentId.value && !noDocIdCheckbox.value
+})
 const hasIdError = computed(() => {
   return props.validate && !consumerIdentifier.value && !noIdCheckbox.value
 })
@@ -29,6 +35,9 @@ const hasClassError = computed(() => {
 })
 const hasTypeError = computed(() => {
   return props.validate && !documentType.value
+})
+const hasDescriptionError = computed(() => {
+  return description.value.length > 1000
 })
 const hasDateError = computed(() => {
   return props.validate && !consumerFilingDate.value
@@ -47,6 +56,11 @@ watch(() => noIdCheckbox.value, (hasNoId: boolean) => {
   if (hasNoId) consumerIdentifier.value = ''
 })
 
+/** Reset Document Identifier when No Doc Id Checkbox is selected **/
+watch(() => noDocIdCheckbox.value, (hasNoDocId: boolean) => {
+  if (hasNoDocId) consumerDocumentId.value = ''
+})
+
 /** Reset Document Type when Category Changes **/
 watch(() => documentClass.value, () => {
  documentType.value = ''
@@ -59,11 +73,36 @@ watch(() => documentClass.value, () => {
     class="rounded"
   >
     <template #label>
-      <h2 class="text-base leading-6 font-bold">{{ $t('documentIndexing.label') }}</h2>
+      <h2 class="text-base leading-6 font-bold pr-8">{{ $t('documentIndexing.label') }}</h2>
     </template>
 
     <template #form>
       <div class="grid grid-flow-row auto-rows-max">
+        <UFormGroup
+          :label="$t('documentIndexing.form.docId.label')"
+          :description="$t('documentIndexing.form.docId.description')"
+          :error="hasDocIdError && 'Enter a Document ID'"
+        >
+          <UInput
+            v-model="consumerDocumentId"
+            class="mt-3"
+            type="text"
+            required
+            :disabled="noDocIdCheckbox"
+            :placeholder="$t('documentIndexing.form.docId.label')"
+            :ui="{ placeholder: hasDocIdError ? 'placeholder:text-red-500' : 'text-gray-700' }"
+          />
+        </UFormGroup>
+
+        <UCheckbox
+          v-model="noDocIdCheckbox"
+          class="mt-5"
+          name="unknown-docId-checkbox"
+          :label="$t('documentIndexing.form.docIdCheckbox.label')"
+        />
+
+        <UDivider class="my-7" />
+
         <UFormGroup
           :label="$t('documentIndexing.form.id.label')"
           :description="$t('documentIndexing.form.id.description')"
@@ -123,6 +162,21 @@ watch(() => documentClass.value, () => {
               </UFormGroup>
             </div>
           </div>
+        </UFormGroup>
+
+        <UDivider class="my-7" />
+
+        <UFormGroup
+          :label="$t('documentIndexing.form.description.label')"
+          :error="hasDescriptionError && 'Exceeded 1000 characters'"
+        >
+          <UTextarea
+            v-model="description"
+            class="mt-3"
+            required
+            :placeholder="$t('documentIndexing.form.description.placeholder')"
+          />
+          <span class="mt-1 float-right text-sm text-gray-700">{{description.length}}/1000</span>
         </UFormGroup>
 
         <UDivider class="my-7" />

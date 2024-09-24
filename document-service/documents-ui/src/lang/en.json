@@ -7,11 +7,11 @@
   },
   "title": {
     "documentManagement": "Document Record Services",
-    "documentIndexing": "Document Indexing"
+    "documentIndexing": "Create New Document Record"
   },
   "descriptions": {
     "documentManagement": "Use our document record service to create a new record or search for existing ones. To edit a record, simply search for and open the document record.",
-    "documentIndexing": "Index your documents using our document indexing service for easy access and search."
+    "documentIndexing": "Fill in required information to create a new document record."
   },
   "button": {
     "documentIndexing": "Create New Document Record",
@@ -61,7 +61,9 @@
     }
   },
   "documentIndexing": {
-    "label": "Document Indexing Information",
+    "label": "Document Record Details",
+    "reviewLabel": "Review and Confirm",
+    "reviewSubtitle": "Review your document record details before saving.",
     "incompleteError": "Please complete required information",
     "form": {
       "id": {
@@ -71,7 +73,7 @@
       },
       "docId": {
         "label": "Document ID",
-        "description": "Enter the Document ID of this application.",
+        "description": "Enter the 8-digit Document ID, also referred to as the Barcode Number. If you don't have a Document ID, one will be generated upon saving the document record.",
         "help": "Example: 1234567, 7654321"
       },
       "checkbox": {
@@ -81,13 +83,13 @@
         "label": "I do not have a Document ID"
       },
       "selectMenu": {
-        "label": "Document Information",
+        "label": "Document Type",
         "categoryLabel": "Document Category",
         "typeLabel": "Document Type"
       },
       "description": {
         "label": "Description",
-        "placeholder": "Description Text",
+        "placeholder": "Description (Optional)",
         "help": "Max 1000 characters"
       },
       "dateSelect": {
@@ -109,10 +111,11 @@
     "title": "Document Information Saved",
     "description": "Your document information has been successfully uploaded and saved. To view, complete a search on the document management page using the following information",
     "labels": {
-      "documentId": "Document Record ID",
+      "documentId": "Document ID",
       "entityId": "Entity ID",
-      "documentCategory": "Document Category",
+      "documentCategory": "Entity Type",
       "documentType": "Document Type",
+      "description": "Document Description",
       "filingDate": "Filing Date",
       "uploadDate": "Upload Date and Time",
       "documentsUploaded": "Documents Uploaded",

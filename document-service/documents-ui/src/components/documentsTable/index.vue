@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatToReadableDate } from "~/utils/dateHelper";
-import { documentTypes, documentResultColumns } from "~/utils/documentTypes";
+import { documentResultColumns } from "~/utils/documentTypes";
 import type { DocumentInfoIF } from "~/interfaces/document-types-interface";
 const {
   getDocumentDescription,
@@ -88,20 +88,20 @@ onMounted(() => {
         </template>
         <template #consumerDocumentId-header="{ column }">
           <DocumentsTableInputHeader
-            :column="column"
             v-model="searchDocumentId"
+            :column="column"
           />
         </template>
         <template #consumerIdentifier-header="{ column }">
           <DocumentsTableInputHeader
-            :column="column"
             v-model="searchEntityId"
+            :column="column"
           />
         </template>
         <template #documentURL-header="{ column }">
           <DocumentsTableInputHeader
-            :column="column"
             v-model="searchDocuments"
+            :column="column"
           />
         </template>
         <template #consumerFilingDateTime-header="{ column }">
