@@ -33,6 +33,8 @@ STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
 INVALID_ROLES = [COLIN_ROLE]
 DOC_CLASS1 = DocumentClasses.CORP.value
 PATH: str = "/api/v1/scanning/{doc_class}/{consumerDocumentId}"
+PATH_CLASSES: str = "/api/v1/scanning/document-classes"
+PATH_TYPES: str = "/api/v1/scanning/document-types"
 CONTENT_TYPE_JSON = "application/json"
 PAYLOAD_INVALID = {}
 PAYLOAD_VALID = {
@@ -72,6 +74,18 @@ TEST_GET_DATA = [
     ("Invalid role", INVALID_ROLES, "UT1234", DOC_CLASS1, "UT900001", HTTPStatus.UNAUTHORIZED),
     ("Invalid doc service id", STAFF_ROLES, "UT1234", DOC_CLASS1, "UT900001", HTTPStatus.NOT_FOUND),
     ("Valid staff", STAFF_ROLES, "UT1234", DOC_CLASS1, "UT900001", HTTPStatus.OK),
+]
+# testdata pattern is ({description}, {roles}, {account}, {status})
+TEST_GET_DATA_CLASSES = [
+    ("Staff missing account", STAFF_ROLES, None, HTTPStatus.BAD_REQUEST),
+    ("Invalid role", INVALID_ROLES, "UT1234", HTTPStatus.UNAUTHORIZED),
+    ("Valid staff", STAFF_ROLES, "UT1234", HTTPStatus.OK),
+]
+# testdata pattern is ({description}, {roles}, {account}, {status})
+TEST_GET_DATA_TYPES = [
+    ("Staff missing account", STAFF_ROLES, None, HTTPStatus.BAD_REQUEST),
+    ("Invalid role", INVALID_ROLES, "UT1234", HTTPStatus.UNAUTHORIZED),
+    ("Valid staff", STAFF_ROLES, "UT1234", HTTPStatus.OK),
 ]
 
 
@@ -177,3 +191,54 @@ def test_get(session, client, jwt, desc, roles, account, doc_class, cons_doc_id,
         assert scan_doc
         assert scan_doc.document_class == doc_class
         assert scan_doc.consumer_document_id == cons_doc_id
+
+
+@pytest.mark.parametrize("desc,roles,account,status", TEST_GET_DATA_CLASSES)
+def test_get_classes(session, client, jwt, desc, roles, account, status):
+    """Assert that a request to get scanning document classes works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    if account:
+        headers = create_header_account(jwt, roles, "UT-TEST", account)
+    else:
+        headers = create_header(jwt, roles)
+    # test
+    response = client.get(PATH_CLASSES, headers=headers)
+
+    # check
+    assert response.status_code == status
+    if response.status_code == HTTPStatus.OK:
+        results_json = response.json
+        assert results_json
+        for class_json in results_json:
+            assert class_json.get("ownerType")
+            assert class_json.get("documentClass")
+            assert class_json.get("documentClassDescription")
+            assert "active" in class_json
+            assert "scheduleNumber" in class_json
+
+
+@pytest.mark.parametrize("desc,roles,account,status", TEST_GET_DATA_TYPES)
+def test_get_types(session, client, jwt, desc, roles, account, status):
+    """Assert that a request to get scanning document types works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    if account:
+        headers = create_header_account(jwt, roles, "UT-TEST", account)
+    else:
+        headers = create_header(jwt, roles)
+    # test
+    response = client.get(PATH_TYPES, headers=headers)
+
+    # check
+    assert response.status_code == status
+    if response.status_code == HTTPStatus.OK:
+        results_json = response.json
+        assert results_json
+        for type_json in results_json:
+            assert type_json.get("documentType")
+            assert type_json.get("documentTypeDescription")
+            assert "active" in type_json
+            assert type_json.get("applicationId")

@@ -82,8 +82,22 @@ def test_document_class_findall(session):
         assert result.document_class_desc
 
 
+def test_document_class_findall_scanning(session):
+    """Assert that the DocumentClass.find_all_scanning() and DocumentClass.scanning_json work as expected."""
+    results = type_tables.DocumentClass.find_all_scanning()
+    assert results
+    assert len(results) >= 7
+    for result in results:
+        class_json = result.scanning_json
+        assert class_json.get("ownerType")
+        assert class_json.get("documentClass")
+        assert class_json.get("documentClassDescription")
+        assert "active" in class_json
+        assert "scheduleNumber" in class_json
+
+
 def test_document_type_findall(session):
-    """Assert that the DocumentClass.find_all() works as expected."""
+    """Assert that the DocumentType.find_all() works as expected."""
     results = type_tables.DocumentType.find_all()
     assert results
     assert len(results) >= 90
@@ -94,6 +108,19 @@ def test_document_type_findall(session):
         assert result.document_class in DocumentClasses
         assert result.document_type_desc
         assert result.product
+
+
+def test_document_type_findall_scanning(session):
+    """Assert that the DocumentType.find_all_scanning() and DocumentType.scanning_json work as expected."""
+    results = type_tables.DocumentType.find_all()
+    assert results
+    assert len(results) >= 90
+    for result in results:
+        type_json = result.scanning_json
+        assert type_json.get("documentType")
+        assert type_json.get("documentTypeDescription")
+        assert "active" in type_json
+        assert type_json.get("applicationId")
 
 
 @pytest.mark.parametrize("doc_type, doc_class, exists", TEST_DOC_TYPES)

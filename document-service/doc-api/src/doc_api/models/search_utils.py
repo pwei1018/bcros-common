@@ -79,7 +79,7 @@ SEARCH_PAGE_OFFSET = " as q LIMIT " + str(SEARCH_PAGE_SIZE) + " OFFSET ?"
 def build_page_clause(request_info: RequestInfo) -> str:
     """Build the query page limit clause."""
     clause: str = SEARCH_SORT_DEFAULT + ")"
-    page_num: int = request_info.page_number if request_info.page_number else 1
+    page_num: int = int(request_info.page_number) if request_info.page_number else 1
     if page_num <= 1:
         page_num = 0
     else:

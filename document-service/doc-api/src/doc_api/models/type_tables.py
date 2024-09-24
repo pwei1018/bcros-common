@@ -164,6 +164,13 @@ class DocumentTypes(BaseEnum):
     BCGT = "BCGT"
     CHNM = "CHNM"
     OTP = "OTP"
+    CORSP = "CORSP"
+    PPR = "PPR"
+    LHS = "LHS"
+    RGS = "RGS"
+    HSR = "HSR"
+    RPL = "RPL"
+    FINS = "FINS"
 
 
 class RequestType(db.Model):  # pylint: disable=too-few-public-methods
@@ -191,9 +198,30 @@ class DocumentClass(db.Model):  # pylint: disable=too-few-public-methods
         "document_class", PG_ENUM(DocumentClasses, name="documentclass"), primary_key=True
     )
     document_class_desc = db.mapped_column("document_class_desc", db.String(100), nullable=False)
+    #  Added to support scanning app
+    active = db.mapped_column("active", db.Boolean, nullable=True)
+    scanning_owner_type = db.mapped_column("scanning_owner_type", db.String(20), nullable=True)
+    schedule_number = db.mapped_column("schedule_number", db.Boolean, nullable=True)
 
     # Relationships
     doc_type = db.relationship("DocumentType", back_populates="doc_class")
+
+    @property
+    def scanning_json(self) -> dict:
+        """Return the document class as a scanning json object."""
+        doc_type = {
+            "ownerType": self.scanning_owner_type if self.scanning_owner_type else "",
+            "documentClass": self.document_class,
+            "documentClassDescription": self.document_class_desc,
+            "active": bool(self.active) if self.active is not None else True,
+            "scheduleNumber": self.schedule_number if self.schedule_number else 0,
+        }
+        return doc_type
+
+    @classmethod
+    def find_all_scanning(cls):
+        """Return all the type records for the scanning application."""
+        return db.session.query(DocumentClass).order_by(DocumentClass.scanning_owner_type).all()
 
     @classmethod
     def find_all(cls):
@@ -223,12 +251,31 @@ class DocumentType(db.Model):  # pylint: disable=too-few-public-methods
     document_type_desc = db.mapped_column("document_type_desc", db.String(100), nullable=False)
     product = db.mapped_column("product", db.String(20), nullable=False)
     doc_id_required = db.mapped_column("doc_id_required", db.Boolean, nullable=False)
+    #  Added to support scanning app
+    active = db.mapped_column("active", db.Boolean, nullable=True)
+    application_id = db.mapped_column("application_id", db.String(20), nullable=True)
 
     # Relationships
     doc_class = db.relationship(
         "DocumentClass", foreign_keys=[document_class], back_populates="doc_type", cascade="all, delete", uselist=False
     )
     document = db.relationship("Document", back_populates="doc_type")
+
+    @property
+    def scanning_json(self) -> dict:
+        """Return the document type as a json object."""
+        doc_type = {
+            "documentType": self.document_type,
+            "documentTypeDescription": self.document_type_desc,
+            "active": bool(self.active) if self.active is not None else True,
+            "applicationId": self.application_id if self.application_id else "",
+        }
+        return doc_type
+
+    @classmethod
+    def find_all_scanning(cls):
+        """Return all the type records for the scanning application."""
+        return db.session.query(DocumentType).order_by(DocumentType.document_type).all()
 
     @classmethod
     def find_all(cls):

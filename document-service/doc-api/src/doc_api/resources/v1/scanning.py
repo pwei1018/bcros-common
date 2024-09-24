@@ -18,13 +18,15 @@ from http import HTTPStatus
 from flask import Blueprint, jsonify, request
 
 from doc_api.exceptions import BusinessException, DatabaseException
-from doc_api.models import DocumentScanning
+from doc_api.models import DocumentClass, DocumentScanning, DocumentType
 from doc_api.resources import utils as resource_utils
 from doc_api.services.authz import is_staff
 from doc_api.utils.auth import jwt
 from doc_api.utils.logging import logger
 
 REQUEST_PATH = "/scanning/{doc_class}/{consumer_doc_id}"
+DOC_CLASS_PATH = "/scanning/document-classes"
+DOC_TYPE_PATH = "/scanning/document-types"
 
 bp = Blueprint("SCANNING1", __name__, url_prefix="/scanning")  # pylint: disable=invalid-name
 
@@ -125,6 +127,68 @@ def get_document_scanning(doc_class: str, consumer_doc_id: str):
         return jsonify(response_json), HTTPStatus.OK
     except DatabaseException as db_exception:
         return resource_utils.db_exception_response(db_exception, account_id, "GET document scanning information")
+    except BusinessException as exception:
+        return resource_utils.business_exception_response(exception)
+    except Exception as default_exception:  # noqa: B902; return nicer default error
+        return resource_utils.default_exception_response(default_exception)
+
+
+@bp.route("/document-classes", methods=["GET", "OPTIONS"])
+@jwt.requires_auth
+def get_document_classes():
+    """Retrieve scanning document classes for the scanning application."""
+    try:
+        req_path: str = DOC_CLASS_PATH
+        account_id = resource_utils.get_account_id(request)
+        logger.info(f"Starting new get scanning document classes request {req_path}, account={account_id}")
+        if account_id is None:
+            return resource_utils.account_required_response()
+        if not is_staff(jwt):
+            logger.error("User not staff: currently requests are staff only.")
+            return resource_utils.unauthorized_error_response(account_id)
+        results = DocumentClass.find_all_scanning()
+        if not results:
+            logger.warning("No scanning document classes found.")
+            return resource_utils.not_found_error_response("GET scanning document classes", account_id)
+        response_json = []
+        for result in results:
+            if result.active:
+                response_json.append(result.scanning_json)
+        logger.info(f"get_document_classes returning array of length {len(response_json)}")
+        return jsonify(response_json), HTTPStatus.OK
+    except DatabaseException as db_exception:
+        return resource_utils.db_exception_response(db_exception, account_id, "GET scanning document classes")
+    except BusinessException as exception:
+        return resource_utils.business_exception_response(exception)
+    except Exception as default_exception:  # noqa: B902; return nicer default error
+        return resource_utils.default_exception_response(default_exception)
+
+
+@bp.route("/document-types", methods=["GET", "OPTIONS"])
+@jwt.requires_auth
+def get_document_types():
+    """Retrieve scanning document types for the scanning application."""
+    try:
+        req_path: str = DOC_TYPE_PATH
+        account_id = resource_utils.get_account_id(request)
+        logger.info(f"Starting new get scanning document types request {req_path}, account={account_id}")
+        if account_id is None:
+            return resource_utils.account_required_response()
+        if not is_staff(jwt):
+            logger.error("User not staff: currently requests are staff only.")
+            return resource_utils.unauthorized_error_response(account_id)
+        results = DocumentType.find_all_scanning()
+        if not results:
+            logger.warning("No scanning document types found.")
+            return resource_utils.not_found_error_response("GET scanning document types", account_id)
+        response_json = []
+        for result in results:
+            if result.active:
+                response_json.append(result.scanning_json)
+        logger.info(f"get_document_types returning array of length {len(response_json)}")
+        return jsonify(response_json), HTTPStatus.OK
+    except DatabaseException as db_exception:
+        return resource_utils.db_exception_response(db_exception, account_id, "GET scanning document types")
     except BusinessException as exception:
         return resource_utils.business_exception_response(exception)
     except Exception as default_exception:  # noqa: B902; return nicer default error
