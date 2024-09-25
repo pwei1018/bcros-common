@@ -17,6 +17,10 @@ from .db import db  # noqa: I001
 from .document import Document
 from .document_request import DocumentRequest
 from .document_scanning import DocumentScanning
+from .scanning_author import ScanningAuthor
+from .scanning_box import ScanningBox
+from .scanning_parameter import ScanningParameter
+from .scanning_schedule import ScanningSchedule
 from .type_tables import DocumentClass, DocumentType, RequestType
 from .user import User
 
@@ -28,5 +32,9 @@ __all__ = (
     "DocumentRequest",
     "DocumentScanning",
     "RequestType",
+    "ScanningBox",
+    "ScanningAuthor",
+    "ScanningParameter",
+    "ScanningSchedule",
     "User",
 )

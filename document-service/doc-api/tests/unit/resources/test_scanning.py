@@ -22,8 +22,8 @@ import pytest
 from flask import current_app
 
 from doc_api.models import DocumentScanning
-from doc_api.models import utils as model_utils
-from doc_api.models.type_tables import DocumentClasses, DocumentTypes
+from doc_api.models import utils as model_utils, ScanningAuthor
+from doc_api.models.type_tables import DocumentClasses
 from doc_api.services.authz import BC_REGISTRY, COLIN_ROLE, STAFF_ROLE
 from doc_api.utils.logging import logger
 from tests.unit.services.utils import create_header, create_header_account
@@ -35,6 +35,7 @@ DOC_CLASS1 = DocumentClasses.CORP.value
 PATH: str = "/api/v1/scanning/{doc_class}/{consumerDocumentId}"
 PATH_CLASSES: str = "/api/v1/scanning/document-classes"
 PATH_TYPES: str = "/api/v1/scanning/document-types"
+PATH_AUTHORS: str = "/api/v1/scanning/authors"
 CONTENT_TYPE_JSON = "application/json"
 PAYLOAD_INVALID = {}
 PAYLOAD_VALID = {
@@ -50,6 +51,13 @@ PATCH_PAYLOAD_VALID = {
     "batchId": "1234",
     "author": "Jane Smith",
     "pageCount": 3,
+}
+AUTHOR = {
+    "firstName": "Bob",
+    "lastName": "Smith",
+    "jobTitle": "Analyst",
+    "email": "bsmith-12@gmail.com",
+    "phoneNumber": "250 721-1234",
 }
 # testdata pattern is ({description}, {payload}, {roles}, {account}, {doc_class}, {cons_doc_id}, {status})
 TEST_CREATE_DATA = [
@@ -83,6 +91,12 @@ TEST_GET_DATA_CLASSES = [
 ]
 # testdata pattern is ({description}, {roles}, {account}, {status})
 TEST_GET_DATA_TYPES = [
+    ("Staff missing account", STAFF_ROLES, None, HTTPStatus.BAD_REQUEST),
+    ("Invalid role", INVALID_ROLES, "UT1234", HTTPStatus.UNAUTHORIZED),
+    ("Valid staff", STAFF_ROLES, "UT1234", HTTPStatus.OK),
+]
+# testdata pattern is ({description}, {roles}, {account}, {status})
+TEST_GET_DATA_AUTHORS = [
     ("Staff missing account", STAFF_ROLES, None, HTTPStatus.BAD_REQUEST),
     ("Invalid role", INVALID_ROLES, "UT1234", HTTPStatus.UNAUTHORIZED),
     ("Valid staff", STAFF_ROLES, "UT1234", HTTPStatus.OK),
@@ -242,3 +256,30 @@ def test_get_types(session, client, jwt, desc, roles, account, status):
             assert type_json.get("documentTypeDescription")
             assert "active" in type_json
             assert type_json.get("applicationId")
+
+
+@pytest.mark.parametrize("desc,roles,account,status", TEST_GET_DATA_AUTHORS)
+def test_get_authors(session, client, jwt, desc, roles, account, status):
+    """Assert that a request to get scanning authors works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    if account:
+        headers = create_header_account(jwt, roles, "UT-TEST", account)
+    else:
+        headers = create_header(jwt, roles)
+    # test
+    if status == HTTPStatus.OK:
+        author: ScanningAuthor = ScanningAuthor.create_from_json(AUTHOR)
+        author.id = 200000000
+        author.save()
+    response = client.get(PATH_AUTHORS, headers=headers)
+
+    # check
+    assert response.status_code == status
+    if response.status_code == HTTPStatus.OK:
+        results_json = response.json
+        assert results_json
+        for author_json in results_json:
+            assert author_json.get("firstName")
+            assert author_json.get("lastName")

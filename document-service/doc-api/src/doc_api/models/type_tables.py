@@ -201,7 +201,7 @@ class DocumentClass(db.Model):  # pylint: disable=too-few-public-methods
     #  Added to support scanning app
     active = db.mapped_column("active", db.Boolean, nullable=True)
     scanning_owner_type = db.mapped_column("scanning_owner_type", db.String(20), nullable=True)
-    schedule_number = db.mapped_column("schedule_number", db.Boolean, nullable=True)
+    schedule_number = db.mapped_column("schedule_number", db.Integer, nullable=True)
 
     # Relationships
     doc_type = db.relationship("DocumentType", back_populates="doc_class")
