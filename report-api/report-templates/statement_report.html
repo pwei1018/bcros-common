@@ -34,7 +34,7 @@
         /* Change from the default size of A4 */
         margin: 0.75cm 0.75cm 0 0.75cm;
         /* Set margin on each page */
-        margin-bottom: 2.5cm;
+        margin-bottom: 3.5cm;
       }
 
       @media print {
@@ -392,7 +392,8 @@
         {% include 'report-templates/statement_header.html' %}
         <h2>Payment Instructions</h2>
       </div>
-      {% include 'report-templates/eft/eft_instructions.html' %}
+      {% include 'report-templates/eft/eft_instructions_details.html' %}
+      {% include 'report-templates/eft/eft_instructions_charges.html' %}
       {% endif %}
   </body>
 
