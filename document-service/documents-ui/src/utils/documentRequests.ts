@@ -23,6 +23,7 @@ export async function getDocuments(params: DocumentRequestIF): Promise<ApiRespon
   }
 
   const {
+    pageNumber,
     consumerDocumentId,
     documentClass,
     documentType,
@@ -33,6 +34,7 @@ export async function getDocuments(params: DocumentRequestIF): Promise<ApiRespon
 
   // Construct query parameters
   const queryParams = new URLSearchParams()
+  if (pageNumber) queryParams.append('pageNumber', pageNumber.toString())
   if (consumerDocumentId) queryParams.append('consumerDocumentId', consumerDocumentId)
   if (consumerIdentifier) queryParams.append('consumerIdentifier', consumerIdentifier)
   if (documentType) queryParams.append('documentType', documentType)

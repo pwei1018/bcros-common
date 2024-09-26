@@ -2,6 +2,7 @@ import type { DocumentRequestIF } from '~/interfaces/request-interfaces'
 
 export interface DocumentStateIF {
   // Document Search
+  searchResultCount: number
   searchDocumentId: string
   searchEntityId: string
   searchDocuments: string
@@ -11,6 +12,7 @@ export interface DocumentStateIF {
     start: Date | null
     end: Date | null
   }
+  pageNumber: number
 
   // Document Meta
   consumerIdentifier: string
@@ -24,7 +26,6 @@ export interface DocumentStateIF {
   // Validations
   validateIndex: boolean
   isLoading: boolean
-  validateDocumentSearch: boolean
 
   // Document Review
   displayDocumentReview: boolean

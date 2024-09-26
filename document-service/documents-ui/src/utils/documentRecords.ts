@@ -1,3 +1,6 @@
+/** The number of documents per page on document records table */
+export const pageSize = 100
+
 /**
  * Returns a debounced version of a function, delaying its execution until after a timeout.
  * 
@@ -14,3 +17,4 @@ export function debounce(func, timeout = 200) {
     }, timeout);
   };
 }
+

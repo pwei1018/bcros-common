@@ -87,13 +87,14 @@ export default defineAppConfig({
       }
     },
     table: {
-      wrapper: 'max-h-[500px] overflow-y-auto',
+      wrapper: 'max-h-[500px] overflow-y-auto overflow-x-auto',
+      thead: 'sticky top-0 bg-white z-10',
       th: {
         base: 'text-left text-gray-700 font-bold whitespace-nowrap',
         padding: "px-0"
       },
       td: {
-        base: 'align-top h-[65px] last:flex last:justify-center whitespace-normal',
+        base: 'max-w-[200px] align-top h-[65px] last:flex last:justify-center whitespace-normal',
         color: 'text-gray-700',
       }
     }

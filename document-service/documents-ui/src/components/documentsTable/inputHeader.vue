@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import type { TableColumnIF } from "~/interfaces/table-inferface";
-
-
+import type { TableColumnIF } from "~/interfaces/table-inferface"
 
 const props = defineProps({
   modelValue: {
@@ -12,15 +10,14 @@ const props = defineProps({
     type: Object as PropType<TableColumnIF>,
     default: () => {},
   },
-});
+})
 
-const emit = defineEmits(["update:model-value"]);
+const emit = defineEmits(["update:model-value"])
 
 const filerValue = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:model-value', value)
+  set: (value) => emit("update:model-value", value),
 })
-
 </script>
 <template>
   <div>
@@ -28,7 +25,7 @@ const filerValue = computed({
       {{ column.label }}
       <UTooltip
         v-if="column.tooltipText"
-        :popper="{ placement: 'top', arrow: true}"
+        :popper="{ placement: 'top', arrow: true }"
         :text="column.tooltipText"
       >
         <UIcon
@@ -38,13 +35,16 @@ const filerValue = computed({
       </UTooltip>
     </div>
     <UDivider class="my-3 w-full" />
-    <div class="h-8">
+    <div class="h-11">
       <UInput
         v-model="filerValue"
         class="w-full px-2 font-light"
         size="md"
         :placeholder="column.label"
-        :ui="{ icon: { trailing: { pointer: ''} } }"
+        :ui="{
+          icon: { trailing: { pointer: '' } },
+          size: { md: 'h-[44px]' },
+        }"
       >
         <template #trailing>
           <UButton

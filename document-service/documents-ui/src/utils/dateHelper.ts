@@ -35,6 +35,9 @@ export const formatDateToISO = (dateString: string) => {
  * @returns A string representing the formatted date in a readable format with or without time.
  */
 export function formatToReadableDate(isoDate: string, omitTime: boolean = false): string {
+  if(isoDate === undefined) {
+    return
+  }
   const date = new Date(isoDate)
 
   // Options for formatting the date

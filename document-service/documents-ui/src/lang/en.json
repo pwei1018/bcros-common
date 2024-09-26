@@ -53,6 +53,7 @@
         "documents": "Documents",
         "filingDate": "Filing Date",
         "documentType": "Document Type",
+        "documentDescription": "Document Description",
         "actions": "Actions"
       },
       "downloadAll": "Download All",

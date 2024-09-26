@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { format } from "date-fns";
-import type { PropType } from "vue";
+import { format } from "date-fns"
+import type { PropType } from "vue"
 import type {
   DatePickerDate,
   DatePickerRangeObject,
-} from "v-calendar/dist/types/src/use/datePicker";
+} from "v-calendar/dist/types/src/use/datePicker"
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue"])
 
 const props = defineProps({
   modelValue: {
@@ -35,11 +35,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-});
+})
 
 const date = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: (value) => emit("update:modelValue", value),
 })
 
 const datePlaceholder = computed(() => {
@@ -50,12 +50,11 @@ const datePlaceholder = computed(() => {
           "d MMMM, yyy"
         )}`
       : "Date Range"
-    : format(date.value, "d MMMM, yyy");
-});
-
+    : format(date.value, "d MMMM, yyy")
+})
 </script>
 <template>
-  <UPopover v-model="open" :popper="{ placement: 'bottom-start' }">
+  <UPopover :popper="{ placement: 'bottom-start' }">
     <UInput
       class="w-full"
       :placeholder="date ? datePlaceholder : 'Filing Date'"
@@ -64,7 +63,10 @@ const datePlaceholder = computed(() => {
       :disabled="disabled"
       :trailing="true"
       :size="size"
-      :ui="{ icon: { trailing: { pointer: '' } } }"
+      :ui="{
+        icon: { trailing: { pointer: '' } },
+        size: { md: 'h-[44px]' },
+      }"
     >
       <template #trailing>
         <UButton

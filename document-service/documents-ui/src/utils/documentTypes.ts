@@ -212,8 +212,13 @@ export const documentResultColumns = () => {
       label: t('documentSearch.table.headers.filingDate')
     },
     {
+      key: 'description',
+      label: t('documentSearch.table.headers.documentDescription')
+    },
+    {
       key: 'actions',
-      label: t('documentSearch.table.headers.actions')
+      label: t('documentSearch.table.headers.actions'),
+      class: 'sticky right-0'
     }
   ]
   

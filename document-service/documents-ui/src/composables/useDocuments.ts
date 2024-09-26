@@ -19,13 +19,14 @@ export const useDocuments = () => {
     isLoading,
     documentInfoRO,
     displayDocumentReview,
+    searchResultCount,
     searchDocumentId,
     searchEntityId,
     searchDocumentClass,
     searchDocumentType,
-    validateDocumentSearch,
     documentSearchResults,
-    searchDateRange
+    searchDateRange,
+    pageNumber
   } = storeToRefs(useBcrosDocuments())
 
   /**
@@ -101,7 +102,8 @@ export const useDocuments = () => {
         map.set(consumerDocumentId, {
           consumerDocumentId,
           consumerFilenames: [consumerFilename],
-          documentUrls: [documentURL],
+          // TODO: Remove Remove google.com once document URL is coming
+          documentUrls: documentURL ? [documentURL] : ["https://google.com"],
           ...rest
         })
       } else {
@@ -111,38 +113,39 @@ export const useDocuments = () => {
         }
         if (documentURL) {
           existingDoc.documentUrls.push(documentURL)
+        } else {
+          // TODO: Remove Remove google.com once document URL is coming
+          existingDoc.documentUrls.push("https://google.com");
         }
       }
     })
 
-    return Array.from(map.values())
+    return Array.from(map.values()) as Array<DocumentRequestIF>;
   }
 
   /** Validate and Search Documents **/
   const searchDocumentRecords = async (): Promise<void> => {
-    validateDocumentSearch.value = true
-
-    if (hasMinimumSearchCriteria.value) {
-      try {
-        isLoading.value = true
-        const response: ApiResponseIF = await getDocuments(
-          {
-            consumerDocumentId: searchDocumentId.value,
-            consumerIdentifier: searchEntityId.value,
-            documentClass: searchDocumentClass.value,
-            documentType: searchDocumentType.value,
-            ...(searchDateRange.value?.end && {
-              queryStartDate: formatIsoToYYYYMMDD(searchDateRange.value.start),
-              queryEndDate: formatIsoToYYYYMMDD(searchDateRange.value.end)
-            })
-          }
-        ) as ApiResponseIF
-        isLoading.value = false
-        documentSearchResults.value = consolidateDocIds(response.data.value)
-      }
-      catch (error) {
-        console.error('Request failed:', error)
-      }
+    try {
+      isLoading.value = true
+      const response: ApiResponseIF = (await getDocuments({
+        pageNumber: pageNumber.value,
+        consumerDocumentId: searchDocumentId.value,
+        consumerIdentifier: searchEntityId.value,
+        documentClass: searchDocumentClass.value,
+        documentType: searchDocumentType.value,
+        ...(searchDateRange.value?.end && {
+          queryStartDate: formatIsoToYYYYMMDD(searchDateRange.value.start),
+          queryEndDate: formatIsoToYYYYMMDD(searchDateRange.value.end),
+        }),
+      })) as ApiResponseIF;
+      isLoading.value = false;
+      searchResultCount.value = response.data.value.resultCount;
+      documentSearchResults.value = [
+        ...documentSearchResults.value,
+        ...consolidateDocIds(response.data.value.results)
+      ]
+    } catch (error) {
+      console.error("Request failed:", error);
     }
   }
 
@@ -174,6 +177,11 @@ export const useDocuments = () => {
       && !!documentType.value
       && !!consumerFilingDate.value
       && description.value.length <= 1000
+  })
+
+  /** Computed value that checks if search result has next page */
+  const hasMorePages = computed(() => {
+    return Math.ceil(searchResultCount.value / pageSize) > pageNumber.value
   })
 
   const debouncedSearch = debounce(searchDocumentRecords)
@@ -255,6 +263,14 @@ export const useDocuments = () => {
     }
   }
 
+  /** Get next page of document records if exists */
+  const getNextDocumentsPage = () => {
+    if(hasMorePages) {
+      pageNumber.value += 1
+      searchDocumentRecords()
+    }
+  } 
+
   watch(() => searchEntityId.value, (id: string) => {
     // Format Entity Identifier
     searchEntityId.value = id.replace(/\s+/g, '')?.toUpperCase()
@@ -272,6 +288,7 @@ export const useDocuments = () => {
     hasMinimumSearchCriteria,
     saveDocuments,
     debouncedSearch,
-    scrollToFirstError
+    scrollToFirstError,
+    getNextDocumentsPage
   }
 }
