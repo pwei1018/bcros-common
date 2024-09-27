@@ -60,6 +60,11 @@ TEST_ID_DATA = [
 TEST_UPDATE_DATA = [(200000001, "99990000", DocumentClasses.PPR.value)]
 # testdata pattern is ({consumer_doc_id}, {doc_type})
 TEST_CREATE_JSON_DATA = [("99990000", DocumentClasses.PPR.value), ("99990001", DocumentClasses.MHR.value)]
+# testdata pattern is ({batch_id}, {accession_num}, {query_accession_num}, {expected_id})
+TEST_MAX_BATCH_ID_DATA = [
+    ("1000", "UT-MAX-0001", "UT-MAX-0001", 1000),
+    ("1000", "UT-MAX-0001", "UT-MAX-10001", 0),
+]
 
 
 @pytest.mark.parametrize("scan_id, has_results, cons_doc_id, doc_class", TEST_ID_DATA)
@@ -154,3 +159,16 @@ def test_create_from_json(session, cons_doc_id, doc_class):
     assert doc_scan.accession_number == json_data.get("accessionNumber")
     assert doc_scan.author == json_data.get("author")
     assert doc_scan.page_count == json_data.get("pageCount")
+
+
+# testdata pattern is ({batch_id}, {accession_num}, {query_accession_num}, {expected_id})
+@pytest.mark.parametrize("batch_id, accession_num, query_accession_num, expected_id", TEST_MAX_BATCH_ID_DATA)
+def test_get_max_batch_id(session, batch_id, accession_num, query_accession_num, expected_id):
+    """Assert that getting the maximum batch id by accession number works as expected."""
+    save_scan: DocumentScanning = DocumentScanning.create_from_json(DOC_SCAN1, "UT99999999", DocumentClasses.PPR.value)
+    save_scan.id = 200000000
+    save_scan.batch_id = batch_id
+    save_scan.accession_number = accession_num
+    save_scan.save()
+    max_batch_id: int = DocumentScanning.get_max_batch_id(query_accession_num)
+    assert max_batch_id == expected_id

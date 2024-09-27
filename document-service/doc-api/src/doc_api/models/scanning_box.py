@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This module holds data for the document scanning application physical storage boxes."""
+from sqlalchemy import and_
 
 from doc_api.exceptions import DatabaseException
+from doc_api.models import utils as model_utils
 from doc_api.utils.logging import logger
 
 from .db import db
@@ -44,7 +46,12 @@ class ScanningBox(db.Model):
             "boxNumber": self.box_number,
             "sequenceNumber": self.sequence_number,
             "scheduleNumber": self.schedule_number,
+            "pageCount": self.page_count if self.page_count else 0,
         }
+        if self.opened_date:
+            box["openedDate"] = model_utils.format_ts(self.opened_date)
+        if self.closed_date:
+            box["closedDate"] = model_utils.format_ts(self.closed_date)
         return box
 
     @classmethod
@@ -59,17 +66,68 @@ class ScanningBox(db.Model):
                 raise DatabaseException(db_exception) from db_exception
         return box
 
+    @classmethod
+    def find_by_sequence_schedule(cls, sequence_num: int, schedule_num: int):
+        """Return a scanning document box object by sequence number and schedule number."""
+        boxes = None
+        if sequence_num and schedule_num:
+            try:
+                boxes = (
+                    db.session.query(ScanningBox)
+                    .filter(
+                        and_(ScanningBox.sequence_number == sequence_num, ScanningBox.schedule_number == schedule_num)
+                    )
+                    .order_by(ScanningBox.sequence_number, ScanningBox.schedule_number, ScanningBox.box_number)
+                    .all()
+                )
+            except Exception as db_exception:  # noqa: B902; return nicer error
+                logger.error("ScanningBox.find_by_sequence_schedule exception: " + str(db_exception))
+                raise DatabaseException(db_exception) from db_exception
+        return boxes
+
     def save(self):
         """Store the Document Scanning information into the local cache."""
         db.session.add(self)
         db.session.commit()
 
+    @classmethod
+    def find_all(cls):
+        """Return a list of all author objects."""
+        boxes = None
+        try:
+            boxes = (
+                db.session.query(ScanningBox)
+                .order_by(ScanningBox.sequence_number, ScanningBox.schedule_number, ScanningBox.box_number)
+                .all()
+            )
+        except Exception as db_exception:  # noqa: B902; return nicer error
+            logger.error("ScanningBox.find_all exception: " + str(db_exception))
+            raise DatabaseException(db_exception) from db_exception
+        return boxes
+
+    def update(self, box_json: dict):
+        """Update an existing box object."""
+        if box_json.get("pageCount"):
+            self.page_count = box_json.get("pageCount")
+        if box_json.get("openedDate"):
+            self.opened_date = model_utils.ts_from_iso_date_noon(box_json.get("openedDate"))
+        if box_json.get("closedDate"):
+            self.closed_date = model_utils.ts_from_iso_date_noon(box_json.get("closedDate"))
+
     @staticmethod
     def create_from_json(box_json: dict):
         """Create a new box object."""
-        box = ScanningBox(
-            sequence_number=box_json.get("sequenceNumber"),
-            schedule_number=box_json.get("scheduleNumber"),
-            box_number=box_json.get("box_number"),
-        )
+        box = ScanningBox()
+        if box_json.get("sequenceNumber"):
+            box.sequence_number = box_json.get("sequenceNumber")
+        if box_json.get("scheduleNumber"):
+            box.schedule_number = box_json.get("scheduleNumber")
+        if box_json.get("boxNumber"):
+            box.box_number = box_json.get("boxNumber")
+        if box_json.get("pageCount"):
+            box.page_count = box_json.get("pageCount")
+        if box_json.get("openedDate"):
+            box.opened_date = model_utils.ts_from_iso_date_noon(box_json.get("openedDate"))
+        if box_json.get("closedDate"):
+            box.closed_date = model_utils.ts_from_iso_date_noon(box_json.get("closedDate"))
         return box

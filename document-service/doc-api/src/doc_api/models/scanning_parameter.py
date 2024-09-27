@@ -61,13 +61,51 @@ class ScanningParameter(db.Model):
                 raise DatabaseException(db_exception) from db_exception
         return parameters
 
+    @classmethod
+    def find(cls):
+        """Return a the first created scanning parameters object: there should only be one."""
+        parameters = None
+        try:
+            parameters = db.session.query(ScanningParameter).all()
+        except Exception as db_exception:  # noqa: B902; return nicer error
+            logger.error("ScanningParameter.find_by_id exception: " + str(db_exception))
+            raise DatabaseException(db_exception) from db_exception
+        if parameters:
+            return parameters[0]
+        return parameters
+
     def save(self):
         """Store the Document Scanning information into the local cache."""
         db.session.add(self)
         db.session.commit()
 
+    def update(self, param_json: dict):
+        """Update the scanning parameters."""
+        if "useDocumentFeeder" in param_json:
+            self.use_document_feeder = param_json.get("useDocumentFeeder")
+        if "showTwainUi" in param_json:
+            self.show_twain_ui = param_json.get("showTwainUi")
+        if "showTwainProgress" in param_json:
+            self.show_twain_progress = param_json.get("showTwainProgress")
+        if "useFullDuplex" in param_json:
+            self.use_full_duplex = param_json.get("useFullDuplex")
+        if "useLowResolution" in param_json:
+            self.use_low_resolution = param_json.get("useLowResolution")
+        if "maxPagesInBox" in param_json:
+            self.max_pages_in_box = param_json.get("maxPagesInBox")
+
     @staticmethod
     def create_from_json(param_json: dict):
         """Create a new scanning parameters object."""
         parameters = ScanningParameter(max_pages_in_box=param_json.get("maxPagesInBox", 0))
+        if "useDocumentFeeder" in param_json:
+            parameters.use_document_feeder = param_json.get("useDocumentFeeder")
+        if "showTwainUi" in param_json:
+            parameters.show_twain_ui = param_json.get("showTwainUi")
+        if "showTwainProgress" in param_json:
+            parameters.show_twain_progress = param_json.get("showTwainProgress")
+        if "useFullDuplex" in param_json:
+            parameters.use_full_duplex = param_json.get("useFullDuplex")
+        if "useLowResolution" in param_json:
+            parameters.use_low_resolution = param_json.get("useLowResolution")
         return parameters

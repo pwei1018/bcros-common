@@ -15,6 +15,7 @@
 
 from sqlalchemy import UniqueConstraint, and_
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
+from sqlalchemy.sql import text
 
 from doc_api.exceptions import DatabaseException
 from doc_api.models import utils as model_utils
@@ -22,6 +23,8 @@ from doc_api.utils.logging import logger
 
 from .db import db
 from .type_tables import DocumentClasses
+
+MAX_BATCH_ID_QUERY = "select max(cast(batch_id as integer)) from document_scanning where accession_number = :query_val"
 
 
 class DocumentScanning(db.Model):
@@ -135,3 +138,19 @@ class DocumentScanning(db.Model):
         if scan_json.get("author"):
             doc_scan.author = scan_json.get("author")
         return doc_scan
+
+    @staticmethod
+    def get_max_batch_id(accession_number: str) -> int:
+        """Get the current highest batch id for an accession_number. The default is 0."""
+        batch_id: int = 0
+        if not accession_number:
+            return batch_id
+        try:
+            query = text(MAX_BATCH_ID_QUERY)
+            result = db.session.execute(query, {"query_val": accession_number})
+            row = result.first()
+            if row and row[0]:
+                batch_id = int(row[0])
+        except Exception as db_exception:  # noqa: B902; return nicer error
+            logger.error("get_max_batch_id exception: " + str(db_exception))
+        return batch_id

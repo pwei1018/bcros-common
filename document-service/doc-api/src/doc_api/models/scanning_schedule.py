@@ -50,6 +50,17 @@ class ScanningSchedule(db.Model):
                 raise DatabaseException(db_exception) from db_exception
         return schedule
 
+    @classmethod
+    def find_all(cls):
+        """Return a list of all schedule objects."""
+        schedule = None
+        try:
+            schedule = db.session.query(ScanningSchedule).order_by(ScanningSchedule.schedule_number).all()
+        except Exception as db_exception:  # noqa: B902; return nicer error
+            logger.error("ScanningSchedule.find_all exception: " + str(db_exception))
+            raise DatabaseException(db_exception) from db_exception
+        return schedule
+
     def save(self):
         """Store the Document Scanning information into the local cache."""
         db.session.add(self)
