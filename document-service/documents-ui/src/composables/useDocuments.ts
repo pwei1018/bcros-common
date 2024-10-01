@@ -184,8 +184,6 @@ export const useDocuments = () => {
     return Math.ceil(searchResultCount.value / pageSize) > pageNumber.value
   })
 
-  const debouncedSearch = debounce(searchDocumentRecords)
-
   /** Validate and Save Document Indexing */
   const saveDocuments = async (): Promise<void> => {
     // Validate Document Indexing
@@ -278,6 +276,7 @@ export const useDocuments = () => {
     if (id.length >= 1) findCategoryByPrefix(id, true)
   })
 
+  
   return {
     isValidIndexData,
     findCategoryByPrefix,
@@ -287,7 +286,6 @@ export const useDocuments = () => {
     downloadFileFromUrl,
     hasMinimumSearchCriteria,
     saveDocuments,
-    debouncedSearch,
     scrollToFirstError,
     getNextDocumentsPage
   }

@@ -1,5 +1,3 @@
-import type { DocumentClassIF } from '~/interfaces/document-types-interface'
-
 /**
  * @file documentTypes.ts
  * @description Exports an object categorizing document types by entity type. Each category includes:
@@ -7,7 +5,7 @@ import type { DocumentClassIF } from '~/interfaces/document-types-interface'
  * - `prefixes`: Array of document prefixes.
  * - `documents`: Array of document details (type, description, product code).
  */
-export const documentTypes: Array<DocumentClassIF> = [
+export const documentTypes = [
   {
     class: 'COOP',
     description: 'Cooperatives',
@@ -177,52 +175,47 @@ export const documentTypes: Array<DocumentClassIF> = [
   }
 ]
 
-export const documentResultColumns = () => {
-  const t = useNuxtApp().$i18n.t  
-
-  return [
+export const documentResultColumns: Array<TableColumnIF> = [
     {
       key: 'emptyColumn',
-      label: t('documentSearch.table.headers.sortBy'),
-      sortable: false
+      label: 'Sort By',
+      isFixed: true
     },
     {
       key: 'consumerDocumentId',
-      label: t('documentSearch.table.headers.documentID'),
+      label: 'Document ID',
       tooltipText: `The Document ID, also known as the Barcode Number, 
                 is a unique identifier assigned to a document record.`,
       sortable: true
     },
     {
       key: 'consumerIdentifier',
-      label: t('documentSearch.table.headers.entityID'),
+      label: 'Entity ID',
       tooltipText: 'Maecenas sed diam eget risus varius blandit sit amet non magna.',
       sortable: true
     },
     {
       key: 'documentURL',
-      label: t('documentSearch.table.headers.documents')
+      label: 'Documents'
     },
     {
       key: 'documentTypeDescription',
-      label: t('documentSearch.table.headers.documentType')
+      label: 'Document Type'
     },
     {
       key: 'consumerFilingDateTime',
-      label: t('documentSearch.table.headers.filingDate')
+      label: 'Filing Date'
     },
     {
       key: 'description',
-      label: t('documentSearch.table.headers.documentDescription')
+      label: 'Document Description'
     },
     {
       key: 'actions',
-      label: t('documentSearch.table.headers.actions'),
-      class: 'sticky right-0'
+      label: 'Actions',
+      isFixed: true
     }
   ]
-  
-}
 
 export const documentRecordHelpContent = `
   Lorem ipsum dolor sit amet, consectetur adipiscing elit. 

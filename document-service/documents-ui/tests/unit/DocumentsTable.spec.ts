@@ -61,7 +61,9 @@ describe('DocumentsTable', () => {
     // Verify the first row's content
     const firstRowCells = rows[0].findAll('td')
     expect(firstRowCells[1].text()).toBe(mockDocumentResults[0].consumerDocumentId)
-    expect(firstRowCells[2].text()).toBe(mockDocumentResults[0].consumerIdentifier)
+    expect(firstRowCells[2].text()).toBe(
+      mockDocumentResults[0].consumerIdentifier + mockDocumentResults[0].documentTypeDescription
+    )
     expect(firstRowCells[4].text()).toBe(mockDocumentResults[0].documentTypeDescription)
     expect(firstRowCells[5].text()).toContain(formatToReadableDate('2024-08-03T19:00:00+00:00', true))
 

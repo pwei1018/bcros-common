@@ -1,6 +1,6 @@
 {
   "name": "bcros-documents-ui",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "private": true,
   "type": "module",
   "scripts": {
@@ -27,6 +27,8 @@
     "http-status-codes": "^2.1.4",
     "keycloak-js": "^24.0.4",
     "launchdarkly-vue-client-sdk": "^2.2.0",
+    "lodash": "^4.17.21",
+    "lodash.debounce": "^4.0.8",
     "nuxt": "^3.12.4",
     "sass": "^1.77.3",
     "v-calendar": "^3.1.2",

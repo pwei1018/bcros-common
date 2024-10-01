@@ -78,6 +78,7 @@ const datePlaceholder = computed(() => {
           :padded="false"
           @click="emit('update:modelValue', null)"
         />
+        <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5"/>
       </template>
     </UInput>
 
