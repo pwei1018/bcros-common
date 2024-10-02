@@ -40,7 +40,6 @@ onMounted(() => {
     :option-attribute="optionAttribute"
     size="md"
     multiple
-    :popper="{ placement: 'bottom-start' }"
     :ui="{
       icon: { trailing: { pointer: '' } },
       size: { md: 'h-[44px]' },

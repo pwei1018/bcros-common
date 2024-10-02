@@ -78,8 +78,13 @@ export default defineAppConfig({
     },
     selectMenu: {
       option: {
-        base: 'cursor-pointer',
+        base: 'cursor-pointer h-[44px]',
       },
+      popper: {
+        placement: 'bottom-start',
+        offsetDistance: 0
+      },
+      padding: 'p-0'
     },
     modal: {
       overlay: {
@@ -94,7 +99,7 @@ export default defineAppConfig({
       background: 'bg-gray-700'
     },
     table: {
-      wrapper: 'max-h-[500px] overflow-y-auto overflow-x-auto',
+      wrapper: 'max-h-[700px] min-h-[250px] overflow-y-auto overflow-x-auto',
       thead: 'sticky top-0 bg-white z-10',
       th: {
         base: 'text-left text-gray-700 font-bold whitespace-nowrap',

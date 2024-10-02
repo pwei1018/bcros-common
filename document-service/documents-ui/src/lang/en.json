@@ -55,6 +55,7 @@
         "documentType": "Document Type",
         "documentDescription": "Document Description",
         "actions": "Actions",
+        "entityType": "Select Entity Type",
         "columnsToShow": "Columns to Show"
       },
       "downloadAll": "Download All",
