@@ -263,7 +263,7 @@ export const useDocuments = () => {
 
   /** Get next page of document records if exists */
   const getNextDocumentsPage = () => {
-    if(hasMorePages) {
+    if(hasMorePages.value) {
       pageNumber.value += 1
       searchDocumentRecords()
     }
