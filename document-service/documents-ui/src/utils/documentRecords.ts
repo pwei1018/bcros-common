@@ -2,19 +2,28 @@
 export const pageSize = 100
 
 /**
- * Returns a debounced version of a function, delaying its execution until after a timeout.
- * 
- * @param func - The function to debounce.
- * @param timeout - The number of milliseconds to delay execution (default is 200).
- * @returns A debounced version of the provided function.
+ * Truncates a string either by the end or the middle based on the presence of `backChars`.
+ * If `backChars` is not specified, it truncates the string from the end and adds '...'.
+ * If `backChars` is specified, it truncates from the middle, keeping a specified number 
+ * of characters from both the front and back, with '...' in the middle.
+ *
+ * @param {string} str - The original string to be truncated.
+ * @param {number} maxLength - The maximum length of the truncated string, including '...'.
+ * @param {number} frontChars - The number of characters to keep at the beginning of the string.
+ * @param {number} [backChars] - Optional. The number of characters to keep at the end of the string. 
+ *                              If not provided, truncates from the end.
+ * @returns {string} - The truncated string with either '...' at the end or in the middle.
  */
-export function debounce(func, timeout = 200) {
-  let timeoutId;
-  return (...args) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-      func(...args);
-    }, timeout);
-  };
-}
+export function truncate(str: string, maxLength: number, frontChars: number, backChars: number = undefined) {
+  if (str.length <= maxLength) return str;
 
+  if (typeof backChars === 'undefined') {
+    // End truncation if backChars is not specified
+    return str.slice(0, frontChars) + '...';
+  }
+
+  // Middle truncation if backChars is specified
+  const front = str.slice(0, frontChars);
+  const back = str.slice(-backChars);
+  return `${front}...${back}`;
+}

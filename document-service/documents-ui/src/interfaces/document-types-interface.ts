@@ -5,6 +5,7 @@ export interface DocumentStateIF {
   searchResultCount: number
   searchDocumentId: string
   searchEntityId: string
+  searchEntityType: string
   searchDocuments: string
   searchDocumentClass: string
   searchDocumentType: string
@@ -12,20 +13,24 @@ export interface DocumentStateIF {
     start: Date | null
     end: Date | null
   }
+  searchDescription: string
   pageNumber: number
 
   // Document Meta
+  consumerDocumentId: string
   consumerIdentifier: string
   noIdCheckbox: boolean
   noDocIdCheckbox: boolean
   documentClass: string
   documentType: string
+  description: string
   consumerFilingDate: string
   documentList: Array<any>
 
   // Validations
   validateIndex: boolean
   isLoading: boolean
+  validateDocumentSearch: boolean
 
   // Document Review
   displayDocumentReview: boolean

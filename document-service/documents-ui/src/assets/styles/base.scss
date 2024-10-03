@@ -97,6 +97,17 @@ body {
   th {
     @apply text-gray-900 text-sm
   }
+
+  div[data-cy="document-management"] table th:last-child,
+  div[data-cy="document-management"] table td:last-child {
+    display: table-cell;
+    position: sticky;
+    right: 0;
+    width: 156px;
+    max-width: 156px;
+    min-width: 156px;
+    padding: 0
+  }
 }
 
 .border-error-left {

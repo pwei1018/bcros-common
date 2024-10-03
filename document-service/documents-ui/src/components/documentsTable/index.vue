@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { formatToReadableDate } from "~/utils/dateHelper"
 import { documentResultColumns } from "~/utils/documentTypes"
+import { truncate } from "~/utils/documentRecords"
 import type { DocumentInfoIF } from "~/interfaces/document-types-interface"
 const {
   getDocumentDescription,
-  downloadFileFromUrl,
   searchDocumentRecords,
   getDocumentTypesByClass,
   getNextDocumentsPage,
@@ -16,14 +16,18 @@ const {
   documentSearchResults,
   searchDocumentId,
   searchEntityId,
+  searchEntityType,
   searchDocuments,
   searchDocumentType,
   searchDateRange,
+  searchDescription,
+  searchResultCount,
   isLoading,
 } = storeToRefs(useBcrosDocuments())
 
 const documentRecordsTableRef = ref(null)
-const documentRecordColumns = ref([])
+const columnsToShow = ref(documentResultColumns)
+const isDescriptionExpanded = ref({})
 
 const isFiltered = computed(() => {
   return (
@@ -56,11 +60,19 @@ const handleTableScroll = () => {
     }
   }
 }
+const toggleDescription = (consumerDocumentId) => {
+  isDescriptionExpanded.value[consumerDocumentId] =
+    !isDescriptionExpanded.value[consumerDocumentId]
+}
+
+const changeColumns = (selected: [string]) => {
+  columnsToShow.value = documentResultColumns.filter(
+    (column) => column.isFixed || selected.includes(column.key)
+  )
+}
 
 onMounted(() => {
-  documentRecordColumns.value = documentResultColumns()
   searchDocumentRecords()
-
   const tableElement = documentRecordsTableRef.value?.$el
   if (tableElement) {
     tableElement.addEventListener("scroll", handleTableScroll)
@@ -77,26 +89,58 @@ onBeforeUnmount(() => {
 <template>
   <ContentWrapper
     name="document-search-results"
-    class="my-12"
+    class="mt-8 mb-12"
     data-cy="document-search-results"
     :is-table="true"
   >
     <template #header>
       <div class="flex justify-between items-center">
-        <span>{{ $t("documentSearch.table.title") }} (123)</span>
+        <span>
+          {{ $t("documentSearch.table.title") }}
+          ({{ searchResultCount || 0 }})
+        </span>
+        <div class="flex gap-4">
+          <USelectMenu
+            v-model="searchEntityType"
+            :placeholder="$t('documentSearch.table.headers.entityType')"
+            class="text-gray-700 font-light w-[300px]"
+            :options="documentTypes"
+            value-attribute="class"
+            option-attribute="description"
+            size="md"
+            :ui="{
+              icon: { trailing: { pointer: '' } },
+              size: { md: 'h-[44px]' },
+            }"
+            :ui-menu="{ height: 'max-h-65 h-[355px]' }"
+          >
+            <template #trailing>
+              <UButton
+                v-show="searchEntityType !== ''"
+                variant="link"
+                icon="i-mdi-cancel-circle text-primary"
+                :padded="false"
+                @click="searchEntityType = ''"
+              />
+              <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5 text-gray-700  " />
+            </template>
+          </USelectMenu>
+          <InputMultiSelector
+            :options="documentResultColumns.filter((column) => !column.isFixed)"
+            class="w-[250px] font-light"
+            value-attribute="key"
+            option-attribute="label"
+            :label="$t('documentSearch.table.headers.columnsToShow')"
+            @change-columns="changeColumns"
+          />
+        </div>
       </div>
     </template>
     <template #content>
       <UTable
         ref="documentRecordsTableRef"
-        :columns="documentRecordColumns"
+        :columns="columnsToShow"
         :rows="documentSearchResults || []"
-        :sort-button="{
-          class: 'font-bold text-sm',
-          size: '2xs',
-          square: false,
-          ui: { rounded: 'rounded-full' },
-        }"
         :loading="isLoading"
         :empty-state="{
           icon: null,
@@ -144,13 +188,12 @@ onBeforeUnmount(() => {
               <USelectMenu
                 v-model="searchDocumentType"
                 :placeholder="column.label"
-                class="w-full px-2 font-light"
+                class="w-full px-2 font-light w-[250px]"
                 select-class="text-gray-700"
                 :options="getDocumentTypesByClass()"
                 value-attribute="type"
                 option-attribute="description"
                 size="md"
-                :popper="{ placement: 'bottom-start' }"
                 :ui="{
                   icon: { trailing: { pointer: '' } },
                   size: { md: 'h-[44px]' },
@@ -159,12 +202,12 @@ onBeforeUnmount(() => {
                 <template #trailing>
                   <UButton
                     v-show="searchDocumentType !== ''"
-                    color="gray"
                     variant="link"
                     icon="i-mdi-cancel-circle text-primary"
                     :padded="false"
                     @click="searchDocumentType = ''"
                   />
+                  <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5 " />
                 </template>
               </USelectMenu>
             </div>
@@ -179,7 +222,7 @@ onBeforeUnmount(() => {
             <div class="h-11">
               <InputDatePicker
                 v-model="searchDateRange"
-                class="w-full px-2 font-light"
+                class="w-[265px] px-2 font-light"
                 is-ranged-picker
                 is-left-bar
                 is-filter
@@ -190,25 +233,28 @@ onBeforeUnmount(() => {
         </template>
         <template #description-header="{ column }">
           <DocumentsTableInputHeader
-            v-model="searchDocumentId"
+            v-model="searchDescription"
             :column="column"
           />
         </template>
         <template #actions-header="{ column }">
-          <div class="px-2">
-            {{ column.label }}
-          </div>
-          <UDivider class="my-3" />
-          <div>
-            <div class="flex justify-center h-11">
-              <UButton
-                v-if="isFiltered"
-                class="h-[44px] px-3 py-3 text-sm"
-                :label="$t('documentSearch.table.clearFilter')"
-                icon="i-mdi-cancel-circle"
-                variant="outline"
-                color="primary"
-              />
+          <!-- eslint-disable-next-line -->
+          <div class="flex justify-center align-center flex-col h-full border-l-4 border-solid border-gray-200 bg-white min-h-[120px]">
+            <div class="px-2">
+              {{ column.label }}
+            </div>
+            <UDivider class="my-3" />
+            <div>
+              <div class="flex justify-center h-11">
+                <UButton
+                  v-if="isFiltered"
+                  class="h-[44px] px-3 py-3 text-sm"
+                  :label="$t('documentSearch.table.clearFilter')"
+                  icon="i-mdi-cancel-circle"
+                  variant="outline"
+                  color="primary"
+                />
+              </div>
             </div>
           </div>
         </template>
@@ -238,52 +284,65 @@ onBeforeUnmount(() => {
             <span
               v-for="(file, i) in row.consumerFilenames"
               :key="`file-${i}`"
-              class="block my-1"
+              class="block my-2"
             >
-              <ULink
-                inactive-class="text-primary"
-                class="flex align-center"
-                @click="downloadFileFromUrl(row.documentUrls[i], file)"
-              >
-                <UIcon name="i-mdi-file-download" class="w-5 h-5" />
-                {{ file }}
-              </ULink>
+              <DocumentsTableDownloadLink
+                :download-url="row.documentUrls[i]"
+                :file-name="file"
+              />
             </span>
-            <span>
+            <span class="my-2">
               <ULink inactive-class="text-primary" class="flex align-center">
-                <UIcon name="i-mdi-download" class="w-5 h-5" />
+                <UIcon name="i-mdi-download mr-1.5" class="w-5 h-5" />
                 {{ $t("documentSearch.table.downloadAll") }}
               </ULink>
             </span>
           </div>
           <div v-else>
-            <span class="block my-1">
-              <ULink
-                inactive-class="text-primary"
-                class="flex align-center"
-                @click="
-                  downloadFileFromUrl(
-                    row.documentUrls[0],
-                    row.consumerFilenames[0]
-                  )
-                "
-              >
-                <UIcon name="i-mdi-file-download" class="w-5 h-5" />
-                {{ row.consumerFilenames[0] }}
-              </ULink>
+            <span class="block my-2">
+              <DocumentsTableDownloadLink
+                :download-url="row.documentUrls[0]"
+                :file-name="row.consumerFilenames[0]"
+              />
             </span>
+          </div>
+        </template>
+        <template #description-data="{ row }">
+          <div v-if="row.description" class="w-[300px]">
+            <p>
+              {{
+                isDescriptionExpanded[row.consumerDocumentId]
+                  ? row.description
+                  : truncate(row.description, 150, 145)
+              }}
+            </p>
+            <ULink
+              v-if="row.description.length > 150"
+              class="text-primary"
+              @click="toggleDescription(row.consumerDocumentId)"
+            >
+              {{
+                isDescriptionExpanded[row.consumerDocumentId]
+                  ? "Read Less"
+                  : "Read More"
+              }}
+            </ULink>
           </div>
         </template>
         <!-- Actions -->
         <template #actions-data="{ row }">
-          <UButton
-            class="relative h-[35px] px-8 text-base"
-            outlined
-            color="primary"
-            @click="openDocumentRecord(row)"
+          <div
+            class="flex justify-center items-center h-full border-l-4 border-solid border-gray-200 bg-white"
           >
-            {{ $t("button.open") }}
-          </UButton>
+            <UButton
+              class="relative h-[35px] px-8 text-base"
+              outlined
+              color="primary"
+              @click="openDocumentRecord(row)"
+            >
+              {{ $t("button.open") }}
+            </UButton>
+          </div>
         </template>
       </UTable>
     </template>

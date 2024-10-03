@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { documentRecordHelpContent } from '~/utils/documentTypes';
+// import { documentRecordHelpContent } from '~/utils/documentTypes';
 const { resetStore } = useBcrosDocuments()
-const { documentSearchResults } = storeToRefs(useBcrosDocuments())
+// const { documentSearchResults } = storeToRefs(useBcrosDocuments())
 
-const isHelpContentOpen = ref(false)
-const hasBottomHideToggle = ref(true)
+// const isHelpContentOpen = ref(false)
+// const hasBottomHideToggle = ref(true)
 
-const toggleHelpContent = () => {
-  isHelpContentOpen.value = !isHelpContentOpen.value
-}
+// const toggleHelpContent = () => {
+//   isHelpContentOpen.value = !isHelpContentOpen.value
+// }
 const launchCreateRecord = () => {
   resetStore()
   navigateTo({ name: RouteNameE.DOCUMENT_INDEXING })
@@ -30,7 +30,7 @@ const launchCreateRecord = () => {
           </div>
           <!-- Hiding help button until we get the content -->
           <!-- Help content -->
-          <HelpToggleContainer
+          <!-- <HelpToggleContainer
             :is-help-content-open="isHelpContentOpen"
             :has-bottom-hide-toggle="hasBottomHideToggle"
             @toggle-help-content="toggleHelpContent"
@@ -40,10 +40,10 @@ const launchCreateRecord = () => {
                 {{ documentRecordHelpContent }}
               </p>
             </template>
-          </HelpToggleContainer>
+          </HelpToggleContainer> -->
           <div>
             <UButton
-              class="mt-5 py-2 px-6 text-base font-bold"
+              class="mt-5 py-2 px-6 text-base font-bold rounded"
               outlined
               color="primary"
               @click="launchCreateRecord()"
@@ -60,7 +60,6 @@ const launchCreateRecord = () => {
     </BcrosSection>
   
     <!-- Document Search Results -->
-    <UDivider v-if="documentSearchResults.length" class="pt-[60px] pb-4" />
     <DocumentsTable />
   </div>
 </template>

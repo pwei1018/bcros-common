@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import type { TableColumnIF } from "~/interfaces/table-inferface"
+import { debounce } from 'lodash'
+import type { TableColumnIF } from '~/interfaces/table-interfaces'
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    default: "",
-  },
+defineProps({
   column: {
     type: Object as PropType<TableColumnIF>,
     default: () => {},
@@ -13,10 +10,14 @@ const props = defineProps({
 })
 
 const emit = defineEmits(["update:model-value"])
+const filterValue = ref('')
 
-const filerValue = computed({
-  get: () => props.modelValue,
-  set: (value) => emit("update:model-value", value),
+const debouncedInput = debounce((newValue) => {
+  emit('update:model-value', newValue);
+}, 500)
+
+watch(filterValue, (newValue) => {
+  debouncedInput(newValue)
 })
 </script>
 <template>
@@ -27,17 +28,18 @@ const filerValue = computed({
         v-if="column.tooltipText"
         :popper="{ placement: 'top', arrow: true }"
         :text="column.tooltipText"
+        :ui="{base: 'w-[265px]'}"
       >
         <UIcon
           name="i-mdi-information-outline"
-          class="font-bold w-5 h-5 mx-2"
+          class="font-bold w-5 h-5 mx-2 text-primary"
         />
       </UTooltip>
     </div>
     <UDivider class="my-3 w-full" />
     <div class="h-11">
       <UInput
-        v-model="filerValue"
+        v-model="filterValue"
         class="w-full px-2 font-light"
         size="md"
         :placeholder="column.label"
@@ -45,15 +47,16 @@ const filerValue = computed({
           icon: { trailing: { pointer: '' } },
           size: { md: 'h-[44px]' },
         }"
+ 
       >
         <template #trailing>
           <UButton
-            v-show="filerValue !== ''"
+            v-show="filterValue !== ''"
             color="gray"
             variant="link"
             icon="i-mdi-cancel-circle text-primary"
             :padded="false"
-            @click="filerValue = ''"
+            @click="filterValue = ''"
           />
         </template>
       </UInput>

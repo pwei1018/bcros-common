@@ -16,7 +16,7 @@ export default defineAppConfig({
     },
     input: {
       base: 'relative text-gray-900 border-0 border-b-[1px] border-gray-500 ring-0 focus:ring-0 ' +
-        'disabled:cursor-not-allowed disabled:opacity-45'
+        'disabled:cursor-not-allowed disabled:opacity-45 rounded'
     },
     textarea: {
       base: 'text-gray-900 border-0 border-b-[1px] border-gray-500 ring-0 focus:ring-0 h-[125px]',
@@ -78,23 +78,35 @@ export default defineAppConfig({
     },
     selectMenu: {
       option: {
-        base: 'cursor-pointer',
+        base: 'cursor-pointer h-[44px]',
       },
+      popper: {
+        placement: 'bottom-start',
+        offsetDistance: 0
+      },
+      padding: 'p-0'
     },
     modal: {
       overlay: {
         background: 'bg-gray-900/75',
       }
     },
+    button: {
+      base: 'rounded'
+    },
+    tooltip: {
+      base: 'whitespace-normal h-auto p-3 bg-gray-700',
+      background: 'bg-gray-700'
+    },
     table: {
-      wrapper: 'max-h-[500px] overflow-y-auto overflow-x-auto',
+      wrapper: 'max-h-[700px] min-h-[250px] overflow-y-auto overflow-x-auto',
       thead: 'sticky top-0 bg-white z-10',
       th: {
         base: 'text-left text-gray-700 font-bold whitespace-nowrap',
         padding: "px-0"
       },
       td: {
-        base: 'max-w-[200px] align-top h-[65px] last:flex last:justify-center whitespace-normal',
+        base: 'align-top h-[65px] last:flex last:justify-center whitespace-normal',
         color: 'text-gray-700',
       }
     }

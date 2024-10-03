@@ -21,6 +21,7 @@ export interface DocumentRequestIF {
   consumerDocumentId?: string
   documentClass: string
   documentType: string
+  description?: string
   consumerIdentifier?: string
   consumerFilingDate?: string
   consumerFilename?: string

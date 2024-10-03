@@ -54,7 +54,9 @@
         "filingDate": "Filing Date",
         "documentType": "Document Type",
         "documentDescription": "Document Description",
-        "actions": "Actions"
+        "actions": "Actions",
+        "entityType": "Select Entity Type",
+        "columnsToShow": "Columns to Show"
       },
       "downloadAll": "Download All",
       "noResult": "No results found.",
