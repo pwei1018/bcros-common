@@ -7,7 +7,8 @@ const {
 defineProps({
   downloadUrl: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   fileName: {
     type: String,
@@ -27,11 +28,11 @@ defineProps({
         :popper="{ placement: 'bottom' }"
         :text="fileName"
       >
-      <UIcon name="i-mdi-file-download mr-1.5" class="w-5 h-5" />
+      <img class="w-5 h-5 mr-1.5" src="~/assets/icons/pdf_download.svg" alt="pdf download">
       {{ truncate(fileName, 15, 6, 6) }}
       </UTooltip>
       <template v-else>
-        <UIcon name="i-mdi-file-download mr-1.5" class="w-5 h-5" />
+        <img class="w-5 h-5 mr-1.5" src="~/assets/icons/pdf_download.svg" alt="pdf download">
         {{ fileName }}
       </template>
   </ULink>

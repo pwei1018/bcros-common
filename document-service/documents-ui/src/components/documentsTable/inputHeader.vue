@@ -40,7 +40,7 @@ watch(filterValue, (newValue) => {
     <div class="h-11">
       <UInput
         v-model="filterValue"
-        class="w-full px-2 font-light"
+        class="min-w-[190px] w-full px-2 font-light"
         size="md"
         :placeholder="column.label"
         :ui="{

@@ -75,14 +75,14 @@ const datePlaceholder = computed(() => {
       <template #trailing>
         <UButton
           v-if="isFilter"
-          v-show="date !== null"
+          v-show="!!date.start || !!date.end"
           color="gray"
           variant="link"
           icon="i-mdi-cancel-circle text-primary"
           :padded="false"
-          @click="emit('update:modelValue', null)"
+          @click="emit('update:modelValue', { start: null, end: null })"
         />
-        <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5"/>
+        <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5" />
       </template>
     </UInput>
 
