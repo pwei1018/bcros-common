@@ -7,12 +7,10 @@ const {
   getDocumentDescription,
   searchDocumentRecords,
   getDocumentTypesByClass,
-  getNextDocumentsPage,
+  getNextDocumentsPage
 } = useDocuments()
 
 const {
-  documentList,
-  documentRecord,
   documentSearchResults,
   searchDocumentId,
   searchEntityId,
@@ -40,10 +38,6 @@ const isFiltered = computed(() => {
 })
 
 const openDocumentRecord = (searchResult: DocumentInfoIF) => {
-  documentRecord.value = { ...searchResult }
-  documentList.value = searchResult.consumerFilenames?.map((file) => ({
-    name: file,
-  }))
   navigateTo({
     name: RouteNameE.DOCUMENT_RECORDS,
     params: { identifier: searchResult.consumerDocumentId },

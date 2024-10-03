@@ -6,7 +6,7 @@ defineProps({
   }
 })
 
-const { documentList } = storeToRefs(useBcrosDocuments())
+const { isEditing, documentList, documentListSnapshot } = storeToRefs(useBcrosDocuments())
 const t = useNuxtApp().$i18n.t
 const fileError = ref(null)
 
@@ -51,9 +51,17 @@ const removeFile = (index: number) => {
 }
 </script>
 <template>
-  <FormWrapper name="'document-upload'">
+  <FormWrapper
+    name="document-upload"
+    class="pl-7"
+  >
     <template #label>
       <h3>Upload Documents</h3>
+      <HasChangesBadge
+        v-if="isEditing"
+        :baseline="documentListSnapshot"
+        :current-state="documentList"
+      />
     </template>
 
     <template #form>
@@ -78,7 +86,7 @@ const removeFile = (index: number) => {
         </div>
       </UFormGroup>
 
-      <section v-if="documentList.length" class="mt-6 ml-1">
+      <section v-if="documentList.length" class="mt-6">
         <div
           v-for="(supportingDocument, index) in documentList"
           :key="supportingDocument.name"

@@ -11,17 +11,34 @@ describe('DocumentRecordComponent', () => {
 
   // Mock the store and set default values
   beforeEach(() => {
-    const { documentRecord, noIdCheckbox, noDocIdCheckbox } = storeToRefs(useBcrosDocuments())
+    const {
+      documentRecord,
+      noIdCheckbox,
+      noDocIdCheckbox,
+      documentRecordSnapshot ,
+      scanningDetails,
+      scanningDetailsSnapshot
+    } = storeToRefs(useBcrosDocuments())
 
     // Mock the document record state
     documentRecord.value = {
-      consumerDocumentId: '',
-      consumerIdentifier: '',
-      documentClass: '',
-      documentType: '',
-      consumerFilingDateTime: '',
-      documentDescription: ''
+      consumerDocumentId: '123123',
+      consumerIdentifier: '23',
+      documentClass: 'MHR123',
+      documentType: 'Manufactured Home Registration',
+      consumerFilingDateTime: '2024-12-11',
+      documentDescription: 'abc 123'
     }
+    documentRecordSnapshot.value = { ...documentRecord.value }
+
+    scanningDetails.value = {
+      scanDateTime: '2024-12-11',
+      accessionNumber: '123',
+      batchId: '4',
+      pageCount: '1',
+      author: 'James Bond'
+    }
+    scanningDetailsSnapshot.value = { ...scanningDetails.value}
 
     noIdCheckbox.value = false
     noDocIdCheckbox.value = false
@@ -44,7 +61,7 @@ describe('DocumentRecordComponent', () => {
   })
 
   it('updates noIdCheckbox state when checkbox is clicked', async () => {
-    const noIdCheckbox = wrapper.findAllComponents(UCheckbox).at(1)
+    const noIdCheckbox = wrapper.findAllComponents(UCheckbox).at(0)
 
     expect(noIdCheckbox.props('modelValue')).toBe(false)
 

@@ -22,11 +22,24 @@ const mockDocumentRecord = {
   author: 'Author Name'
 }
 
+const mockDocumentRecordList = [
+  { name: mockDocumentRecord.consumerFilenames[0] },
+  { name: mockDocumentRecord.consumerFilenames[1] }
+]
+
 describe('DocumentRecord', () => {
   let wrapper
   beforeAll(() => {
-    const { documentRecord } = storeToRefs(useBcrosDocuments())
+    const { documentRecord, documentList, scanningDetails } = storeToRefs(useBcrosDocuments())
     documentRecord.value = { ...mockDocumentRecord }
+    scanningDetails.value = {
+      scanDateTime: mockDocumentRecord.scanDateTime,
+      accessionNumber: mockDocumentRecord.accessionNumber,
+      batchId: mockDocumentRecord.batchId,
+      pageCount: mockDocumentRecord.pageCount,
+      author: mockDocumentRecord.author
+    }
+    documentList.value = mockDocumentRecordList
   })
   beforeEach(async () => {
     wrapper = mount(DocumentRecord, { global: { plugins: [mockedI18n] } })
@@ -46,7 +59,7 @@ describe('DocumentRecord', () => {
     expect(wrapper.text()).toContain('123456')
     expect(wrapper.text()).toContain('batch-001')
     expect(wrapper.text()).toContain('10')
-    expect(wrapper.text()).toContain('2024-08-23')
+    expect(wrapper.text()).toContain('August 23, 2024')
     expect(wrapper.text()).toContain('Author Name')
   })
 })

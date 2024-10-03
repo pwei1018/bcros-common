@@ -82,7 +82,8 @@ export async function postDocument(params: DocumentRequestIF, document: RequestD
     documentType,
     consumerFilename,
     consumerIdentifier,
-    consumerFilingDate
+    consumerFilingDate,
+    description
   } = params
 
   // Construct query parameters
@@ -91,6 +92,8 @@ export async function postDocument(params: DocumentRequestIF, document: RequestD
   if (consumerFilename) queryParams.append('consumerFilename', consumerFilename)
   if (consumerIdentifier) queryParams.append('consumerIdentifier', consumerIdentifier)
   if (consumerFilingDate) queryParams.append('consumerFilingDate', consumerFilingDate)
+  if (description) queryParams.append('description', description)
+
 
   // Build the full URL
   const url = `${baseURL}/documents/${documentClass}/${documentType}?${queryParams.toString()}`
@@ -112,12 +115,255 @@ export async function postDocument(params: DocumentRequestIF, document: RequestD
 }
 
 /**
+ * Sends a PUT request to update a document to the specified API endpoint.
+ *
+ * @param params - The parameters for the document request, including document class, type, and optional consumer
+ * information.
+ * @param document - The document data to be sent in the request body.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function updateDocument(params: DocumentRequestIF, document: RequestDataIF)
+  : Promise<ApiResponseOrError> {
+  const options = {
+    method: 'PUT',
+    headers: { 'x-apikey': `${docApiKey}` },
+    body: document
+  }
+
+  const {
+    consumerFilename,
+    documentServiceId
+  } = params
+
+  // Construct query parameters
+  const queryParams = new URLSearchParams()
+  if (consumerFilename) queryParams.append('consumerFilename', consumerFilename)
+
+  // Build the full URL
+  const url = `${baseURL}/documents/${documentServiceId}?${queryParams.toString()}`
+
+  try {
+    await useBcrosFetch<ApiResponseIF>(url, options).then((response) => {
+      return {
+        data: response.data,
+        status: response.status
+      }
+    })
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
+
+/**
+ * Sends a Patch request to update a document record to the specified API endpoint.
+ *
+ * @param params - The parameters for the document request, including document class, type, and optional consumer
+ * information.
+ * @param document - The document data to be sent in the request body.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function updateDocumentRecord(params: DocumentRequestIF)
+  : Promise<ApiResponseOrError> {
+  const {
+    documentServiceId,
+    consumerDocumentId,
+    consumerFilename,
+    consumerIdentifier,
+    consumerFilingDate,
+    description
+  } = params
+
+  const options = {
+    method: 'PATCH',
+    headers: { 'x-apikey': `${docApiKey}` },
+    body: {
+      consumerDocumentId,
+      consumerIdentifier,
+      consumerFilename,
+      consumerFilingDate,
+      description
+    }
+  }
+
+  // Build the full URL
+  const url = `${baseURL}/documents/${documentServiceId}`
+
+  try {
+    await useBcrosFetch<ApiResponseIF>(url, options).then((response) => {
+      return {
+        data: response.data,
+        status: response.status
+      }
+    })
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
+
+/**
+ * Sends a POST request to upload a document to the specified API endpoint.
+ *
+ * @param params - The parameters for the document scanning data request.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function createScanningRecord(params: DocumentRequestIF)
+  : Promise<ApiResponseOrError> {
+  const {
+    documentClass,
+    consumerDocumentId,
+    scanningDetails
+  } = params
+
+  const options = {
+    method: 'POST',
+    headers: { 'x-apikey': `${docApiKey}` },
+    body: scanningDetails
+  }
+
+  // Build the full URL
+  const url = `${baseURL}/scanning/${documentClass}/${consumerDocumentId}`
+
+  try {
+    await useBcrosFetch<ApiResponseIF>(url, options).then((response) => {
+      return {
+        data: response.data,
+        status: response.status
+      }
+    })
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
+
+/**
+ * Sends a PATCH request to upload a document to the specified API endpoint.
+ *
+ * @param params - The parameters for the document scanning data request.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function updateScanningRecord(params: DocumentRequestIF)
+  : Promise<ApiResponseOrError> {
+  const {
+    documentClass,
+    consumerDocumentId,
+    scanningDetails
+  } = params
+
+  const options = {
+    method: 'PATCH',
+    headers: { 'x-apikey': `${docApiKey}` },
+    body: scanningDetails
+  }
+
+  // Build the full URL
+  const url = `${baseURL}/scanning/${documentClass}/${consumerDocumentId}`
+
+  try {
+    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    return {
+      data: response.data,
+      status: response.status,
+      statusCode: response.error?.value.statusCode
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
+
+/**
  * Sends a GET request to retrieve a document record by its consumerDocumentId.
  *
  * @param consumerDocumentId - The unique identifier for the document to be retrieved.
  * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
  */
 export async function getDocumentRecord(consumerDocumentId: string): Promise<ApiResponseOrError> {
+  const options = {
+    method: 'GET',
+    headers: { 'x-apikey': `${docApiKey}` }
+  }
+
+  // Build the full URL
+  const url = `${baseURL}/documents/verify/${consumerDocumentId}`
+
+  try {
+    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    return {
+      data: response.data,
+      status: response.status
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
+
+/**
+ * Sends a GET request to retrieve a document url by its docServiceId.
+ *
+ * @param documentClass - The document class to be retrieved.
+ * @param docServiceId - The unique identifier for the document to be retrieved.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function getDocumentUrl(documentClass: string, docServiceId: string): Promise<ApiResponseOrError> {
+  const options = {
+    method: 'GET',
+    headers: { 'x-apikey': `${docApiKey}` }
+  }
+
+  // Construct query parameters
+  const queryParams = new URLSearchParams()
+  if (docServiceId) queryParams.append('documentServiceId', docServiceId)
+
+  // Build the full URL
+  const url = `${baseURL}/searches/${documentClass}?${queryParams.toString()}`
+
+  try {
+    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    return {
+      data: response.data,
+      status: response.status
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
+
+/**
+ * Sends a GET request to retrieve a document record report by its consumerDocumentId.
+ *
+ * @param consumerDocumentId - The unique identifier for the document to be retrieved.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function getDocumentRecordReport(consumerDocumentId: string): Promise<ApiResponseOrError> {
   const options = {
     method: 'GET',
     headers: { 'x-apikey': `${docApiKey}` }

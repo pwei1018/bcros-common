@@ -1,5 +1,14 @@
 import { useBcrosDocuments } from '~/stores/documents'
-import { getDocuments, postDocument } from '~/utils/documentRequests'
+import {
+  getDocuments,
+  postDocument,
+  getScanningRecord,
+  updateDocumentRecord,
+  createScanningRecord,
+  updateScanningRecord,
+  updateDocument,
+  getDocumentUrl
+} from '~/utils/documentRequests'
 import type { ApiResponseIF, ApiResponseOrError, DocumentRequestIF } from '~/interfaces/request-interfaces'
 import type { DocumentDetailIF, DocumentInfoIF } from '~/interfaces/document-types-interface'
 import { formatIsoToYYYYMMDD } from '~/utils/dateHelper'
@@ -14,7 +23,12 @@ export const useDocuments = () => {
     documentClass,
     documentType,
     consumerFilingDate,
+    documentRecord,
+    documentRecordSnapshot,
+    scanningDetails,
+    scanningDetailsSnapshot,
     documentList,
+    documentListSnapshot,
     validateIndex,
     isLoading,
     documentInfoRO,
@@ -28,6 +42,29 @@ export const useDocuments = () => {
     searchDateRange,
     pageNumber
   } = storeToRefs(useBcrosDocuments())
+
+  /** Computed flag to check if there are any changes in the document metadata **/
+  const hasDocumentMetaChanges = computed(() =>
+    JSON.stringify(documentRecord.value) !== JSON.stringify(documentRecordSnapshot.value)
+  )
+
+  /** Computed flag to check if there are any changes in the document scanning record **/
+  const hasDocumentScanningChanges = computed(() =>
+    JSON.stringify(scanningDetails.value) !== JSON.stringify(scanningDetailsSnapshot.value)
+  )
+
+  /** Computed flag to check if there are any changes to the document files **/
+  const hasDocumentFileChanges = computed(() => {
+    return documentListSnapshot.value.length !== documentList.value.length ||
+      documentListSnapshot.value.some((file, index) =>
+        file.name !== documentList.value[index].name)
+  })
+
+  /** Computed flag to check if there are any changes in the document record **/
+  const hasDocumentRecordChanges = computed(() => {
+    return hasDocumentMetaChanges.value || hasDocumentScanningChanges.value || hasDocumentFileChanges.value
+
+  })
 
   /**
    * Retrieves document descriptions for the specified category
@@ -169,6 +206,27 @@ export const useDocuments = () => {
     document.body.removeChild(link)
   }
 
+  /**
+   * Downloads a document from the given document service ID.
+   *
+   * @param {string} documentClass - The class of the document to download.
+   * @param {string} docServiceId - The document service ID of the document to download.
+   */
+  const fetchUrlAndDownload = async (documentClass: string, docServiceId: string): void => {
+    const { data } = await getDocumentUrl(documentClass, docServiceId)
+    const link = document.createElement('a')
+    link.href = data.value[0].documentURL
+    link.download = data.value[0].consumerFilename
+    link.target = '_blank' // This opens the link in a new browser tab
+
+    // Append to the document and trigger the download
+    document.body.appendChild(link)
+    link.click()
+
+    // Remove the link after the download is triggered
+    document.body.removeChild(link)
+  }
+
   /** Computed validation flag to check for required document meta data **/
   const isValidIndexData = computed(() => {
     return (!!consumerIdentifier.value || !!noIdCheckbox.value)
@@ -182,6 +240,15 @@ export const useDocuments = () => {
   /** Computed value that checks if search result has next page */
   const hasMorePages = computed(() => {
     return Math.ceil(searchResultCount.value / pageSize) > pageNumber.value
+  })
+
+  /** Computed validation flag to check for required document meta data **/
+  const isValidRecordEdit = computed(() => {
+    return (!!documentRecord.value.consumerIdentifier || !!noIdCheckbox.value)
+      && !!documentRecord.value.documentClass
+      && !!documentRecord.value.documentType
+      && !!documentRecord.value.consumerFilingDateTime
+      && description.value.length <= 1000
   })
 
   /** Validate and Save Document Indexing */
@@ -203,6 +270,7 @@ export const useDocuments = () => {
         for (const document of documentList.value) {
           const response: ApiResponseOrError = await postDocument(
             {
+              consumerDocumentId: consumerDocumentId.value,
               consumerIdentifier: consumerIdentifier.value,
               documentClass: documentClass.value,
               documentType: documentType.value,
@@ -248,6 +316,64 @@ export const useDocuments = () => {
     }
   }
 
+  /** Validate and Update Document Records and Scanning information */
+  const updateDocuments = async (): Promise<void> => {
+    if (isValidRecordEdit.value) {
+      isLoading.value = true
+
+      try {
+        // Iterate over the document list and handle requests sequentially
+        for (const document of documentList.value) {
+
+          // Update Document Record Meta Data
+          if (hasDocumentMetaChanges.value) {
+            await updateDocumentRecord({
+              documentServiceId: documentRecord.value.documentServiceId,
+              consumerDocumentId: documentRecord.value.consumerDocumentId,
+              consumerIdentifier: documentRecord.value.consumerIdentifier,
+              documentClass: documentRecord.value.documentClass,
+              documentType: documentRecord.value.documentType,
+              description: documentRecord.value.description,
+              consumerFilingDate: formatDateToISO(documentRecord.value.consumerFilingDateTime),
+            })
+          }
+
+          // Update Document Files
+          if (hasDocumentFileChanges.value && !!document.size) {
+            await updateDocument({
+                documentServiceId: documentRecord.value.documentServiceId,
+                consumerFilename: document.name,
+              },
+              document
+            )
+          }
+
+          // Update or Create Scanning Details
+          if (hasDocumentScanningChanges.value) {
+            // Update Scanning Data
+            const scanningData = await updateScanningRecord({
+              consumerDocumentId: documentRecord.value.consumerDocumentId,
+              documentClass: documentRecord.value.documentClass,
+              scanningDetails: scanningDetails.value,
+            })
+
+            if (scanningData.statusCode === 404) {
+              await createScanningRecord({
+                consumerDocumentId: documentRecord.value.consumerDocumentId,
+                documentClass: documentRecord.value.documentClass,
+                scanningDetails: scanningDetails.value,
+              })
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Request failed:', error);
+      } finally {
+        isLoading.value = false  // Ensure loading is false regardless of success or error
+      }
+    }
+  }
+
   /** Scroll to the first error element on the page */
   const scrollToFirstError = () => {
     // Find the first element with the class "placeholder:text-red-500"
@@ -269,6 +395,41 @@ export const useDocuments = () => {
     }
   } 
 
+  /**
+   * Async function to retrieve and update document data:
+   * - Fetches document record and populates `documentRecord` and `documentList`.
+   * - If `accessionNumber` is missing, attempts to fetch and merge scanning data.
+   */
+  const retrieveDocumentRecord = async (identifier: string) => {
+    try {
+      // Fetch Document Record
+      const { data } = await getDocumentRecord(identifier)
+      if (data.value) {
+        documentRecord.value = {
+          ...data.value[0],
+          consumerFilenames: data.value.map((record) => (record.consumerFilename)),
+          documentServiceIds: data.value.map((record) => (record.documentServiceId))
+        }
+        documentList.value = documentRecord.value.consumerFilenames?.map((file) => ({
+          name: file
+        }))
+
+        // Fetch Scanning Data
+        const scanningData = await getScanningRecord(documentRecord.value?.documentClass, identifier)
+        scanningDetails.value = { ...scanningData.data.value }
+
+        // Set Snapshots for change tracking
+        documentRecordSnapshot.value = { ...documentRecord.value }
+        documentListSnapshot.value = [...documentList.value]
+        scanningDetailsSnapshot.value = { ...scanningData.data.value }
+
+      }
+    } catch (error) {
+      console.warn('No record found', error)
+      navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
+    }
+  }
+
   watch(() => searchEntityId.value, (id: string) => {
     // Format Entity Identifier
     searchEntityId.value = id.replace(/\s+/g, '')?.toUpperCase()
@@ -278,7 +439,9 @@ export const useDocuments = () => {
 
   
   return {
+    hasDocumentRecordChanges,
     isValidIndexData,
+    isValidRecordEdit,
     findCategoryByPrefix,
     getDocumentTypesByClass,
     getDocumentDescription,
@@ -286,7 +449,10 @@ export const useDocuments = () => {
     downloadFileFromUrl,
     hasMinimumSearchCriteria,
     saveDocuments,
+    updateDocuments,
     scrollToFirstError,
-    getNextDocumentsPage
+    getNextDocumentsPage,
+    retrieveDocumentRecord,
+    fetchUrlAndDownload
   }
 }

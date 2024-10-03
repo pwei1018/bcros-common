@@ -29,6 +29,7 @@ export interface DocumentRequestIF {
   documentURL?: string
   queryStartDate?: string
   queryEndDate?: string
+  description?: string
 }
 
 // Define a type for the request data (if any)

@@ -7,7 +7,7 @@ defineProps({
   isTable: {
     type: Boolean,
     required: false,
-  },
+  }
 })
 </script>
 <template>

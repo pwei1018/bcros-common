@@ -5,6 +5,7 @@
  * @returns The ISO 8601 formatted date string with the correct timezone offset.
  */
 export const formatDateToISO = (dateString: string) => {
+  if (!dateString) return
   const date = new Date(dateString)
 
   // Format the date to ISO 8601 with timezone offset

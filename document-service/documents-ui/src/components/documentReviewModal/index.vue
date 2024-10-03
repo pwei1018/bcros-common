@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { formatToReadableDate } from '~/utils/dateHelper'
+import { getDocumentRecordReport } from '~/utils/documentRequests'
 const { getDocumentDescription } = useDocuments()
 const { displayDocumentReview, documentInfoRO } = storeToRefs(useBcrosDocuments())
 const loadingDocuments = ref(false)
@@ -12,7 +13,7 @@ const loadingDocuments = ref(false)
  */
 const requestDocumentRecord = async (consumerId: string) => {
   loadingDocuments.value = true
-  await getDocumentRecord(consumerId)
+  await getDocumentRecordReport(consumerId)
   loadingDocuments.value = false
 }
 </script>

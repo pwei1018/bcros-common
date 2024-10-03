@@ -123,7 +123,7 @@
       "uploadDate": "Upload Date and Time",
       "documentsUploaded": "Documents Uploaded",
       "documentListLabel": "Documents",
-      "scanningLabel": "Scanning Information",
+      "scanningLabel": "Scanning Document Details",
       "accessionNumber": "Accession Number",
       "batchId": "Batch ID",
       "pagesToScan": "Pages to Scan",
@@ -139,6 +139,20 @@
     "title": "Document Record",
     "description": "View and download your document record",
     "subtitle": "Document Record Information",
-    "editButton": "Edit Record"
+    "editButton": "Edit Record",
+    "cancelButton": "Cancel Editing Document Record"
+  },
+  "scanningDetails": {
+    "title": "Scanning Document Details",
+    "accessionNumber": "Accession Number",
+    "batchId": "Batch Number",
+    "pagesToScan": "Pages to Scan",
+    "scannedDate": "Scanned Date"
+  },
+  "cancelDialog": {
+    "title": "Cancel Document Record Changes",
+    "description": "This will undo any changes you have made and return you to the original state.",
+    "confirmButton": "Discard Changes",
+    "cancelButton": "Keep Changes"
   }
 }

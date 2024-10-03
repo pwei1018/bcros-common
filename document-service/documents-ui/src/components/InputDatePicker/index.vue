@@ -15,6 +15,10 @@ const props = defineProps({
     >,
     default: null,
   },
+  datePlaceholder: {
+    type: String,
+    default: 'Filing Date',
+  },
   disabled: {
     type: Boolean,
     default: false,
@@ -57,7 +61,7 @@ const datePlaceholder = computed(() => {
   <UPopover :popper="{ placement: 'bottom-start' }">
     <UInput
       class="w-full"
-      :placeholder="date ? datePlaceholder : 'Filing Date'"
+      :placeholder="date ? datePlaceholder : props.datePlaceholder"
       type="text"
       icon="i-mdi-calendar"
       :disabled="disabled"

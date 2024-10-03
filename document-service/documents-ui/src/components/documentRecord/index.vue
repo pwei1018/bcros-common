@@ -1,27 +1,21 @@
 <script setup lang="ts">
 import { formatToReadableDate } from '~/utils/dateHelper'
-import { getScanningRecord } from '~/utils/documentRequests'
-
 const emit = defineEmits(['openEdit'])
-const { documentRecord } = storeToRefs(useBcrosDocuments())
-const { downloadFileFromUrl, getDocumentDescription } = useDocuments()
-const identifier = useRoute()?.params?.identifier as string
-
-onMounted(async () => {
-  if (!documentRecord.value) {
-    // TODO: Fetch Record if absent (ie coming from another app with identifier) Requires isolated DocumentID Endpoint
-    await navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
-  }
-
-  if(!documentRecord.value?.accessionNumber) {
-    try {
-      const scanningData = await getScanningRecord(documentRecord.value.documentClass, identifier)
-      documentRecord.value = { ...documentRecord.value, ...scanningData }
-    } catch (error) {
-      console.error('Error fetching document scanning record', error)
-    }
+defineProps({
+  isReviewMode: {
+    type: Boolean,
+    default: false
   }
 })
+const {
+  documentList,
+  documentListSnapshot,
+  documentRecord,
+  documentRecordSnapshot,
+  scanningDetails,
+  scanningDetailsSnapshot
+} = storeToRefs(useBcrosDocuments())
+const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
 </script>
 <template>
   <ContentWrapper
@@ -32,8 +26,11 @@ onMounted(async () => {
   >
     <template #header>
       <div class="flex justify-between">
-        <div>{{ $t('documentRecord.subtitle') }}</div>
-        <div>
+        <div class="flex">
+          <UIcon name="i-mdi-text-box" class="w-6 h-6 text-blue-350" />
+          <div class="ml-2">{{ $t('documentRecord.subtitle') }}</div>
+        </div>
+        <div v-if="!isReviewMode">
           <UButton
             variant="ghost"
             icon="i-mdi-pencil"
@@ -46,63 +43,123 @@ onMounted(async () => {
     </template>
     <template #content>
       <div class="grid grid-cols-3 auto-rows-max">
-
         <!-- Document Meta Data -->
-        <span class="font-bold">{{ $t('documentReview.labels.entityId') }} </span>
-        <span class="col-span-2">{{ documentRecord.consumerIdentifier || 'Not Entered' }}</span>
-
-        <span class="font-bold">{{ $t('documentReview.labels.documentId') }} </span>
+        <span class="font-bold">{{ $t('documentReview.labels.documentId') }}</span>
         <span class="col-span-2">{{ documentRecord.consumerDocumentId }}</span>
 
-        <span class="font-bold">{{ $t('documentReview.labels.documentCategory') }} </span>
+        <span class="font-bold grid">
+          {{ $t('documentReview.labels.entityId') }}
+          <HasChangesBadge
+            v-if="isReviewMode"
+            class="w-[65px]"
+            :baseline="documentRecordSnapshot.consumerIdentifier"
+            :current-state="documentRecord.consumerIdentifier"
+          />
+        </span>
+        <span class="col-span-2">{{ documentRecord.consumerIdentifier || 'Not Entered' }}</span>
+
+        <span class="font-bold grid">
+          {{ $t('documentReview.labels.documentCategory') }}
+          <HasChangesBadge
+            v-if="isReviewMode"
+            class="w-[65px]"
+            :baseline="documentRecordSnapshot.documentClass"
+            :current-state="documentRecord.documentClass"
+          />
+        </span>
         <span class="col-span-2">{{ getDocumentDescription(documentRecord.documentClass) }}</span>
 
-        <span class="font-bold">{{ $t('documentReview.labels.documentType') }} </span>
+        <span class="font-bold grid">
+          {{ $t('documentReview.labels.documentType') }}
+          <HasChangesBadge
+            v-if="isReviewMode"
+            class="w-[65px]"
+            :baseline="documentRecordSnapshot.documentType"
+            :current-state="documentRecord.documentType"
+          />
+        </span>
         <span class="col-span-2">{{ getDocumentDescription(documentRecord.documentType, true) }}</span>
 
-        <span class="font-bold">{{ $t('documentReview.labels.filingDate') }} </span>
+        <span class="font-bold grid">
+          {{ $t('documentReview.labels.description') }}
+          <HasChangesBadge
+            v-if="isReviewMode"
+            class="w-[65px]"
+            :baseline="documentRecordSnapshot.description"
+            :current-state="documentRecord.description"
+          />
+        </span>
+        <span class="col-span-2">{{ documentRecord.description }}</span>
+
+        <span class="font-bold grid">
+          {{ $t('documentReview.labels.filingDate') }}
+          <HasChangesBadge
+            v-if="isReviewMode"
+            class="w-[65px]"
+            :baseline="documentRecordSnapshot.consumerFilingDateTime"
+            :current-state="documentRecord.consumerFilingDateTime"
+          />
+        </span>
         <span class="col-span-2">
-          {{ formatToReadableDate(documentRecord.consumerFilingDateTime) || 'Not Entered' }}
+          {{ formatToReadableDate(documentRecord.consumerFilingDateTime, true) || 'Not Entered' }}
         </span>
 
-        <span class="font-bold">{{ $t('documentReview.labels.uploadDate') }} </span>
-        <span class="col-span-2">{{ formatToReadableDate(documentRecord.createDateTime) }}</span>
+        <span class="font-bold">{{ $t('documentReview.labels.author') }}</span>
+        <span class="col-span-2">{{ scanningDetails?.author }}</span>
 
         <!-- Scanning Information -->
         <UDivider class="my-6 col-span-3" />
-        <span class="font-bold">{{ $t('documentReview.labels.scanningLabel') }} </span>
+        <span class="font-bold grid">
+          {{ $t('documentReview.labels.scanningLabel') }}
+          <HasChangesBadge
+            v-if="isReviewMode"
+            class="w-[65px]"
+            :baseline="scanningDetailsSnapshot"
+            :current-state="scanningDetails"
+          />
+        </span>
         <span class="col-span-2"/>
 
-        <span class="font-bold">{{ $t('documentReview.labels.accessionNumber') }} </span>
-        <span class="col-span-2">{{ documentRecord.accessionNumber }}</span>
+        <span class="font-bold">{{ $t('documentReview.labels.accessionNumber') }}</span>
+        <span class="col-span-2">{{ scanningDetails?.accessionNumber }}</span>
 
-        <span class="font-bold">{{ $t('documentReview.labels.batchId') }} </span>
-        <span class="col-span-2">{{ documentRecord.batchId }}</span>
+        <span class="font-bold">{{ $t('documentReview.labels.batchId') }}</span>
+        <span class="col-span-2">{{ scanningDetails?.batchId }}</span>
 
-        <span class="font-bold">{{ $t('documentReview.labels.pagesToScan') }} </span>
-        <span class="col-span-2">{{ documentRecord.pageCount }}</span>
+        <span class="font-bold">{{ $t('documentReview.labels.pagesToScan') }}</span>
+        <span class="col-span-2">{{ scanningDetails?.pageCount }}</span>
 
-        <span class="font-bold">{{ $t('documentReview.labels.scannedDate') }} </span>
-        <span class="col-span-2">{{ documentRecord.scanDateTime }}</span>
-
-        <span class="font-bold">{{ $t('documentReview.labels.author') }} </span>
-        <span class="col-span-2">{{ documentRecord.author }}</span>
+        <span class="font-bold">{{ $t('documentReview.labels.scannedDate') }}</span>
+        <span class="col-span-2">
+          {{ scanningDetails?.scanDateTime ? formatToReadableDate(scanningDetails?.scanDateTime, true) : '' }}
+        </span>
 
         <!-- Document Files -->
         <UDivider class="my-6 col-span-3" />
 
-        <span class="font-bold">{{ $t('documentReview.labels.documentListLabel') }}</span>
+        <span class="font-bold grid">
+          {{ $t('documentReview.labels.documentListLabel') }}
+          <HasChangesBadge
+            v-if="isReviewMode"
+            class="w-[65px]"
+            :baseline="documentListSnapshot"
+            :current-state="documentList"
+          />
+        </span>
         <span class="col-span-2 flex flex-col">
           <span
-            v-for="(file, i) in documentRecord.consumerFilenames"
+            v-for="(file, i) in documentList"
             :key="`file-${i}`"
             class="spanLink pb-2"
           >
              <ULink
                inactive-class="text-primary underline"
-               @click="downloadFileFromUrl(documentRecord.documentUrls[i], file)"
+               :disabled="isReviewMode"
+               @click="
+                fetchUrlAndDownload(documentRecordSnapshot.documentClass, documentRecordSnapshot.documentServiceIds[i])
+               "
              >
-               {{ file }}
+               {{ file.name }}
              </ULink>
           </span>
         </span>
@@ -111,7 +168,7 @@ onMounted(async () => {
   </ContentWrapper>
 </template>
 <style scoped lang="scss">
-span:not(.spanLink) {
+span:not(.spanLink, #updated-badge-component) {
   padding: 0.5rem 0;
 }
 </style>

@@ -13,7 +13,7 @@ defineProps({
   >
     <div
       :data-cy="'form_label_' + name"
-      class="col-span-1"
+      class="col-span-1 pr-5"
     >
       <slot name="label" />
     </div>

@@ -26,9 +26,13 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     description: '',
     consumerFilingDate: '',
     documentList: [],
+    documentListSnapshot: [],
+    scanningDetails: null,
+    scanningDetailsSnapshot: null,
 
     // Validations
     validateIndex: false,
+    validateRecordEdit: false,
     isLoading: false,
     validateDocumentSearch: false,
 
@@ -37,9 +41,11 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     documentInfoRO: null as DocumentInfoIF,
     documentSearchResults: [],
     documentRecord: null,
+    documentRecordSnapshot: null,
 
     // Document Editing
-    isEditing: false
+    isEditing: false,
+    isEditingReview: false,
   })
 
   // Initial state

@@ -5,17 +5,17 @@ defineProps({
     default: 'Tombstone Default Title'
   }
 })
-const { documentRecord } = storeToRefs(useBcrosDocuments())
 </script>
 <template>
   <div
     data-cy="tombstone"
     class="w-full bg-white"
   >
-    <div class="app-inner-container h-[100px] content-center">
-      <span class="text-[22px] font-bold text-gray-900">
-        {{ $t('documentReview.labels.documentId') + ' ' + documentRecord.consumerDocumentId }}
-      </span>
+    <div
+      v-if="tombstoneTitle"
+      class="app-inner-container h-[100px] content-center"
+    >
+      <span class="text-[22px] font-bold text-gray-900">{{ tombstoneTitle }}</span>
     </div>
   </div>
 </template>

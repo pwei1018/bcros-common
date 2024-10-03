@@ -26,9 +26,13 @@ export interface DocumentStateIF {
   description: string
   consumerFilingDate: string
   documentList: Array<any>
+  documentListSnapshot: Array<any>
+  scanningDetails: ScanningDetailIF | null
+  scanningDetailsSnapshot: ScanningDetailIF | null
 
   // Validations
   validateIndex: boolean
+  validateRecordEdit: boolean
   isLoading: boolean
   validateDocumentSearch: boolean
 
@@ -37,9 +41,11 @@ export interface DocumentStateIF {
   documentInfoRO: DocumentInfoIF | null
   documentSearchResults: DocumentRequestIF[]
   documentRecord: DocumentInfoIF | null
+  documentRecordSnapshot: DocumentInfoIF | null
 
   // Document Editing
   isEditing: boolean
+  isEditingReview: boolean
 }
 
 export interface DocumentDetailIF {
@@ -63,6 +69,7 @@ export interface DocumentInfoIF {
   createDateTime: string
   documentClass: string
   documentServiceId: string
+  documentServiceIds: Array<string>
   documentType: string
   documentTypeDescription?: string
   documentDescription: string
@@ -71,8 +78,11 @@ export interface DocumentInfoIF {
   consumerFilenames?: Array<string>
   documentUrls?: Array<string>
   documentList?: Array<any>
+  description?: string
+}
 
-  // Scanning properties
+// Scanning properties
+export interface ScanningDetailIF {
   scanDateTime: string
   accessionNumber: string
   batchId: string
