@@ -108,6 +108,7 @@ def update_document_scanning(doc_class: str, consumer_doc_id: str):
                 f"PATCH document scanning class={doc_class}", consumer_doc_id
             )
         doc_scan.update(request_json)
+        doc_scan.save()
         response_json = doc_scan.json
         logger.info(f"patch_document_scanning returning response {response_json}")
         return jsonify(response_json), HTTPStatus.OK

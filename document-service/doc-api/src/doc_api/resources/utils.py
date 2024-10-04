@@ -17,7 +17,7 @@ from http import HTTPStatus
 from flask import jsonify, request
 
 from doc_api.exceptions import ResourceErrorCodes
-from doc_api.models import Document, DocumentRequest, User, db, search_utils
+from doc_api.models import Document, DocumentRequest, DocumentScanning, User, db, search_utils
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, RequestTypes
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
@@ -256,8 +256,11 @@ def update_request_info(
         info.consumer_doc_id = request_json.get(PARAM_CONSUMER_DOC_ID)
         info.consumer_filename = request_json.get(PARAM_CONSUMER_FILENAME)
         info.consumer_filedate = request_json.get(PARAM_CONSUMER_FILEDATE)
+        if not info.consumer_filedate and request_json.get("consumerFilingDateTime"):
+            info.consumer_filedate = request_json.get("consumerFilingDateTime")
         info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
         info.description = request_json.get(PARAM_DESCRIPTION)
+        info.request_data = request_json
     info.staff = staff
     info.content_type = req.headers.get(PARAM_CONTENT_TYPE)
     if info.content_type:
@@ -330,23 +333,33 @@ def save_add(info: RequestInfo, token, raw_data) -> dict:
 
 
 def save_update(info: RequestInfo, document: Document, token) -> dict:
-    """Save updated document information. Return the updated information."""
+    """Save updated document information including optional document scanning. Return the updated information."""
     logger.info("save_update starting, getting user from token...")
     user: User = User.get_or_create_user_by_jwt(token, info.account_id)
-    logger.info("save_update updating Document model...")
-    if info.consumer_doc_id:
-        document.consumer_document_id = info.consumer_doc_id
-    if info.consumer_identifier:
-        document.consumer_identifier = info.consumer_identifier
-    if info.consumer_filename:
-        document.consumer_filename = info.consumer_filename
-    if info.description:
-        document.description = info.description
-    if info.consumer_filedate:
-        document.consumer_filing_date = model_utils.ts_from_iso_date_noon(info.consumer_filedate)
+    doc_scan: DocumentScanning = None
+    update_doc_id: str = info.request_data.get("consumerDocumentId") if info.request_data else None
+    update_doc_class: str = info.request_data.get("documentClass") if info.request_data else None
+    if info.request_data and info.request_data.get("scanningInformation"):
+        scan_json = info.request_data.get("scanningInformation")
+        doc_scan = DocumentScanning.find_by_document_id(document.consumer_document_id, document.document_class)
+        if not doc_scan and update_doc_id and update_doc_class:
+            doc_scan = DocumentScanning.find_by_document_id(update_doc_id, update_doc_class)
+        if doc_scan:
+            logger.info("save_update found existing scanning record to update")
+            doc_scan.update(scan_json, update_doc_id, update_doc_class)
+        else:
+            logger.info("save_update no existing scanning record to update: creating one.")
+            if not update_doc_id:
+                update_doc_id = document.consumer_document_id
+            if not update_doc_class:
+                update_doc_class = document.document_class
+            doc_scan = DocumentScanning.create_from_json(scan_json, update_doc_id, update_doc_class)
+    document.update(info.request_data)
     logger.info("save_update saving updated document model and document_request...")
     doc_request: DocumentRequest = build_doc_request(info, user, document.id)
     db.session.add(document)
+    if doc_scan:
+        db.session.add(doc_scan)
     db.session.add(doc_request)
     db.session.commit()
     doc_json = document.json

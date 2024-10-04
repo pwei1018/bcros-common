@@ -92,9 +92,9 @@ class Document(db.Model):
             document["description"] = self.description
         if self.consumer_filing_date:
             document["consumerFilingDateTime"] = model_utils.format_ts(self.consumer_filing_date)
-        if len(self.consumer_document_id) < 10 and document.get("documentClass"):
+        if len(self.consumer_document_id) < 10 and self.document_class:
             scan_doc: DocumentScanning = DocumentScanning.find_by_document_id(
-                self.consumer_document_id, document.get("documentClass")
+                self.consumer_document_id, self.document_class
             )
             if scan_doc:
                 scan_json = scan_doc.json
@@ -196,6 +196,27 @@ class Document(db.Model):
         """Store the Document into the local cache."""
         db.session.add(self)
         db.session.commit()
+
+    def update(self, request_data: dict):
+        """Update the Document Information."""
+        if not request_data:
+            return
+        if request_data.get("consumerDocumentId"):
+            self.consumer_document_id = request_data.get("consumerDocumentId")
+        if request_data.get("consumerIdentifier"):
+            self.consumer_identifier = request_data.get("consumerIdentifier")
+        if request_data.get("consumerFilename"):
+            self.consumer_filename = request_data.get("consumerFilename")
+        if request_data.get("description"):
+            self.description = request_data.get("description")
+        if request_data.get("consumerFilingDateTime"):
+            self.consumer_filing_date = model_utils.ts_from_iso_date_noon(request_data["consumerFilingDateTime"])
+        elif request_data.get("consumerFilingDate"):
+            self.consumer_filing_date = model_utils.ts_from_iso_date_noon(request_data.get("consumerFilingDate"))
+        if request_data.get("documentType"):
+            self.document_type = request_data.get("documentType")
+        if request_data.get("documentClass"):
+            self.document_class = request_data.get("documentClass")
 
     @staticmethod
     def create_from_json(doc_json: dict, doc_type: str):

@@ -16,7 +16,7 @@ import copy
 
 import pytest
 
-from doc_api.models import Document, DocumentRequest, User
+from doc_api.models import Document, DocumentRequest, DocumentScanning, User
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, DocumentTypes, RequestTypes
 from doc_api.resources import utils as resource_utils
@@ -54,6 +54,31 @@ TEST_TOKEN = {
     "loginSource": "source_TEST1",
 }
 TEST_FILENAME = "updated_name.pdf"
+DOC_SCAN = {
+    "consumerDocumentId": "T0000002",
+    "scanDateTime": "2024-07-01T19:00:00+00:00",
+    "documentClass": "PPR",
+    "accessionNumber": "AN-0001",
+    "batchId": "1234",
+    "author": "Jane Smith",
+    "pageCount": 3,
+}
+UPDATE_DOC_SCAN = {
+    "scanDateTime": "2024-08-15T19:00:00+00:00",
+    "accessionNumber": "AN-0002",
+    "batchId": "12345",
+    "author": "Janet Smith",
+    "pageCount": 4,
+}
+UPDATE_DOC = {
+    "consumerDocumentId": "T0000002",
+    "consumerFilename": "test-update.pdf",
+    "consumerIdentifier": "CI-0000002",
+    "documentType": "CORP_MISC",
+    "documentClass": "CORP",
+    "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
+    "description": "Updated description of the document.",
+}
 
 # testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff})
 TEST_DATA_REQUEST_INFO = [
@@ -93,9 +118,12 @@ TEST_DATA_STORAGE_TYPES = [
     (DocumentClasses.NR, StorageDocTypes.NR),
     (DocumentClasses.PPR, StorageDocTypes.PPR),
 ]
-# testdata pattern is ({document}, {token}, {doc_id}, {cons_id}, {filename}, {filing_date}, {doc_class}, {desc})
+# testdata pattern is ({document}, {token}, {doc_class}, {scan_info}, {update_scan_info}, {update_class_type})
 TEST_UPDATE_DATA = [
-    (TEST_DOCUMENT, TEST_TOKEN, "UT9999", "NEW_ID", "new_name.pdf", "2024-08-08", DocumentClasses.PPR.value, "NEW")
+    (TEST_DOCUMENT, TEST_TOKEN, DocumentClasses.PPR.value, None, None, True),
+    (TEST_DOCUMENT, TEST_TOKEN, DocumentClasses.PPR.value, DOC_SCAN, None, False),
+    (TEST_DOCUMENT, TEST_TOKEN, DocumentClasses.PPR.value, None, UPDATE_DOC_SCAN, False),
+    (TEST_DOCUMENT, TEST_TOKEN, DocumentClasses.PPR.value, DOC_SCAN, UPDATE_DOC_SCAN, True)
 ]
 # testdata pattern is ({document}, {token}, {filename})
 TEST_REPLACE_DATA = [(TEST_DOCUMENT, TEST_TOKEN, TEST_FILENAME)]
@@ -129,35 +157,65 @@ def test_save_replace(session, document, token, filename):
     assert result.get("documentURL")
 
 
-@pytest.mark.parametrize("document,token,doc_id,cons_id,filename,filing_date,doc_class,desc", TEST_UPDATE_DATA)
-def test_save_update(session, document, token, doc_id, cons_id, filename, filing_date, doc_class, desc):
+@pytest.mark.parametrize("document,token,,doc_class,scan_info,update_scan_info,update_class_type", TEST_UPDATE_DATA)
+def test_save_update(session, document, token, doc_class, scan_info,  update_scan_info, update_class_type):
     """Assert that patch request resource_utils.save_update works as expected."""
     doc: Document = copy.deepcopy(document)
+    doc.save()
+    if scan_info:
+        scan_doc: DocumentScanning = DocumentScanning.create_from_json(scan_info,
+                                                                       UPDATE_DOC.get("consumerDocumentId"),
+                                                                       doc_class)
+        scan_doc.id = 200000000
+        scan_doc.save()
     info: RequestInfo = RequestInfo(RequestTypes.UPDATE.value, None, doc.document_type, None)
+    request_data = copy.deepcopy(UPDATE_DOC)
+    if not update_class_type:
+        del request_data["documentType"]
+        del request_data["documentClass"]
+    if update_scan_info:
+        request_data['scanningInformation'] = update_scan_info
+    info.request_data = request_data
     info.account_id = "1234"
     info.document_class = doc_class
-    info.consumer_doc_id = doc_id
-    info.consumer_identifier = cons_id
-    info.consumer_filename = filename
-    info.consumer_filedate = filing_date
-    info.description = desc
-    doc.save()
-    assert doc.description == "Original"
+    info.consumer_doc_id = request_data.get("consumerDocumentId")
+    info.consumer_identifier = request_data.get("consumerIdentifier")
+    info.consumer_filename = request_data.get("consumerFilename")
+    info.consumer_filedate = request_data.get("consumerFilingDateTime")
+    info.description = request_data.get("description")
     result = resource_utils.save_update(info, doc, token)
     assert result.get("documentServiceId")
     assert result.get("createDateTime")
-    assert result.get("documentType")
     assert result.get("documentTypeDescription")
-    assert result.get("documentClass")
-    assert result.get("consumerDocumentId") == doc_id
-    assert result.get("consumerIdentifier") == cons_id
-    assert result.get("consumerFilename") == filename
-    assert str(result.get("consumerFilingDateTime"))[:10] == filing_date
-    assert not result.get("documentURL")
-    if desc:
-        assert result.get("description") == desc
+    if update_class_type:
+        assert result.get("documentType") == request_data.get("documentType")
+        assert result.get("documentClass") == request_data.get("documentClass")
     else:
-        assert result.get("description") == doc.description
+        assert result.get("documentType") == doc.document_type
+        assert result.get("documentClass") == doc.document_class
+    assert result.get("consumerDocumentId") == request_data.get("consumerDocumentId")
+    assert result.get("consumerFilename") == request_data.get("consumerFilename")
+    assert result.get("consumerIdentifier") == request_data.get("consumerIdentifier")
+    assert result.get("description") == request_data.get("description")
+    assert result.get("consumerFilingDateTime") == request_data.get("consumerFilingDateTime")
+    assert not result.get("documentURL")
+    if scan_info or update_scan_info:
+        assert result.get("scanningInformation")
+        scan_json = result.get("scanningInformation")
+        if not update_scan_info:
+            assert scan_json.get("scanDateTime") == scan_info.get("scanDateTime")
+            assert scan_json.get("accessionNumber") == scan_info.get("accessionNumber")
+            assert scan_json.get("batchId") == scan_info.get("batchId")
+            assert scan_json.get("author") == scan_info.get("author")
+            assert scan_json.get("pageCount") == scan_info.get("pageCount")
+        else:
+            assert scan_json.get("scanDateTime") == update_scan_info.get("scanDateTime")
+            assert scan_json.get("accessionNumber") == update_scan_info.get("accessionNumber")
+            assert scan_json.get("batchId") == update_scan_info.get("batchId")
+            assert scan_json.get("author") == update_scan_info.get("author")
+            assert scan_json.get("pageCount") == update_scan_info.get("pageCount")
+    else:
+        assert not result.get("scanningInformation")
 
 
 @pytest.mark.parametrize("doc_class,start_offset,doc_type,cons_id,no_results", TEST_DATA_DOC_DATES)

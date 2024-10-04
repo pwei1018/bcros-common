@@ -106,7 +106,7 @@ class DocumentScanning(db.Model):
         db.session.add(self)
         db.session.commit()
 
-    def update(self, scan_json: dict):
+    def update(self, scan_json: dict, consumer_doc_id: str = None, doc_class: str = None):
         """Update the Document Scanning Information."""
         if scan_json.get("scanDateTime"):
             self.scan_date = model_utils.ts_from_iso_date_noon(scan_json.get("scanDateTime"))
@@ -118,8 +118,10 @@ class DocumentScanning(db.Model):
             self.page_count = scan_json.get("pageCount")
         if scan_json.get("author"):
             self.author = scan_json.get("author")
-        db.session.add(self)
-        db.session.commit()
+        if consumer_doc_id:
+            self.consumer_document_id = consumer_doc_id
+        if doc_class:
+            self.document_class = doc_class
 
     @staticmethod
     def create_from_json(scan_json: dict, consumer_doc_id: str, doc_class: str):

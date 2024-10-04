@@ -56,8 +56,11 @@ TEST_ID_DATA = [
     (200000001, True, "99990000", DocumentClasses.PPR.value),
     (300000000, False, "99990000", DocumentClasses.PPR.value),
 ]
-# testdata pattern is ({id}, {consumer_doc_id), {doc_class})
-TEST_UPDATE_DATA = [(200000001, "99990000", DocumentClasses.PPR.value)]
+# testdata pattern is ({id}, {consumer_doc_id), {doc_class}, {update_doc_id}, {update_doc_class})
+TEST_UPDATE_DATA = [
+    (200000001, "99990000", DocumentClasses.PPR.value, None, None),
+    (200000001, "99990000", DocumentClasses.PPR.value, "99990000", DocumentClasses.CORP.value),
+]
 # testdata pattern is ({consumer_doc_id}, {doc_type})
 TEST_CREATE_JSON_DATA = [("99990000", DocumentClasses.PPR.value), ("99990001", DocumentClasses.MHR.value)]
 # testdata pattern is ({batch_id}, {accession_num}, {query_accession_num}, {expected_id})
@@ -113,23 +116,31 @@ def test_find_by_consumer_id(session, scan_id, has_results, cons_doc_id, doc_cla
         assert scan_json.get("scanDateTime")
 
 
-@pytest.mark.parametrize("scan_id, cons_doc_id, doc_class", TEST_UPDATE_DATA)
-def test_update(session, scan_id, cons_doc_id, doc_class):
+@pytest.mark.parametrize("scan_id, cons_doc_id, doc_class, update_doc_id, update_doc_class", TEST_UPDATE_DATA)
+def test_update(session, scan_id, cons_doc_id, doc_class, update_doc_id, update_doc_class):
     """Assert that update document scanning by consumer identifier and document class contains all expected elements."""
     save_scan: DocumentScanning = DocumentScanning.create_from_json(DOC_SCAN1, cons_doc_id, doc_class)
     save_scan.id = scan_id
     save_scan.save()
     assert save_scan.id
-    assert save_scan.consumer_document_id
-    save_scan.update(DOC_SCAN2)
-    doc_scan: DocumentScanning = DocumentScanning.find_by_document_id(cons_doc_id, doc_class)
+    assert save_scan.consumer_document_id == cons_doc_id
+    assert save_scan.document_class == doc_class
+    save_scan.update(DOC_SCAN2, update_doc_id, update_doc_class)
+    if update_doc_id:
+        assert save_scan.consumer_document_id == update_doc_id
+    if update_doc_class:
+        assert save_scan.document_class == update_doc_class
+    save_scan.save()
+    test_doc_id: str = update_doc_id if update_doc_id else cons_doc_id
+    test_doc_class: str = update_doc_class if update_doc_class else doc_class
+    doc_scan: DocumentScanning = DocumentScanning.find_by_document_id(test_doc_id, test_doc_class)
     assert doc_scan
     assert doc_scan.consumer_document_id == save_scan.consumer_document_id
-    assert doc_scan.document_class == doc_class
+    assert doc_scan.document_class == save_scan.document_class
     scan_json = doc_scan.json
     assert scan_json
-    assert scan_json.get("documentClass") == doc_class
-    assert scan_json.get("consumerDocumentId") == cons_doc_id
+    assert scan_json.get("documentClass") == test_doc_class
+    assert scan_json.get("consumerDocumentId") == test_doc_id
     assert scan_json.get("scanDateTime") == DOC_SCAN2.get("scanDateTime")
     assert scan_json.get("accessionNumber") == DOC_SCAN2.get("accessionNumber")
     assert scan_json.get("batchId") == DOC_SCAN2.get("batchId")

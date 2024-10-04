@@ -37,6 +37,7 @@ class RequestInfo:
     has_payload: bool = False
     page_number: int = 1
     description: str = None
+    request_data: dict = None
 
     def __init__(self, request_type: str, request_path: str, doc_type: str, doc_storage_type):
         """Set common base initialization."""
@@ -67,4 +68,6 @@ class RequestInfo:
             info["requestPath"] = self.request_path
         if self.page_number:
             info["pageNumber"] = self.page_number
+        if self.request_data:
+            info["requestData"] = self.request_data
         return info

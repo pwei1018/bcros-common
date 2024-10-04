@@ -40,6 +40,15 @@ DOC_SCAN = {
     "author": "Janet Smith",
     "pageCount": 4,
 }
+UPDATE_DOC = {
+    "consumerDocumentId": "T0000002",
+    "consumerFilename": "test-update.pdf",
+    "consumerIdentifier": "CI-0000002",
+    "documentType": "CORP_MISC",
+    "documentClass": "CORP",
+    "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
+    "description": "Updated description of the document.",
+}
 TEST_DOCUMENT = Document(
     id=1,
     document_service_id="1",
@@ -76,6 +85,11 @@ TEST_CONSUMER_ID_DATA = [
 ]
 # testdata pattern is ({has_doc_id}, {doc_type})
 TEST_CREATE_JSON_DATA = [(True, DocumentTypes.CORP_MISC.value), (False, DocumentTypes.MHR_MISC.value)]
+# testdata pattern is ({doc_info}, {update_doc_info}, {update_class_type})
+TEST_UPDATE_JSON_DATA = [
+    (DOC1, UPDATE_DOC, True),
+    (DOC1, UPDATE_DOC, False)
+]
 
 
 @pytest.mark.parametrize("id, has_results, doc_type, doc_class", TEST_ID_DATA)
@@ -132,6 +146,7 @@ def test_find_by_document_id(session, id, has_results, doc_type, doc_class, has_
             scan_doc.id = 200000000
             scan_doc.save()
         save_doc: Document = Document.create_from_json(DOC1, doc_type)
+        save_doc.document_class = doc_class
         save_doc.save()
         assert save_doc.id
         assert save_doc.document_service_id
@@ -212,3 +227,37 @@ def test_create_from_json(session, has_doc_id, doc_type):
     assert document.consumer_filename == json_data.get("consumerFilename")
     assert document.consumer_identifier == json_data.get("consumerIdentifier")
     assert document.description == json_data.get("description")
+
+
+@pytest.mark.parametrize("doc_info, update_doc_info, update_class_type", TEST_UPDATE_JSON_DATA)
+def test_update(session, doc_info, update_doc_info, update_class_type):
+    """Assert that updating document information contains all expected elements."""
+
+    save_doc: Document = Document.create_from_json(doc_info, doc_info.get("documentType"))
+    save_doc.document_class = doc_info.get("documentClass")
+    save_doc.save()
+    assert save_doc.id
+    assert save_doc.document_service_id
+    assert save_doc.consumer_document_id
+    if not update_class_type:
+        del update_doc_info["documentType"]
+        del update_doc_info["documentClass"]
+    save_doc.update(update_doc_info)
+    save_doc.save()
+    update_doc: Document = Document.find_by_doc_service_id(save_doc.document_service_id)
+    assert update_doc
+    assert update_doc.consumer_document_id == save_doc.consumer_document_id
+    if update_class_type:
+        assert update_doc.document_type == update_doc_info["documentType"]
+        assert update_doc.document_class == update_doc_info["documentClass"]
+    else:
+        assert update_doc.document_type == doc_info["documentType"]
+        assert update_doc.document_class == doc_info["documentClass"]
+    doc_json = update_doc.json
+    assert doc_json
+    assert doc_json.get("documentClass")
+    assert doc_json.get("documentTypeDescription")
+    assert doc_json.get("consumerDocumentId") == update_doc_info.get("consumerDocumentId")
+    assert doc_json.get("consumerFilename") == update_doc_info.get("consumerFilename")
+    assert doc_json.get("consumerIdentifier") == update_doc_info.get("consumerIdentifier")
+    assert doc_json.get("consumerFilingDateTime") == update_doc_info.get("consumerFilingDateTime")
