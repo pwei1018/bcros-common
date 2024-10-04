@@ -26,6 +26,7 @@ const {
 const documentRecordsTableRef = ref(null)
 const columnsToShow = ref(documentResultColumns)
 const isDescriptionExpanded = ref({})
+const entityTypes = ref([])
 
 const isFiltered = computed(() => {
   return (
@@ -33,7 +34,8 @@ const isFiltered = computed(() => {
     !!searchEntityId.value ||
     !!searchDocuments.value ||
     !!searchDocumentType.value ||
-    !!searchDateRange.value
+    !!searchDateRange.value?.start ||
+    !!searchDateRange.value?.end
   )
 })
 
@@ -71,6 +73,20 @@ onMounted(() => {
   if (tableElement) {
     tableElement.addEventListener("scroll", handleTableScroll)
   }
+  // Insert empty options to document types for break lines on entity type.
+  let currentRegistry = documentTypes[0].documents[0].productCode
+  documentTypes.forEach((docType) => {
+    // Insert empty option before new productCode(registry).
+    if (currentRegistry !== docType.documents[0].productCode) {
+      entityTypes.value.push({
+        class: 'BreakLine',
+        description: '',
+        disabled: true
+      })
+      currentRegistry = docType.documents[0].productCode
+    }
+    entityTypes.value.push(docType)
+  })
 })
 
 onBeforeUnmount(() => {
@@ -98,7 +114,7 @@ onBeforeUnmount(() => {
             v-model="searchEntityType"
             :placeholder="$t('documentSearch.table.headers.entityType')"
             class="text-gray-700 font-light w-[300px]"
-            :options="documentTypes"
+            :options="entityTypes"
             value-attribute="class"
             option-attribute="description"
             size="md"
@@ -106,8 +122,22 @@ onBeforeUnmount(() => {
               icon: { trailing: { pointer: '' } },
               size: { md: 'h-[44px]' },
             }"
-            :ui-menu="{ height: 'max-h-65 h-[355px]' }"
+            :ui-menu="{ 
+              height: 'max-h-65 h-[355px] w-full',
+              option: {
+                base: 'h-fit',
+                padding: 'p-0',
+                container: 'w-full h-fit'
+              }
+            }"
           >
+            <template #option="{option}">
+              <UDivider
+                v-if="option.class === 'BreakLine'"
+              />
+              <span v-else class="truncate px-3 py-2 h-[44px] flex items-center">{{ option.description }}</span>
+              
+            </template>
             <template #trailing>
               <UButton
                 v-show="searchEntityType !== ''"
@@ -287,7 +317,7 @@ onBeforeUnmount(() => {
             </span>
             <span class="my-2">
               <ULink inactive-class="text-primary" class="flex align-center">
-                <UIcon name="i-mdi-download mr-1.5" class="w-5 h-5" />
+                <UIcon name="i-mdi-download" class="w-5 h-5 mr-1.5" />
                 {{ $t("documentSearch.table.downloadAll") }}
               </ULink>
             </span>

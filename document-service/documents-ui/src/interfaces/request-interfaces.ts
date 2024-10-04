@@ -19,8 +19,8 @@ export interface DocumentRequestIF {
   pageNumber?: number
   documentServiceId?: string
   consumerDocumentId?: string
-  documentClass: string
-  documentType: string
+  documentClass?: string
+  documentType?: string
   description?: string
   consumerIdentifier?: string
   consumerFilingDate?: string
@@ -29,7 +29,6 @@ export interface DocumentRequestIF {
   documentURL?: string
   queryStartDate?: string
   queryEndDate?: string
-  description?: string
 }
 
 // Define a type for the request data (if any)
