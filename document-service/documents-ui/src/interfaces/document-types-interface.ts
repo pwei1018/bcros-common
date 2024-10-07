@@ -6,7 +6,7 @@ export interface DocumentStateIF {
   searchDocumentId: string
   searchEntityId: string
   searchEntityType: string
-  searchDocuments: string
+  searchDocument: string
   searchDocumentClass: string
   searchDocumentType: string
   searchDateRange: {

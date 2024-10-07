@@ -51,7 +51,31 @@ export const documentTypes: Array<DocumentClassIF> = [
       { type: 'COPN', description: 'Change of Proprietor\'s Name', productCode: 'business' }
     ]
   },
-  
+  {
+    class: 'LP_LLP',
+    description: 'Limited Partnership/Limited Liability Partnership',
+    prefixes: ['LL', 'LP', 'XL', 'XP'],
+    documents: [
+      { type: 'ADDR', description: 'Address', productCode: 'business' },
+      { type: 'ANNR', description: 'Annual Report', productCode: 'business' },
+      { type: 'ATTN', description: 'Attorney', productCode: 'business' },
+      { type: 'FILE', description: 'COLIN Filing', productCode: 'business' },
+      { type: 'CHNM', description: 'Change Of Name', productCode: 'business' },
+      { type: 'CONT', description: 'Consent', productCode: 'business' },
+      { type: 'CNVF', description: 'Conversion of Firm', productCode: 'business' },
+      { type: 'CORSP', description: 'Correspondence', productCode: 'business' },
+      { type: 'LPRG', description: 'LP and LLP Registration', productCode: 'business' }
+    ]
+  },
+  {
+    class: 'NR',
+    description: 'Name Requests',
+    prefixes: ['NR'],
+    documents: [
+      { type: 'NR_MISC', description: 'Name requests miscellaneous documents', productCode: 'nro' },
+      { type: 'CONS', description: 'NR Consent Letter', productCode: 'nro' }
+    ]
+  },
   {
     class: 'SOCIETY',
     description: 'Societies',
@@ -99,15 +123,6 @@ export const documentTypes: Array<DocumentClassIF> = [
       { type: 'BCGT', description: 'BC Gazette', productCode: 'business' },
       { type: 'CHNM', description: 'Change Of Name', productCode: 'business' },
       { type: 'OTP', description: 'OTP', productCode: 'business' }
-    ]
-  },
-  {
-    class: 'NR',
-    description: 'Name Requests',
-    prefixes: ['NR'],
-    documents: [
-      { type: 'NR_MISC', description: 'Name requests miscellaneous documents', productCode: 'nro' },
-      { type: 'CONS', description: 'NR Consent Letter', productCode: 'nro' }
     ]
   },
   {
