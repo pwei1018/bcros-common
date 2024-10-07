@@ -92,7 +92,7 @@ export default defineAppConfig({
       }
     },
     button: {
-      base: 'rounded'
+      rounded: 'rounded'
     },
     tooltip: {
       base: 'whitespace-normal h-auto p-3 bg-gray-700',

@@ -213,7 +213,7 @@ export const documentResultColumns: Array<TableColumnIF> = [
       sortable: true
     },
     {
-      key: 'documentURL',
+      key: 'consumerFilenames',
       label: 'Documents'
     },
     {

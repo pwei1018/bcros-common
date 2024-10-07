@@ -11,6 +11,7 @@ export interface ApiErrorIF {
   message: string
   status?: number
   statusText?: string
+  statusCode?: number
 }
 
 export type ApiResponseOrError = ApiResponseIF | ApiErrorIF

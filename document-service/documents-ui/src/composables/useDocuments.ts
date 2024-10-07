@@ -1,6 +1,5 @@
 import { useBcrosDocuments } from '~/stores/documents'
 import {
-  getDocuments,
   postDocument,
   getScanningRecord,
   updateDocumentRecord,
@@ -9,9 +8,8 @@ import {
   updateDocument,
   getDocumentUrl
 } from '~/utils/documentRequests'
-import type { ApiResponseIF, ApiResponseOrError, DocumentRequestIF } from '~/interfaces/request-interfaces'
+import type { ApiResponseOrError } from '~/interfaces/request-interfaces'
 import type { DocumentDetailIF, DocumentInfoIF } from '~/interfaces/document-types-interface'
-import { formatIsoToYYYYMMDD } from '~/utils/dateHelper'
 
 export const useDocuments = () => {
   const {
@@ -33,15 +31,7 @@ export const useDocuments = () => {
     isLoading,
     documentInfoRO,
     displayDocumentReview,
-    searchResultCount,
-    searchDocumentId,
-    searchEntityId,
-    searchDocument,
     searchDocumentClass,
-    searchDocumentType,
-    documentSearchResults,
-    searchDateRange,
-    pageNumber
   } = storeToRefs(useBcrosDocuments())
 
   /** Computed flag to check if there are any changes in the document metadata **/
@@ -120,81 +110,6 @@ export const useDocuments = () => {
     }
   }
 
-  /** Computed flag to check if there are no search criteria **/
-  const hasMinimumSearchCriteria = computed(() => {
-    return searchDocumentClass.value && (searchDocumentId.value || searchEntityId.value)
-  })
-
-  /**
-   * Removes duplicate documents based on consumerDocumentId and aggregates filenames.
-   * @param {Array} docs - Array of document objects with consumerDocumentId and consumerFilename.
-   * @returns {Array} Array of unique documents with aggregated filenames.
-   */
-  function consolidateDocIds(docs: Array<DocumentRequestIF>) {
-    const map = new Map()
-
-    docs.forEach(doc => {
-      const { consumerDocumentId, consumerFilename, documentURL, ...rest } = doc
-
-      if (!map.has(consumerDocumentId)) {
-        map.set(consumerDocumentId, {
-          consumerDocumentId,
-          consumerFilenames: [consumerFilename],
-          // TODO: Remove Remove google.com once document URL is coming
-          documentUrls: documentURL ? [documentURL] : ["https://google.com"],
-          ...rest
-        })
-      } else {
-        const existingDoc = map.get(consumerDocumentId)
-        if (consumerFilename) {
-          existingDoc.consumerFilenames.push(consumerFilename)
-        }
-        if (documentURL) {
-          existingDoc.documentUrls.push(documentURL)
-        } else {
-          // TODO: Remove Remove google.com once document URL is coming
-          existingDoc.documentUrls.push("https://google.com");
-        }
-      }
-    })
-
-    return Array.from(map.values()) as Array<DocumentRequestIF>;
-  }
-
-  /** Validate and Search Documents **/
-  const searchDocumentRecords = async (): Promise<void> => {
-    try {
-      isLoading.value = true
-      const response: ApiResponseIF = (await getDocuments({
-        consumerDocumentId: searchDocumentId.value,
-        consumerIdentifier: searchEntityId.value,
-        consumerFilename: searchDocument.value,
-        documentClass: searchDocumentClass.value,
-        documentType: searchDocumentType.value,
-        queryStartDate: searchDateRange.value.start,
-        queryEndDate: searchDateRange.value.end,
-        pageNumber: pageNumber.value > 1 && pageNumber.value,
-        ...(searchDateRange.value?.end && {
-          queryStartDate: formatIsoToYYYYMMDD(searchDateRange.value.start),
-          queryEndDate: formatIsoToYYYYMMDD(searchDateRange.value.end),
-        }),
-      })) as ApiResponseIF;
-      isLoading.value = false;
-      searchResultCount.value = response.data.value.resultCount;
-      // If the search result is 1st page.
-      if (pageNumber.value === 1) {
-        documentSearchResults.value = consolidateDocIds(response.data.value.results)
-      } else {
-        documentSearchResults.value = [
-          ...documentSearchResults.value,
-          ...consolidateDocIds(response.data.value.results)
-        ]
-      }
-    } catch (error) {
-      console.error("Request failed:", error);
-    }
-  }
-
   /**
    * Downloads a file from the given URL.
    *
@@ -221,7 +136,7 @@ export const useDocuments = () => {
    * @param {string} documentClass - The class of the document to download.
    * @param {string} docServiceId - The document service ID of the document to download.
    */
-  const fetchUrlAndDownload = async (documentClass: string, docServiceId: string): void => {
+  const fetchUrlAndDownload = async (documentClass: string, docServiceId: string): Promise<void> => {
     const { data } = await getDocumentUrl(documentClass, docServiceId)
     const link = document.createElement('a')
     link.href = data.value[0].documentURL
@@ -244,11 +159,6 @@ export const useDocuments = () => {
       && !!documentType.value
       && !!consumerFilingDate.value
       && description.value.length <= 1000
-  })
-
-  /** Computed value that checks if search result has next page */
-  const hasMorePages = computed(() => {
-    return Math.ceil(searchResultCount.value / pageSize) > pageNumber.value
   })
 
   /** Computed validation flag to check for required document meta data **/
@@ -396,14 +306,6 @@ export const useDocuments = () => {
     }
   }
 
-  /** Get next page of document records if exists */
-  const getNextDocumentsPage = () => {
-    if(hasMorePages.value) {
-      pageNumber.value += 1
-      searchDocumentRecords()
-    }
-  } 
-
   /**
    * Async function to retrieve and update document data:
    * - Fetches document record and populates `documentRecord` and `documentList`.
@@ -439,13 +341,6 @@ export const useDocuments = () => {
     }
   }
 
-  watch(() => searchEntityId.value, (id: string) => {
-    // Format Entity Identifier
-    searchEntityId.value = id.replace(/\s+/g, '')?.toUpperCase()
-    // Assign and populate a prefix if a match is found
-    if (id.length >= 1) findCategoryByPrefix(id, true)
-  })
-
   return {
     hasDocumentRecordChanges,
     isValidIndexData,
@@ -453,13 +348,10 @@ export const useDocuments = () => {
     findCategoryByPrefix,
     getDocumentTypesByClass,
     getDocumentDescription,
-    searchDocumentRecords,
     downloadFileFromUrl,
-    hasMinimumSearchCriteria,
     saveDocuments,
     updateDocuments,
     scrollToFirstError,
-    getNextDocumentsPage,
     retrieveDocumentRecord,
     fetchUrlAndDownload
   }
