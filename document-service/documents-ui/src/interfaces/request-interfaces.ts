@@ -3,6 +3,7 @@ export interface ApiResponseIF<T = any> {
   data: T
   status: any
   statusText?: string
+  statusCode?: number
 }
 
 // Define a type for the Axios error response
@@ -29,6 +30,7 @@ export interface DocumentRequestIF {
   documentURL?: string
   queryStartDate?: string
   queryEndDate?: string
+  scanningDetails?: ScanningDetailIF
 }
 
 // Define a type for the request data (if any)

@@ -25,6 +25,7 @@ export async function getDocuments(params: DocumentRequestIF): Promise<ApiRespon
   const {
     pageNumber,
     consumerDocumentId,
+    consumerFilename,
     documentClass,
     documentType,
     consumerIdentifier,
@@ -34,15 +35,17 @@ export async function getDocuments(params: DocumentRequestIF): Promise<ApiRespon
 
   // Construct query parameters
   const queryParams = new URLSearchParams()
-  if (pageNumber) queryParams.append('pageNumber', pageNumber.toString())
+  if (documentClass) queryParams.append('documentClass', documentClass)
   if (consumerDocumentId) queryParams.append('consumerDocumentId', consumerDocumentId)
   if (consumerIdentifier) queryParams.append('consumerIdentifier', consumerIdentifier)
+  if (consumerFilename) queryParams.append('consumerFilename', consumerFilename)
   if (documentType) queryParams.append('documentType', documentType)
   if (queryStartDate) queryParams.append('queryStartDate', queryStartDate)
   if (queryEndDate) queryParams.append('queryEndDate', queryEndDate)
+  if (pageNumber) queryParams.append('pageNumber', pageNumber.toString())
 
   // Build the full URL
-  const url = `${baseURL}/searches/${documentClass}?${queryParams.toString()}`
+  const url = `${baseURL}/searches?${queryParams.toString()}`
 
   try {
     const response = await useBcrosFetch<ApiResponseIF>(url, options)

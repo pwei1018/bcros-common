@@ -7,7 +7,7 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     // Document Search
     searchResultCount: 0,
     searchDocumentId: '',
-    searchDocuments: '',
+    searchDocument: '',
     searchEntityId: '',
     searchEntityType: '',
     searchDocumentClass: '',

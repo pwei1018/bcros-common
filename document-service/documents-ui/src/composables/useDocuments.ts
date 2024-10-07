@@ -36,6 +36,7 @@ export const useDocuments = () => {
     searchResultCount,
     searchDocumentId,
     searchEntityId,
+    searchDocument,
     searchDocumentClass,
     searchDocumentType,
     documentSearchResults,
@@ -165,11 +166,14 @@ export const useDocuments = () => {
     try {
       isLoading.value = true
       const response: ApiResponseIF = (await getDocuments({
-        pageNumber: pageNumber.value,
         consumerDocumentId: searchDocumentId.value,
         consumerIdentifier: searchEntityId.value,
+        consumerFilename: searchDocument.value,
         documentClass: searchDocumentClass.value,
         documentType: searchDocumentType.value,
+        queryStartDate: searchDateRange.value.start,
+        queryEndDate: searchDateRange.value.end,
+        pageNumber: pageNumber.value > 1 && pageNumber.value,
         ...(searchDateRange.value?.end && {
           queryStartDate: formatIsoToYYYYMMDD(searchDateRange.value.start),
           queryEndDate: formatIsoToYYYYMMDD(searchDateRange.value.end),
@@ -177,10 +181,15 @@ export const useDocuments = () => {
       })) as ApiResponseIF;
       isLoading.value = false;
       searchResultCount.value = response.data.value.resultCount;
-      documentSearchResults.value = [
-        ...documentSearchResults.value,
-        ...consolidateDocIds(response.data.value.results)
-      ]
+      // If the search result is 1st page.
+      if (pageNumber.value === 1) {
+        documentSearchResults.value = consolidateDocIds(response.data.value.results)
+      } else {
+        documentSearchResults.value = [
+          ...documentSearchResults.value,
+          ...consolidateDocIds(response.data.value.results)
+        ]
+      }
     } catch (error) {
       console.error("Request failed:", error);
     }
@@ -437,7 +446,6 @@ export const useDocuments = () => {
     if (id.length >= 1) findCategoryByPrefix(id, true)
   })
 
-  
   return {
     hasDocumentRecordChanges,
     isValidIndexData,

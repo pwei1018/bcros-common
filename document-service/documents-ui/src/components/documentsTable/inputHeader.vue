@@ -44,7 +44,7 @@ watch(filterValue, (newValue) => {
         size="md"
         :placeholder="column.label"
         :ui="{
-          icon: { trailing: { pointer: '' } },
+          icon: { trailing: { pointer: '' , wrapper: 'pr-3.5'} },
           size: { md: 'h-[44px]' },
         }"
  

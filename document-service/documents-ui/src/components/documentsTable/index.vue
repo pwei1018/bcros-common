@@ -15,11 +15,12 @@ const {
   searchDocumentId,
   searchEntityId,
   searchEntityType,
-  searchDocuments,
+  searchDocument,
   searchDocumentType,
   searchDateRange,
   searchDescription,
   searchResultCount,
+  pageNumber,
   isLoading,
 } = storeToRefs(useBcrosDocuments())
 
@@ -32,7 +33,7 @@ const isFiltered = computed(() => {
   return (
     !!searchDocumentId.value ||
     !!searchEntityId.value ||
-    !!searchDocuments.value ||
+    !!searchDocument.value ||
     !!searchDocumentType.value ||
     !!searchDateRange.value?.start ||
     !!searchDateRange.value?.end
@@ -76,8 +77,11 @@ onMounted(() => {
   // Insert empty options to document types for break lines on entity type.
   let currentRegistry = documentTypes[0].documents[0].productCode
   documentTypes.forEach((docType) => {
-    // Insert empty option before new productCode(registry).
-    if (currentRegistry !== docType.documents[0].productCode) {
+    // Insert empty option before new productCode(registry). 
+    if (
+      (currentRegistry !== docType.documents[0].productCode) 
+      && (docType.documents[0].productCode !== 'nro')
+    ) {
       entityTypes.value.push({
         class: 'BreakLine',
         description: '',
@@ -95,6 +99,18 @@ onBeforeUnmount(() => {
     tableElement.removeEventListener("scroll", handleTableScroll)
   }
 })
+
+watch(() => [
+    searchDocumentId.value,
+    searchEntityId.value,
+    searchDocument.value,
+    searchDocumentType.value,
+    searchDateRange.value,
+  ], () => {
+    pageNumber.value = 1
+    searchDocumentRecords()
+})
+
 </script>
 <template>
   <ContentWrapper
@@ -123,7 +139,7 @@ onBeforeUnmount(() => {
               size: { md: 'h-[44px]' },
             }"
             :ui-menu="{ 
-              height: 'max-h-65 h-[355px] w-full',
+              height: 'max-h-65 h-[400px] w-full',
               option: {
                 base: 'h-fit',
                 padding: 'p-0',
@@ -198,7 +214,7 @@ onBeforeUnmount(() => {
         </template>
         <template #documentURL-header="{ column }">
           <DocumentsTableInputHeader
-            v-model="searchDocuments"
+            v-model="searchDocument"
             :column="column"
           />
         </template>
