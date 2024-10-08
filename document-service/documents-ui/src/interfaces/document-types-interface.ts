@@ -5,7 +5,6 @@ export interface DocumentStateIF {
   searchResultCount: number
   searchDocumentId: string
   searchEntityId: string
-  searchEntityType: string
   searchDocument: string
   searchDocumentClass: string
   searchDocumentType: string
@@ -15,6 +14,10 @@ export interface DocumentStateIF {
   }
   searchDescription: string
   pageNumber: number
+  sortBy: {
+    column: string | null
+    ascending: boolean
+  }
 
   // Document Meta
   consumerDocumentId: string

@@ -2,7 +2,11 @@
 import { debounce } from 'lodash'
 import type { TableColumnIF } from '~/interfaces/table-interfaces'
 
-defineProps({
+const props = defineProps({
+  modelValue: {
+    type: String,
+    required: true
+  },
   column: {
     type: Object as PropType<TableColumnIF>,
     default: () => {},
@@ -11,9 +15,10 @@ defineProps({
 
 const emit = defineEmits(["update:model-value"])
 const filterValue = ref('')
-
 const debouncedInput = debounce((newValue) => {
-  emit('update:model-value', newValue);
+  if(props.modelValue !== newValue.trim()) {
+    emit('update:model-value', newValue);
+  }
 }, 500)
 
 watch(filterValue, (newValue) => {
@@ -23,7 +28,7 @@ watch(filterValue, (newValue) => {
 <template>
   <div>
     <div class="flex align-center px-2">
-      {{ column.label }}
+      <DocumentsTableSortButton :label="column.label" />
       <UTooltip
         v-if="column.tooltipText"
         :popper="{ placement: 'top', arrow: true }"

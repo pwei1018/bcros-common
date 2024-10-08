@@ -43,7 +43,7 @@ const launchCreateRecord = () => {
           </HelpToggleContainer> -->
           <div>
             <UButton
-              class="mt-5 py-2 px-6 text-base font-bold rounded"
+              class="mt-5 py-2 px-6 text-base font-bold"
               outlined
               color="primary"
               @click="launchCreateRecord()"

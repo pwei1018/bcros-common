@@ -1,25 +1,30 @@
 <script setup lang="ts">
 import { formatToReadableDate } from "~/utils/dateHelper"
-import { documentResultColumns } from "~/utils/documentTypes"
+import { documentTypes, documentResultColumns } from "~/utils/documentTypes"
 import { truncate } from "~/utils/documentRecords"
 import type { DocumentInfoIF } from "~/interfaces/document-types-interface"
 const {
   getDocumentDescription,
-  searchDocumentRecords,
   getDocumentTypesByClass,
-  getNextDocumentsPage
+  findCategoryByPrefix
 } = useDocuments()
+
+const {
+  searchDocumentRecords,
+  getNextDocumentsPage,
+  clearFilter,
+} = useDocumentSearch() 
 
 const {
   documentSearchResults,
   searchDocumentId,
   searchEntityId,
-  searchEntityType,
   searchDocument,
   searchDocumentType,
   searchDateRange,
   searchDescription,
   searchResultCount,
+  searchDocumentClass,
   pageNumber,
   isLoading,
 } = storeToRefs(useBcrosDocuments())
@@ -28,6 +33,7 @@ const documentRecordsTableRef = ref(null)
 const columnsToShow = ref(documentResultColumns)
 const isDescriptionExpanded = ref({})
 const entityTypes = ref([])
+const documentTypeOptions = ref(getDocumentTypesByClass())
 
 const isFiltered = computed(() => {
   return (
@@ -111,6 +117,19 @@ watch(() => [
     searchDocumentRecords()
 })
 
+watch(() => searchEntityId.value, (id: string) => {
+    // Format Entity Identifier
+    searchEntityId.value = id.replace(/\s+/g, '')?.toUpperCase()
+    // Assign and populate a prefix if a match is found
+    if (id.length >= 1) findCategoryByPrefix(id, true)
+})
+
+watch(() => searchDocumentClass.value, (newValue: string) => {
+  documentTypeOptions.value = getDocumentTypesByClass(newValue)
+  if (!documentTypeOptions.value.some(docType => docType.type === searchDocumentType.value)) {
+    searchDocumentType.value = ''
+  }
+})
 </script>
 <template>
   <ContentWrapper
@@ -127,7 +146,7 @@ watch(() => [
         </span>
         <div class="flex gap-4">
           <USelectMenu
-            v-model="searchEntityType"
+            v-model="searchDocumentClass"
             :placeholder="$t('documentSearch.table.headers.entityType')"
             class="text-gray-700 font-light w-[300px]"
             :options="entityTypes"
@@ -156,11 +175,11 @@ watch(() => [
             </template>
             <template #trailing>
               <UButton
-                v-show="searchEntityType !== ''"
+                v-show="searchDocumentClass !== ''"
                 variant="link"
                 icon="i-mdi-cancel-circle text-primary"
                 :padded="false"
-                @click="searchEntityType = ''"
+                @click="searchDocumentClass = ''"
               />
               <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5 text-gray-700  " />
             </template>
@@ -189,9 +208,9 @@ watch(() => [
       >
         <template #emptyColumn-header="{ column }">
           <div
-            class="uppercase font-normal text-sm text-bcGovGray-700 font-sans"
+            class="uppercase font-normal text-xs text-bcGovGray-700 font-sans"
           >
-            <div class="flex align-center pl-5">
+            <div class="flex align-center pl-5 pb-1">
               {{ column.label }}
             </div>
             <UDivider class="my-3 w-full" />
@@ -212,7 +231,7 @@ watch(() => [
             :column="column"
           />
         </template>
-        <template #documentURL-header="{ column }">
+        <template #consumerFilenames-header="{ column }">
           <DocumentsTableInputHeader
             v-model="searchDocument"
             :column="column"
@@ -220,7 +239,7 @@ watch(() => [
         </template>
         <template #documentTypeDescription-header="{ column }">
           <div class="px-2">
-            {{ column.label }}
+            <DocumentsTableSortButton :label="column.label" />
           </div>
           <UDivider class="my-3" />
           <div>
@@ -230,7 +249,7 @@ watch(() => [
                 :placeholder="column.label"
                 class="w-full px-2 font-light w-[250px]"
                 select-class="text-gray-700"
-                :options="getDocumentTypesByClass()"
+                :options="documentTypeOptions"
                 value-attribute="type"
                 option-attribute="description"
                 size="md"
@@ -255,7 +274,7 @@ watch(() => [
         </template>
         <template #consumerFilingDateTime-header="{ column }">
           <div class="px-2">
-            {{ column.label }}
+            <DocumentsTableSortButton :label="column.label" />
           </div>
           <UDivider class="my-3" />
           <div>
@@ -293,6 +312,7 @@ watch(() => [
                   icon="i-mdi-cancel-circle"
                   variant="outline"
                   color="primary"
+                  @click="clearFilter"
                 />
               </div>
             </div>
@@ -319,7 +339,7 @@ watch(() => [
         </template>
 
         <!-- Document URL -->
-        <template #documentURL-data="{ row }">
+        <template #consumerFilenames-data="{ row }">
           <div v-if="row.consumerFilenames.length > 1">
             <span
               v-for="(file, i) in row.consumerFilenames"
@@ -327,7 +347,7 @@ watch(() => [
               class="block my-2"
             >
               <DocumentsTableDownloadLink
-                :download-url="row.documentUrls[i]"
+                :download-url="row.consumerFilenames[i]"
                 :file-name="file"
               />
             </span>
@@ -341,7 +361,7 @@ watch(() => [
           <div v-else>
             <span class="block my-2">
               <DocumentsTableDownloadLink
-                :download-url="row.documentUrls[0]"
+                :download-url="row.consumerFilenames[0]"
                 :file-name="row.consumerFilenames[0]"
               />
             </span>
