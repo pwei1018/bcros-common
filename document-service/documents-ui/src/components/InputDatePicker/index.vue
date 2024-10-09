@@ -82,7 +82,7 @@ const datePlaceholder = computed(() => {
           :padded="false"
           @click="emit('update:modelValue', { start: null, end: null })"
         />
-        <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5" />
+        <UIcon name="i-mdi-calendar" class="w-5 h-5 text-primary" />
       </template>
     </UInput>
 

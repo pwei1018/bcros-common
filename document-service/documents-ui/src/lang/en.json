@@ -87,7 +87,7 @@
       },
       "selectMenu": {
         "label": "Document Type",
-        "categoryLabel": "Document Category",
+        "categoryLabel": "Entity Type",
         "typeLabel": "Document Type"
       },
       "description": {
