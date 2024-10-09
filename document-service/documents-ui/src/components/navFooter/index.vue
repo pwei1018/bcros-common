@@ -57,7 +57,7 @@ const props = defineProps({
             v-if="props.nextBtn"
             trailing-icon="i-mdi-chevron-right"
             color="primary"
-            class="h-[40px] ml-[10px] font-bold px-3"
+            class="h-[40px] ml-[10px] font-bold px-5 text-nowrap"
             data-cy="nav-footer-next-btn"
             @click="emit('next')"
           >

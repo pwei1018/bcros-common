@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { documentTypes } from '~/utils/documentTypes'
 import { useBcrosDocuments } from '~/stores/documents'
 const props = defineProps({
   validate: {
@@ -24,9 +23,17 @@ const {
   getDocumentTypesByClass
 } = useDocuments()
 
-const hasDocIdError = computed(() => {
-  return props.validate && !consumerDocumentId.value && !noDocIdCheckbox.value
+const docIdError = computed(() => {
+  if(props.validate && !consumerDocumentId.value.trim() && !noDocIdCheckbox.value) {
+    return "Enter a Document ID"
+  } 
+  if (consumerDocumentId.value && !/^\d+$/.test(consumerDocumentId.value)) {
+    return "Must contain numbers only"
+  }
+
+  return ""
 })
+
 const hasIdError = computed(() => {
   return props.validate && !consumerIdentifier.value && !noIdCheckbox.value
 })
@@ -34,7 +41,7 @@ const hasClassError = computed(() => {
   return props.validate && !documentClass.value
 })
 const hasTypeError = computed(() => {
-  return props.validate && !documentType.value
+  return props.validate && documentClass.value && !documentType.value
 })
 const hasDescriptionError = computed(() => {
   return description.value.length > 1000
@@ -81,7 +88,7 @@ watch(() => documentClass.value, () => {
         <UFormGroup
           :label="$t('documentIndexing.form.docId.label')"
           :description="$t('documentIndexing.form.docId.description')"
-          :error="hasDocIdError && 'Enter a Document ID'"
+          :error="docIdError"
         >
           <UInput
             v-model="consumerDocumentId"
@@ -90,7 +97,7 @@ watch(() => documentClass.value, () => {
             required
             :disabled="noDocIdCheckbox"
             :placeholder="$t('documentIndexing.form.docId.label')"
-            :ui="{ placeholder: hasDocIdError ? 'placeholder:text-red-500' : 'text-gray-700' }"
+            :ui="{ placeholder: docIdError ? 'placeholder:text-red-500' : 'text-gray-700' }"
           />
         </UFormGroup>
 
@@ -134,16 +141,8 @@ watch(() => documentClass.value, () => {
         >
           <div class="grid grid-cols-4 gap-5 mt-3">
             <div class="col-span-2">
-              <UFormGroup :error="hasClassError && 'Select document category'">
-                <USelectMenu
-                  v-model="documentClass"
-                  :placeholder="$t('documentIndexing.form.selectMenu.categoryLabel')"
-                  select-class="text-gray-700"
-                  :options="documentTypes"
-                  value-attribute="class"
-                  option-attribute="description"
-                  :ui="{ placeholder: hasClassError ? 'placeholder:text-red-500' : 'text-gray-700' }"
-                />
+              <UFormGroup :error="hasClassError && 'This field is required'">
+                <EntityTypeSelector v-model="documentClass" />
               </UFormGroup>
             </div>
 
@@ -158,7 +157,11 @@ watch(() => documentClass.value, () => {
                   value-attribute="type"
                   option-attribute="description"
                   :ui="{ placeholder: hasTypeError ? 'placeholder:text-red-500' : 'text-gray-700' }"
-                />
+                >
+                <template #trailing>
+                  <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5 " />
+                </template>
+              </USelectMenu>
               </UFormGroup>
             </div>
           </div>

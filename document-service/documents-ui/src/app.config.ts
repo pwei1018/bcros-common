@@ -62,8 +62,8 @@ export default defineAppConfig({
       }
     },
     select: {
-      base: 'bg-white border-b-[1px] border-gray-500 ring-0 focus:border-b-2 focus:ring-0 disabled:cursor-not-allowed' +
-        ' disabled:opacity-45',
+      base: 'bg-gray-100 border-b-[1px] border-gray-500 ring-0 focus:border-b-2 ' +
+        ' focus:ring-0 disabled:cursor-not-allowed disabled:opacity-45',
     },
     checkbox: {
       base: 'h-4 w-4 cursor-pointer border-gray-500',
