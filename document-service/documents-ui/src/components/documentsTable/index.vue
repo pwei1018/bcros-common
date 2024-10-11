@@ -74,6 +74,11 @@ const changeColumns = (selected: [string]) => {
   )
 }
 
+const clearDocumentType = (event) => {
+  searchDocumentType.value = ''
+  event.stopPropagation();
+}
+
 onMounted(() => {
   searchDocumentRecords()
   const tableElement = documentRecordsTableRef.value?.$el
@@ -97,6 +102,12 @@ watch(() => [
     searchDateRange.value,
     searchDocumentClass.value,
   ], () => {
+    /** Add input delays for columns `Document Id`, `Entity Id`, and `Document` to trigger
+    the search only when the input reaches 3 characters. */
+    if((searchDocumentId.value && searchDocumentId.value.length < 3)
+      || (searchEntityId.value && searchEntityId.value.length < 3)
+      || (searchDocument.value && searchDocument.value.length < 3)
+    ) { return }
     pageNumber.value = 1
     searchDocumentRecords()
 })
@@ -181,12 +192,11 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
           <DocumentsTableInputHeader
             v-model="searchDocument"
             :column="column"
+            class="w-[250px]"
           />
         </template>
         <template #documentTypeDescription-header="{ column }">
-          <div class="px-2">
-            <DocumentsTableSortButton :label="column.label" />
-          </div>
+          <DocumentsTableSortButton :column="column" />
           <UDivider class="my-3" />
           <div>
             <div class="h-11">
@@ -210,7 +220,7 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
                     variant="link"
                     icon="i-mdi-cancel-circle text-primary"
                     :padded="false"
-                    @click="searchDocumentType = ''"
+                    @click.stop="clearDocumentType"
                   />
                   <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5 " />
                 </template>
@@ -219,9 +229,7 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
           </div>
         </template>
         <template #consumerFilingDateTime-header="{ column }">
-          <div class="px-2">
-            <DocumentsTableSortButton :label="column.label" />
-          </div>
+          <DocumentsTableSortButton :column="column" />
           <UDivider class="my-3" />
           <div>
             <div class="h-11">

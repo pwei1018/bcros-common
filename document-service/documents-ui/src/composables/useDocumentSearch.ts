@@ -6,7 +6,6 @@ import type {
 } from "~/interfaces/request-interfaces"
 import type { DocumentDetailIF } from "~/interfaces/document-types-interface"
 import { formatIsoToYYYYMMDD } from "~/utils/dateHelper"
-import { documentResultColumns } from "~/utils/documentTypes"
 
 export const useDocumentSearch = () => {
   const {
@@ -199,12 +198,9 @@ export const useDocumentSearch = () => {
     if (sortBy.value.column === null) {
       return
     }
-    const columnID = documentResultColumns.find(
-      (column) => column.label === sortBy.value.column
-    ).key
     documentSearchResults.value = documentSearchResults.value.sort((a, b) => {
-      const aValue = a[columnID] ?? null // Treat undefined as null
-      const bValue = b[columnID] ?? null
+      const aValue = a[sortBy.value.column] ?? null // Treat undefined as null
+      const bValue = b[sortBy.value.column] ?? null
 
       if (aValue === null && bValue === null) return 0 // Both null
       if (aValue === null) return sortBy.value.ascending ? -1 : 1 // a is null, b is not

@@ -56,6 +56,11 @@ const datePlaceholder = computed(() => {
       : "Date Range"
     : format(date.value, "d MMMM, yyy")
 })
+
+const clearModelValue = (event) => {
+  emit('update:modelValue', { start: null, end: null })
+  event.stopPropagation()
+}
 </script>
 <template>
   <UPopover :popper="{ placement: 'bottom-start' }">
@@ -80,9 +85,9 @@ const datePlaceholder = computed(() => {
           variant="link"
           icon="i-mdi-cancel-circle text-primary"
           :padded="false"
-          @click="emit('update:modelValue', { start: null, end: null })"
+          @click.stop="clearModelValue"
         />
-        <UIcon name="i-mdi-calendar" class="w-5 h-5 text-primary" />
+        <UIcon name="i-mdi-calendar" :class="['w-5 h-5', isFilter ? '' : 'text-primary']" />
       </template>
     </UInput>
 
