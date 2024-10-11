@@ -68,7 +68,7 @@ export const useDocuments = () => {
     : documentTypes.reduce((docTypes: Array<DocumentDetailIF>, currentValue) => {
       docTypes.push(...currentValue.documents); // Assuming currentValue.documents is an array
       return docTypes;
-    }, [])
+    }, []).sort((a,b) => a.description.localeCompare(b.description))
   }
 
   /**

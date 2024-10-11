@@ -184,10 +184,11 @@ export const useDocumentSearch = () => {
   }
 
   /** Get next page of document records if exists */
-  const getNextDocumentsPage = () => {
+  const getNextDocumentsPage = async () => {
     if (hasMorePages.value) {
       pageNumber.value += 1
-      searchDocumentRecords()
+      await searchDocumentRecords()
+      sortSearchTable()
     }
   }
 

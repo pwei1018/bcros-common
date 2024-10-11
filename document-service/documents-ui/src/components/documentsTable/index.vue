@@ -53,13 +53,13 @@ const openDocumentRecord = (searchResult: DocumentInfoIF) => {
   })
 }
 
-const handleTableScroll = () => {
+const handleTableScroll = async () => {
   if (documentRecordsTableRef.value) {
     const scrollTop = documentRecordsTableRef.value.$el.scrollTop
     const scrollHeight = documentRecordsTableRef.value.$el.scrollHeight
     const clientHeight = documentRecordsTableRef.value.$el.clientHeight
     if (scrollTop + clientHeight >= scrollHeight) {
-      getNextDocumentsPage()
+      await getNextDocumentsPage()
     }
   }
 }
@@ -79,8 +79,8 @@ const clearDocumentType = (event) => {
   event.stopPropagation();
 }
 
-onMounted(() => {
-  searchDocumentRecords()
+onMounted(async () => {
+  await searchDocumentRecords()
   const tableElement = documentRecordsTableRef.value?.$el
   if (tableElement) {
     tableElement.addEventListener("scroll", handleTableScroll)
