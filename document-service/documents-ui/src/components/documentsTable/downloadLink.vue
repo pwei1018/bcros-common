@@ -24,12 +24,12 @@ defineProps({
     @click="downloadFileFromUrl(downloadUrl, fileName)"
   >
       <UTooltip
-        v-if="fileName.length > 15"
+        v-if="fileName.length > 20"
         :popper="{ placement: 'bottom' }"
         :text="fileName"
       >
       <img class="w-5 h-5 mr-1.5" src="~/assets/icons/pdf_download.svg" alt="pdf download">
-      {{ truncate(fileName, 15, 6, 6) }}
+      {{ truncate(fileName, 20, 8, 8) }}
       </UTooltip>
       <template v-else>
         <img class="w-5 h-5 mr-1.5" src="~/assets/icons/pdf_download.svg" alt="pdf download">

@@ -23,6 +23,11 @@ const documentClass = computed({
   }
 })
 
+const clearModelValue = (event) => {
+  emit('update:model-value', '')
+  event.stopPropagation()
+}
+
 onMounted(() => {
   // Insert empty options to document types for break lines on entity type.
   let currentRegistry = documentTypes[0].documents[0].productCode
@@ -84,7 +89,7 @@ watch(documentClass, (newValue) => {
         variant="link"
         icon="i-mdi-cancel-circle text-primary"
         :padded="false"
-        @click="emit('update:model-value', '')"
+        @click.stop="clearModelValue"
       />
       <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5 text-gray-700" />
     </template>

@@ -27,20 +27,7 @@ watch(filterValue, (newValue) => {
 </script>
 <template>
   <div>
-    <div class="flex align-center px-2">
-      <DocumentsTableSortButton :label="column.label" />
-      <UTooltip
-        v-if="column.tooltipText"
-        :popper="{ placement: 'top', arrow: true }"
-        :text="column.tooltipText"
-        :ui="{base: 'w-[265px]'}"
-      >
-        <UIcon
-          name="i-mdi-information-outline"
-          class="font-bold w-5 h-5 mx-2 text-primary"
-        />
-      </UTooltip>
-    </div>
+    <DocumentsTableSortButton :column="column" />
     <UDivider class="my-3 w-full" />
     <div class="h-11">
       <UInput
