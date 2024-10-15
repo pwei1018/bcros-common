@@ -132,8 +132,8 @@ const documentPreview = (file) => {
                     </div>
                   </div>
                 </div>
-              </div></template
-            >
+              </div>
+            </template>
           </ContentWrapper>
         </template>
       </BcrosSection>
