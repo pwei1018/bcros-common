@@ -10,21 +10,20 @@ const emit = defineEmits(['close', 'confirm'])
 
 <template>
   <UModal :model-value="toggleModal" :data-cy="'confirmation-modal'" prevent-close>
-    <div class="px-6 py-6">
-      <div class="flex flex-row-reverse">
+    <div class="p-10">
+      <div class="flex justify-between items-center">
+        <h3 class="text-[24px] font-bold items-center">{{ $t('cancelDialog.title') }}</h3>
         <UButton
           icon="i-mdi-close"
           size="md"
           color="primary"
           variant="ghost"
+          :padded="false"
           @click="emit('close')"
         />
       </div>
 
       <div class="pr-4">
-        <div class="flex flex-row -mt-4">
-          <h3 class="text-[24px] font-bold">{{ $t('cancelDialog.title') }}</h3>
-        </div>
 
         <div class="flex flex-row py-6">
           <span class="text-gray-700 font-normal text-base leading-6">{{ $t('cancelDialog.description') }}</span>

@@ -27,10 +27,6 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  isLeftBar: {
-    type: Boolean,
-    default: false,
-  },
   size: {
     type: String,
     default: null,
@@ -39,11 +35,21 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  isTrailing: {
+    type: Boolean,
+    default: false,
+  }
 })
 
-const date = computed({
+const date: DatePickerRangeObject | DatePickerDate = computed({
   get: () => props.modelValue,
   set: (value) => emit("update:modelValue", value),
+})
+
+const isDateClearable = computed(() => {
+  return props.isRangedPicker
+    ? (!!props.modelValue.start || !!props.modelValue.end)
+    : !!props.modelValue
 })
 
 const datePlaceholder = computed(() => {
@@ -58,7 +64,9 @@ const datePlaceholder = computed(() => {
 })
 
 const clearModelValue = (event) => {
-  emit('update:modelValue', { start: null, end: null })
+  emit('update:modelValue', props.isRangedPicker
+    ? { start: null, end: null }
+    : "")
   event.stopPropagation()
 }
 </script>
@@ -79,8 +87,8 @@ const clearModelValue = (event) => {
     >
       <template #trailing>
         <UButton
-          v-if="isFilter"
-          v-show="!!date.start || !!date.end"
+          v-if="isTrailing || isFilter"
+          v-show="isDateClearable"
           color="gray"
           variant="link"
           icon="i-mdi-cancel-circle text-primary"
@@ -95,8 +103,8 @@ const clearModelValue = (event) => {
       <DatePicker
         v-model="date"
         :is-ranged-picker="isRangedPicker"
-        :is-left-bar="isLeftBar"
         is-required
+        :is-filter="isFilter"
         @close="close"
       />
     </template>

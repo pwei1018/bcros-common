@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { documentTypes } from '~/utils/documentTypes'
 import { useBcrosDocuments } from '~/stores/documents'
 import EditScanning from '~/components/documentRecord/EditScanning.vue'
 import { formatDateToISO } from '~/utils/dateHelper'
@@ -57,6 +56,7 @@ documentRecord.documentClass
           </div>
           <div>
             <UButton
+              class="hover:bg-transparent"
               variant="ghost"
               icon="i-mdi-close"
               :label="$t('documentRecord.cancelButton')"
@@ -153,15 +153,7 @@ documentRecord.documentClass
                 <div class="grid grid-cols-4 gap-5 mt-3">
                   <div class="col-span-2">
                     <UFormGroup :error="hasClassError && 'Select document category'">
-                      <USelectMenu
-                        v-model="documentRecord.documentClass"
-                        :placeholder="$t('documentIndexing.form.selectMenu.categoryLabel')"
-                        select-class="text-gray-700"
-                        :options="documentTypes"
-                        value-attribute="class"
-                        option-attribute="description"
-                        :ui="{ placeholder: hasClassError ? 'placeholder:text-red-500' : 'text-gray-700' }"
-                      />
+                      <EntityTypeSelector v-model="documentRecord.documentClass" />
                     </UFormGroup>
                   </div>
 

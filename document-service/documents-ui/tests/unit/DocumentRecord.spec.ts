@@ -60,6 +60,7 @@ describe('DocumentRecord', () => {
     expect(wrapper.text()).toContain('batch-001')
     expect(wrapper.text()).toContain('10')
     expect(wrapper.text()).toContain('August 23, 2024')
-    expect(wrapper.text()).toContain('Author Name')
+    // Author component is hidden temporarily.
+    // expect(wrapper.text()).toContain('Author Name')
   })
 })
