@@ -32,6 +32,7 @@ const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
         </div>
         <div v-if="!isReviewMode">
           <UButton
+            class="hover:bg-transparent"
             variant="ghost"
             icon="i-mdi-pencil"
             :label="$t('documentRecord.editButton')"
@@ -103,9 +104,9 @@ const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
         <span class="col-span-2">
           {{ formatToReadableDate(documentRecord.consumerFilingDateTime, true) || 'Not Entered' }}
         </span>
-
-        <span class="font-bold">{{ $t('documentReview.labels.author') }}</span>
-        <span class="col-span-2">{{ scanningDetails?.author }}</span>
+        <!-- Hiding `Author` due to UX/UI requirement -->
+        <!-- <span class="font-bold">{{ $t('documentReview.labels.author') }}</span>
+        <span class="col-span-2">{{ scanningDetails?.author }}</span> -->
 
         <!-- Scanning Information -->
         <UDivider class="my-6 col-span-3" />
@@ -155,10 +156,11 @@ const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
              <ULink
                inactive-class="text-primary underline"
                :disabled="isReviewMode"
-               @click="
-                fetchUrlAndDownload(documentRecordSnapshot.documentClass, documentRecordSnapshot.documentServiceIds[i])
-               "
-             >
+               @click="fetchUrlAndDownload(
+                  documentRecordSnapshot.documentClass, 
+                  documentRecordSnapshot.documentServiceIds[i]
+                )"
+              > 
                {{ file.name }}
              </ULink>
           </span>

@@ -27,3 +27,17 @@ export function truncate(str: string, maxLength: number, frontChars: number, bac
   const back = str.slice(-backChars);
   return `${front}...${back}`;
 }
+
+/**
+ * Generates a preview URL for a given file.
+ * 
+ * This function creates a URL that can be used to preview a file (e.g., an image, video, or document)
+ * in the browser. The URL is tied to the file object and is only valid for the current session.
+ * 
+ * @param {File} file - The file object for which to generate a preview URL. This is typically obtained
+ * from an input element of type "file".
+ * @returns {string} - A string representing the object URL that can be used to preview the file.
+ */
+export function documentPreview (file) {
+  return URL.createObjectURL(file)
+}

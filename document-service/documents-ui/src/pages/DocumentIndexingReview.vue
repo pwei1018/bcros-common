@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatToReadableDate } from "~/utils/dateHelper"
 import { useBcrosDocuments } from "~/stores/documents"
+import { documentPreview } from "~/utils/documentRecords";
 
 const { getDocumentDescription } = useDocuments()
 const {
@@ -13,9 +14,6 @@ const {
   consumerFilingDate,
 } = storeToRefs(useBcrosDocuments())
 
-const documentPreview = (file) => {
-  return URL.createObjectURL(file)
-}
 </script>
 <template>
   <div

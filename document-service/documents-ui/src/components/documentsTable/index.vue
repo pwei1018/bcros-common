@@ -237,7 +237,6 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
                 v-model="searchDateRange"
                 class="w-[265px] px-2 font-light"
                 is-ranged-picker
-                is-left-bar
                 is-filter
                 size="md"
               />

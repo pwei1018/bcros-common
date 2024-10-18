@@ -14,7 +14,7 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  isLeftBar: {
+  isFilter: {
     type: Boolean,
     default: false
   }
@@ -50,7 +50,7 @@ const attrs = {
 <template>
   <div class="flex">
   <div 
-    v-if="isLeftBar"
+    v-if="isFilter"
     class="flex gap-y-3 flex-col px-5 items-start justify-center font-light"
   >
     <ULink

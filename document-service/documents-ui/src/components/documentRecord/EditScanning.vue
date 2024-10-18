@@ -55,6 +55,7 @@ defineProps({
           v-model="scanningDetails.scanDateTime"
           :date-placeholder="$t('scanningDetails.scannedDate')"
           class="mt-3"
+          :is-trailing="true"
         />
       </div>
     </template>

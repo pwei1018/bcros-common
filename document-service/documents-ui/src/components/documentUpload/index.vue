@@ -101,7 +101,7 @@ const removeFile = (index: number) => {
               <span>{{ supportingDocument.name }}</span>
             </div>
             <UButton
-              class="py-2 px-6 text-base font-normal float-right"
+              class="py-2 px-6 text-base font-normal float-right hover:bg-transparent"
               color="primary"
               variant="ghost"
               @click="removeFile(index)"
