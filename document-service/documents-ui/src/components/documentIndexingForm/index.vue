@@ -161,6 +161,11 @@ watch(() => documentClass.value, () => {
                 <template #trailing>
                   <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5 " />
                 </template>
+                <template #option="{ option, selected }">
+                  <span :class="selected ? '' : 'text-gray-700'">
+                    {{ option.description }}
+                  </span>
+                </template>
               </USelectMenu>
               </UFormGroup>
             </div>

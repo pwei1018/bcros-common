@@ -314,7 +314,10 @@ export const useDocuments = () => {
   const retrieveDocumentRecord = async (identifier: string) => {
     try {
       // Fetch Document Record
-      const { data } = await getDocumentRecord(identifier)
+      const { data, status } = await getDocumentRecord(identifier) 
+      if(status.value === 'error') {
+        navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
+      }
       if (data.value) {
         documentRecord.value = {
           ...data.value[0],

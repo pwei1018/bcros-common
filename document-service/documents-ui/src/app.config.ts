@@ -91,6 +91,9 @@ export default defineAppConfig({
         background: 'bg-gray-900/75',
       }
     },
+    badge: {
+      font: 'font-bold'
+    },
     button: {
       rounded: 'rounded'
     },

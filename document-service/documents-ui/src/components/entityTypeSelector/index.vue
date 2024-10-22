@@ -76,11 +76,14 @@ watch(documentClass, (newValue) => {
       },
     }"
   >
-    <template #option="{ option }">
+    <template #option="{ option, selected }">
       <UDivider v-if="option.class === 'BreakLine'" />
-      <span v-else class="truncate px-3 py-2 h-[44px] flex items-center">{{
-        option.description
-      }}</span>
+      <span 
+        v-else 
+        :class="['truncate px-3 py-2 h-[44px] flex items-center', selected ? '' : 'text-gray-700']"
+      >
+        {{ option.description }}
+      </span>
     </template>
     <template #trailing>
       <UButton
