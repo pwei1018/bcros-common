@@ -104,9 +104,10 @@ const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
         <span class="col-span-2">
           {{ formatToReadableDate(documentRecord.consumerFilingDateTime, true) || 'Not Entered' }}
         </span>
-        <!-- Hiding `Author` due to UX/UI requirement -->
-        <!-- <span class="font-bold">{{ $t('documentReview.labels.author') }}</span>
-        <span class="col-span-2">{{ scanningDetails?.author }}</span> -->
+        <template v-if="documentRecord.consumerDocumentId.length === 8">
+          <span class="font-bold">{{ $t('documentReview.labels.author') }}</span>
+          <span class="col-span-2">{{ scanningDetails?.author }}</span>
+        </template>
 
         <!-- Scanning Information -->
         <UDivider class="my-6 col-span-3" />
@@ -119,7 +120,15 @@ const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
             :current-state="scanningDetails"
           />
         </span>
-        <span class="col-span-2"/>
+        <span class="col-span-2">
+          <UBadge
+            v-if="documentRecord.consumerDocumentId.length === 8"
+            variant="solid"
+            color="primary"
+            label="SCANNING PENDDING"
+            class="badge px-2.5 py-1.5"
+          />
+        </span>
 
         <span class="font-bold">{{ $t('documentReview.labels.accessionNumber') }}</span>
         <span class="col-span-2">{{ scanningDetails?.accessionNumber }}</span>
@@ -170,7 +179,7 @@ const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
   </ContentWrapper>
 </template>
 <style scoped lang="scss">
-span:not(.spanLink, #updated-badge-component) {
+span:not(.spanLink, .badge, #updated-badge-component) {
   padding: 0.5rem 0;
 }
 </style>
