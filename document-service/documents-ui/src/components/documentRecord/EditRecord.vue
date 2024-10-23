@@ -27,9 +27,6 @@ const hasClassError = computed(() => {
 const hasTypeError = computed(() => {
   return validateRecordEdit.value && !documentRecord.value.documentType
 })
-const hasDateError = computed(() => {
-  return validateRecordEdit.value && !documentRecord.value.consumerFilingDateTime
-})
 const hasDescriptionError = computed(() => {
   return documentRecord.value.description?.length > 1000
 })
@@ -205,7 +202,6 @@ documentRecord.documentClass
               <UFormGroup
                 :label="$t('documentIndexing.form.dateSelect.label')"
                 :description="$t('documentIndexing.form.dateSelect.description')"
-                :error="hasDateError && 'Select a filing date'"
               >
                 <template #label>
                   <span class="flex">
@@ -221,7 +217,9 @@ documentRecord.documentClass
                 <InputDatePicker
                   v-model="documentRecord.consumerFilingDateTime"
                   class="mt-3"
-                  :ui="{ placeholder: hasDateError ? 'placeholder:text-red-500' : 'text-gray-700' }"
+                  :date-placeholder="$t('documentIndexing.form.dateSelect.placeholder')"
+                  :ui="{ placeholder: 'text-gray-700' }"
+                  :is-trailing="true"
                 />
               </UFormGroup>
             </div>

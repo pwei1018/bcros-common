@@ -60,7 +60,13 @@ const requestDocumentRecord = async (consumerId: string) => {
           </div>
           <div>
             <span class="font-bold">{{ $t('documentReview.labels.filingDate') }}: </span>
-            <span class="px-1">{{ formatToReadableDate(documentInfoRO.consumerFilingDateTime) || 'Not Entered' }}</span>
+            <span class="px-1">
+              {{ 
+                documentInfoRO.consumerFilingDateTime 
+                ? formatToReadableDate(documentInfoRO.consumerFilingDateTime)
+                : 'Not Entered' 
+              }}
+            </span>
           </div>
 
           <div class="pt-8">

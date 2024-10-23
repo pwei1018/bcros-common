@@ -157,7 +157,6 @@ export const useDocuments = () => {
       && (!!consumerDocumentId.value || !!noDocIdCheckbox.value)
       && !!documentClass.value
       && !!documentType.value
-      && !!consumerFilingDate.value
       && description.value.length <= 1000
   })
 
@@ -166,7 +165,6 @@ export const useDocuments = () => {
     return (!!documentRecord.value.consumerIdentifier || !!noIdCheckbox.value)
       && !!documentRecord.value.documentClass
       && !!documentRecord.value.documentType
-      && !!documentRecord.value.consumerFilingDateTime
       && description.value.length <= 1000
   })
 

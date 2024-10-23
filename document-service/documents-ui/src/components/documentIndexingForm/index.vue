@@ -46,9 +46,6 @@ const hasTypeError = computed(() => {
 const hasDescriptionError = computed(() => {
   return description.value.length > 1000
 })
-const hasDateError = computed(() => {
-  return props.validate && !consumerFilingDate.value
-})
 
 /** Watch the entity identifier and pre-populate document category when there is a prefix match **/
 watch(() => consumerIdentifier.value, (id: string) => {
@@ -187,12 +184,13 @@ watch(() => documentClass.value, () => {
         <UFormGroup
           :label="$t('documentIndexing.form.dateSelect.label')"
           :description="$t('documentIndexing.form.dateSelect.description')"
-          :error="hasDateError && 'Select a filing date'"
         >
           <InputDatePicker
             v-model="consumerFilingDate"
             class="mt-3"
-            :ui="{ placeholder: hasDateError ? 'placeholder:text-red-500' : 'text-gray-700' }"
+            :date-placeholder="$t('documentIndexing.form.dateSelect.placeholder')"
+            :ui="{ placeholder: 'text-gray-700' }"
+            :is-trailing="true"
           />
         </UFormGroup>
 
