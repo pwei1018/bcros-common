@@ -102,8 +102,9 @@ const {
                     }}</span>
                     <span class="px-1 col-span-2">
                       {{
-                        formatToReadableDate(consumerFilingDate, true) ||
-                        "Not Entered"
+                        consumerFilingDate 
+                        ? formatToReadableDate(consumerFilingDate, true) 
+                        : "Not Entered"
                       }}
                     </span>
                   </div>

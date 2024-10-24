@@ -97,6 +97,7 @@
       },
       "dateSelect": {
         "label": "Filing Date",
+        "placeholder": "Filing Date (Optional)",
         "description": "Enter date of filling or the registration date which was entered into BC Registries."
       }
     }
