@@ -21,6 +21,7 @@ from flask import current_app
 from google.oauth2 import service_account
 
 from doc_api.services.abstract_auth_service import AuthService
+from doc_api.utils.logging import logger
 
 
 class GoogleAuthService(AuthService):  # pylint: disable=too-few-public-methods
@@ -60,7 +61,7 @@ class GoogleAuthService(AuthService):  # pylint: disable=too-few-public-methods
             )
         request = google.auth.transport.requests.Request()
         cls.credentials.refresh(request)
-        current_app.logger.info("Call successful: obtained token.")
+        logger.info("Call successful: obtained token.")
         return cls.credentials.token
 
     @classmethod
@@ -71,7 +72,7 @@ class GoogleAuthService(AuthService):  # pylint: disable=too-few-public-methods
             return None
         auth_req = google.auth.transport.requests.Request()
         token = google.oauth2.id_token.fetch_id_token(auth_req, audience)
-        current_app.logger.info("Call successful: obtained token.")
+        logger.info("Call successful: obtained token.")
         return token
 
     @classmethod
@@ -81,5 +82,5 @@ class GoogleAuthService(AuthService):  # pylint: disable=too-few-public-methods
             cls.credentials = service_account.Credentials.from_service_account_info(
                 cls.service_account_info, scopes=cls.gcp_sa_scopes
             )
-        current_app.logger.info("Call successful: obtained credentials.")
+        logger.info("Call successful: obtained credentials.")
         return cls.credentials

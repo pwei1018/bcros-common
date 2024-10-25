@@ -123,6 +123,11 @@ def ts_from_iso_date_end(timestamp_iso: str):
     return local_ts.astimezone(timezone.utc)
 
 
+def default_scan_date():
+    """Create a datetime object as now set to 12:00 PM using the local time zone."""
+    return ts_from_iso_date_noon(format_ts(now_ts()))
+
+
 def get_doc_storage_name(document, content_type: str) -> str:
     """Get a document storage name from the registration in the format YYYY/MM/DD/doc_type-doc_service_id.file_type."""
     name: str = document.add_ts.isoformat()[:10]

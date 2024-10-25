@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test Suite to ensure the request utility functions are working as expected."""
 import copy
+import json
 
 import pytest
 
@@ -79,6 +80,22 @@ UPDATE_DOC = {
     "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
     "description": "Updated description of the document.",
 }
+TEST_DOC_REC_LEGACY = {
+    "accountId": "123456",
+    "consumerDocumentId": "99990950",
+    "consumerIdentifier": "108924",
+    "documentType": "MHR_MISC",
+    "documentClass": "MHR",
+    "author": "John Jones"
+}
+TEST_DOC_REC_MODERN = {
+    "accountId": "123456",
+    "consumerDocumentId": "1099990950",
+    "consumerIdentifier": "108924",
+    "documentType": "MHR_MISC",
+    "documentClass": "MHR",
+    "author": "John Jones"
+}
 
 # testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff})
 TEST_DATA_REQUEST_INFO = [
@@ -127,6 +144,33 @@ TEST_UPDATE_DATA = [
 ]
 # testdata pattern is ({document}, {token}, {filename})
 TEST_REPLACE_DATA = [(TEST_DOCUMENT, TEST_TOKEN, TEST_FILENAME)]
+# testdata pattern is ({request_data})
+TEST_CALLBACK_REC_DATA = [
+    (TEST_DOC_REC_LEGACY),
+    (TEST_DOC_REC_MODERN),
+]
+
+
+@pytest.mark.parametrize("request_data", TEST_CALLBACK_REC_DATA)
+def test_save_callback_data(session, request_data):
+    """Assert that POST request resource_utils.save_callback_create_rec works as expected."""
+    info: RequestInfo = RequestInfo(RequestTypes.ADD.value, None, None, None)
+    info = resource_utils.get_callback_request_info(request_data, info)
+    result = resource_utils.save_callback_create_rec(info)
+    assert result
+    assert result.get("documentServiceId")
+    assert result.get("createDateTime")
+    assert result.get("documentType") == request_data.get("documentType")
+    assert result.get("documentTypeDescription")
+    assert result.get("documentClass") == request_data.get("documentClass")
+    assert result.get("consumerDocumentId") == request_data.get("consumerDocumentId")
+    assert result.get("consumerIdentifier") == request_data.get("consumerIdentifier")
+    assert not result.get("consumerFilename")
+    assert not result.get("documentURL")
+    if len(request_data.get("consumerDocumentId")) == 8 and request_data.get("author"):
+        assert result.get("scanningInformation")
+    else:
+        assert not result.get("scanningInformation")
 
 
 @pytest.mark.parametrize("document,token,filename", TEST_REPLACE_DATA)

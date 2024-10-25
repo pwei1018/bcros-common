@@ -26,7 +26,7 @@ from doc_api.config import config
 from doc_api.metadata import APP_RUNNING_ENVIRONMENT
 from doc_api.models import db
 from doc_api.resources import meta_endpoint, ops_endpoint, v1_endpoint
-from doc_api.services import auth_service, storage_service
+from doc_api.services import auth_service, queue_service, storage_service
 from doc_api.utils.auth import jwt
 from doc_api.utils.logging import logger, setup_logging
 
@@ -58,6 +58,7 @@ def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
     meta_endpoint.init_app(app)
     ops_endpoint.init_app(app)
     v1_endpoint.init_app(app)
+    queue_service.init_app(app)
 
     setup_jwt_manager(app, jwt)
 

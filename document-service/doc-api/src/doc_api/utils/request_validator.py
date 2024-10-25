@@ -62,6 +62,8 @@ def validate_request(info: RequestInfo) -> str:
     if not info.document_class:
         error_msg += get_doc_class(info)
     if info.request_type and info.request_type == RequestTypes.ADD:
+        if info.request_data and info.request_data.get("async"):
+            return error_msg
         return validate_add(info, error_msg)
     if info.request_type and info.request_type == RequestTypes.GET:
         return validate_get(info, error_msg)

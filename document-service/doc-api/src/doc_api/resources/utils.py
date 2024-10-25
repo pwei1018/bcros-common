@@ -14,7 +14,7 @@
 """Resource helper utilities for processing requests."""
 from http import HTTPStatus
 
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 
 from doc_api.exceptions import ResourceErrorCodes
 from doc_api.models import Document, DocumentRequest, DocumentScanning, User, db, search_utils
@@ -104,6 +104,17 @@ def get_apikey(req):
     if not key:
         key = request.args.get("x-apikey")
     return key
+
+
+def valid_api_key(req) -> bool:
+    """Verify the callback request api key is valid."""
+    key = get_apikey(req)
+    if not key:
+        return False
+    apikey = current_app.config.get("SUBSCRIPTION_API_KEY")
+    if not apikey:
+        return False
+    return key == apikey
 
 
 def account_required_response():
@@ -393,6 +404,31 @@ def save_replace(info: RequestInfo, document: Document, token, raw_data) -> dict
     return doc_json
 
 
+def save_callback_create_rec(info: RequestInfo) -> dict:
+    """Save request document record information."""
+    request_json = info.json
+    logger.info("save_callback_create_rec starting, building Document model...")
+    document: Document = Document.create_from_json(request_json, info.document_type)
+    info.request_type = RequestTypes.PENDING.value
+    logger.info("save_callback_create_rec building doc request model...")
+    doc_request: DocumentRequest = build_doc_request(info, None, document.id)
+    logger.info("save_callback_create_rec building doc scan model and saving...")
+    db.session.add(document)
+    db.session.add(doc_request)
+    if info.request_data.get("author") and document.consumer_document_id and len(document.consumer_document_id) == 8:
+        doc_scan: DocumentScanning = DocumentScanning(
+            consumer_document_id=document.consumer_document_id,
+            document_class=document.document_class,
+            scan_date=model_utils.default_scan_date(),
+        )
+        doc_scan.author = info.request_data.get("author")
+        db.session.add(doc_scan)
+    db.session.commit()
+    doc_json = document.json
+    logger.info("save_callback_create_rec completed...")
+    return doc_json
+
+
 def get_doc_links(info: RequestInfo, results: list) -> list:
     """Generate document links for the documents in the list"""
     if not results:
@@ -450,3 +486,24 @@ def get_doc_storage_type(doc_class: str) -> str:
     if doc_class and TO_STORAGE_TYPE.get(doc_class):
         return TO_STORAGE_TYPE.get(doc_class)
     return STORAGE_TYPE_DEFAULT
+
+
+def get_callback_request_info(request_json: dict, info: RequestInfo) -> RequestInfo:
+    """Extract Build the request information from the request payload."""
+    if request_json:
+        info.account_id = request_json.get("accountId")
+        if info.account_id:
+            info.account_id += "_SYSTEM"
+        else:
+            info.account_id = "SYSTEM"
+        info.document_type = request_json.get(PARAM_DOCUMENT_TYPE)
+        info.document_class = request_json.get(PARAM_DOCUMENT_CLASS)
+        info.consumer_doc_id = request_json.get(PARAM_CONSUMER_DOC_ID)
+        info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
+        info.consumer_filedate = request_json.get(PARAM_CONSUMER_FILEDATE)
+        info.request_data = request_json
+        info.has_payload = False
+        info.staff = False
+        info.document_storage_type = get_doc_storage_type(info.document_class)
+        info.request_data["async"] = True
+    return info

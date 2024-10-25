@@ -13,6 +13,7 @@
 # limitations under the License.
 """Exposes all of the resource endpoints mounted in Flask-Blueprints."""
 from .business_requests import bp as business_bp
+from .callbacks import bp as callback_bp
 from .documents import bp as document_bp
 from .mhr_requests import bp as mhr_bp
 from .nr_requests import bp as nr_bp

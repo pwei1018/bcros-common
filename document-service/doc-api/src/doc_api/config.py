@@ -94,6 +94,9 @@ class Config:  # pylint: disable=too-few-public-methods
     GCP_CS_BUCKET_ID_MHR = os.getenv("GCP_CS_BUCKET_ID_MHR", "docs_mhr_dev")
     GCP_CS_BUCKET_ID_NR = os.getenv("GCP_CS_BUCKET_ID_NR", "docs_nr_dev")
     GCP_CS_BUCKET_ID_PPR = os.getenv("GCP_CS_BUCKET_ID_PPR", "docs_ppr_dev")
+    # For pub/sub subscription (queue/async requests)
+    GCP_PS_DOC_CREATE_REC_TOPIC = os.getenv("GCP_PS_DOC_CREATE_REC_TOPIC", "doc-api-app-create-record")
+    SUBSCRIPTION_API_KEY = os.getenv("SUBSCRIPTION_API_KEY")
 
     DEPLOYMENT_ENV = os.getenv("DEPLOYMENT_ENV", "development")
     if not GCP_AUTH_KEY and DEPLOYMENT_ENV in ("unitTesting", "testing"):

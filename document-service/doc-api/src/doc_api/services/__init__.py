@@ -16,6 +16,8 @@
 from .authz import BASIC_USER, MHR_ROLE, STAFF_ROLE, SYSTEM_ROLE, authorized, is_staff
 from .document_storage.storage_service import GoogleStorageService
 from .gcp_auth.auth_service import GoogleAuthService
+from .queue_service import GoogleQueueService
 
 auth_service = GoogleAuthService()
+queue_service = GoogleQueueService()
 storage_service = GoogleStorageService()
