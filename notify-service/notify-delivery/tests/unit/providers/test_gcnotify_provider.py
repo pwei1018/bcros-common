@@ -128,7 +128,7 @@ class TestGCNotify:  # pylint: disable=unsubscriptable-object
 
         # Assert the response
         assert isinstance(response, NotificationSendResponses)
-        assert len(response.recipients) == 2
+        assert len(response.recipients) == 2  # noqa: PLR2004
         assert response.recipients[0].recipient == "test1@example.com"
         assert response.recipients[0].response_id == "some_id"
         assert response.recipients[1].recipient == "test2@example.com"

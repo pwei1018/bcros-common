@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """The Unit Test for the Notification Model."""
+
 from datetime import datetime, timezone
 
 import pytest

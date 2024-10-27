@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Data for the JWT tokens."""
-from typing import List
 
 PUBLIC_USER = "public_user"
 STAFF_ROLE = "staff"
 
 
-def helper_create_jwt(
-    jwt_manager, roles: List[str] = [], username: str = "test-user"
-):  # pylint: disable=dangerous-default-value
+def helper_create_jwt(jwt_manager, roles: list[str] | None = None, username: str = "test-user"):  # pylint: disable=dangerous-default-value
     """Create a jwt bearer token with the correct keys, roles and username."""
+    if roles is None:
+        roles = []
     token_header = {"alg": "RS256", "typ": "JWT", "kid": "flask-jwt-oidc-test-client"}
     claims = {
         "iss": "https://example.localdomain/auth/realms/example",
@@ -32,15 +31,15 @@ def helper_create_jwt(
         "jti": "flask-jwt-oidc-test-support",
         "typ": "Bearer",
         "username": f"{username}",
-        "realm_access": {"roles": [] + roles},
+        "realm_access": {"roles": [*roles]},
     }
     return jwt_manager.create_jwt(claims, token_header)
 
 
-def create_header(
-    jwt_manager, roles: List[str] = [], username: str = "test-user", **kwargs
-):  # pylint: disable=dangerous-default-value
+def create_header(jwt_manager, roles: list[str] | None = None, username: str = "test-user", **kwargs):  # pylint: disable=dangerous-default-value
     """Return a header containing a JWT bearer token."""
+    if roles is None:
+        roles = []
     token = helper_create_jwt(jwt_manager, roles=roles, username=username)
-    headers = {**kwargs, **{"Authorization": "Bearer " + token}}
+    headers = {**kwargs, "Authorization": "Bearer " + token}
     return headers

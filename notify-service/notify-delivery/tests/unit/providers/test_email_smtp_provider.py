@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Test Suites to ensure that the smtp provider is operating correctly."""
+
 import smtplib
 import unittest
 from unittest.mock import patch
@@ -124,7 +125,7 @@ class TestEmailSMTP(unittest.TestCase):  # pylint: disable=unsubscriptable-objec
 
         # Assert the response
         assert isinstance(response, NotificationSendResponses)
-        assert len(response.recipients) == 2
+        assert len(response.recipients) == 2  # noqa: PLR2004
         assert response.recipients[0].recipient == "test1@example.com"
         assert response.recipients[0].response_id is None
         assert response.recipients[1].recipient == "test2@example.com"
@@ -136,6 +137,7 @@ class TestEmailSMTP(unittest.TestCase):  # pylint: disable=unsubscriptable-objec
         Test handling errors during email sending.
         """
         # Mock the SMTP server to raise an exception
+        mock_client.return_value.__enter__.return_value = mock_client.return_value
         mock_client.return_value.sendmail.side_effect = smtplib.SMTPException("Test Error")
         mock_client.return_value.connect.return_value = None
         mock_client.return_value.quit.return_value = None
@@ -168,7 +170,8 @@ class TestEmailSMTP(unittest.TestCase):  # pylint: disable=unsubscriptable-objec
         Test handling connection errors during email sending.
         """
         # Mock the SMTP server to raise an exception
-        mock_client.return_value.connect.side_effect = smtplib.SMTPException("Connection Error")
+        mock_client.return_value.__enter__.return_value = mock_client.return_value
+        mock_client.return_value.sendmail.side_effect = smtplib.SMTPException("Connection Error")
         mock_client.return_value.quit.return_value = None
 
         # Create a test notification
@@ -199,6 +202,7 @@ class TestEmailSMTP(unittest.TestCase):  # pylint: disable=unsubscriptable-objec
         Test handling quit errors during email sending.
         """
         # Mock the SMTP server to raise an exception
+        mock_client.return_value.__enter__.return_value = mock_client.return_value
         mock_client.return_value.connect.return_value = None
         mock_client.return_value.quit.side_effect = smtplib.SMTPException("Quit Error")
 
@@ -230,6 +234,7 @@ class TestEmailSMTP(unittest.TestCase):  # pylint: disable=unsubscriptable-objec
         Test handling unknown errors during email sending.
         """
         # Mock the SMTP server to raise an exception
+        mock_client.return_value.__enter__.return_value = mock_client.return_value
         mock_client.return_value.sendmail.side_effect = Exception("Unknown Error")
         mock_client.return_value.connect.return_value = None
         mock_client.return_value.quit.return_value = None

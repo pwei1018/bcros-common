@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Enum definitions."""
+
 from enum import auto
 
 from notify_api.utils.base import BaseEnum

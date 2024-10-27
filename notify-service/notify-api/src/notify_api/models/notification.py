@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Notification data model."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from enum import auto
-from typing import List
 
 import phonenumbers
 from email_validator import EmailNotValidError, validate_email
@@ -24,7 +24,7 @@ from notify_api.utils.base import BaseEnum
 from notify_api.utils.util import to_camel
 
 from .content import Content, ContentRequest
-from .db import db  # noqa: I001
+from .db import db
 
 
 class NotificationRequest(BaseModel):  # pylint: disable=too-few-public-methods
@@ -68,7 +68,7 @@ class NotificationSendResponse(BaseModel):  # pylint: disable=too-few-public-met
 class NotificationSendResponses(BaseModel):  # pylint: disable=too-few-public-methods
     """Notification model for resquest."""
 
-    recipients: List[NotificationSendResponse] = []
+    recipients: list[NotificationSendResponse] = []
 
 
 class Notification(db.Model):
@@ -100,9 +100,9 @@ class Notification(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     recipients = db.Column(db.String(2000), nullable=False)
-    request_date = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=True)
+    request_date = db.Column(db.DateTime(timezone=True), default=datetime.now, nullable=True)
     request_by = db.Column(db.String(100), nullable=True)
-    sent_date = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=True)
+    sent_date = db.Column(db.DateTime(timezone=True), default=datetime.now, nullable=True)
     type_code = db.Column(db.Enum(NotificationType), default=NotificationType.EMAIL)
     status_code = db.Column(db.Enum(NotificationStatus), default=NotificationStatus.PENDING)
     provider_code = db.Column(db.Enum(NotificationProvider), nullable=True)
@@ -130,7 +130,7 @@ class Notification(db.Model):
         return notification_json
 
     @classmethod
-    def find_notification_by_id(cls, identifier: str = None):
+    def find_notification_by_id(cls, identifier: str | None = None):
         """Return a Notification by the id."""
         notification = None
         if identifier:
@@ -139,7 +139,7 @@ class Notification(db.Model):
         return notification
 
     @classmethod
-    def find_notifications_by_status(cls, status: str = None):
+    def find_notifications_by_status(cls, status: str | None = None):
         """Return all Notifications by the status."""
         notifications = None
         if status:
@@ -163,6 +163,7 @@ class Notification(db.Model):
         """Create notification."""
         db_notification = Notification(
             recipients=recipient or notification.recipients,
+            request_date=datetime.now(UTC),
             request_by=notification.request_by,
             type_code=notification.notify_type,
         )

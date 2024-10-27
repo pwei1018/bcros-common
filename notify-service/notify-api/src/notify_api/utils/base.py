@@ -14,7 +14,7 @@
 """This module holds all of the basic data about a business."""
 
 from enum import Enum, EnumMeta
-from typing import Any, List, Optional
+from typing import Any
 
 
 class BaseMeta(EnumMeta):
@@ -38,7 +38,7 @@ class BaseEnum(str, Enum, metaclass=BaseMeta):
         return str(self.value)
 
     @classmethod
-    def get_enum_by_value(cls, value: str) -> Optional[str]:
+    def get_enum_by_value(cls, value: str) -> str | None:
         """Return the enum by value."""
         for enum_value in cls:
             if enum_value.value == value:
@@ -46,6 +46,6 @@ class BaseEnum(str, Enum, metaclass=BaseMeta):
         return None
 
     @staticmethod
-    def _generate_next_value_(name: str, start: int, count: int, last_values: List[Any]) -> str:
+    def _generate_next_value_(name: str, start: int, count: int, last_values: list[Any]) -> str:
         """Return the lower-cased version of the member name."""
         return name.lower()

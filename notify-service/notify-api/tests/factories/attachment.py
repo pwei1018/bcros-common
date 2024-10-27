@@ -13,8 +13,10 @@
 # limitations under the License.
 
 """Attachment factory."""
+
 import base64
 from enum import Enum
+from typing import ClassVar
 
 from faker import Faker
 
@@ -23,19 +25,19 @@ from notify_api.models import Attachment
 faker = Faker()
 
 
-class AttachmentFactory:  # pylint: disable=too-few-public-methods
+class AttachmentFactory:
     """Attachment factory."""
 
     class Models(dict, Enum):
         """Attachment model data."""
 
-        FILE_1 = {
+        FILE_1: ClassVar[dict] = {
             "fileName": "aaa.text",
             "fileBytes": "SGVsbG8gV29ybGQgYnkgdHh0ICEhIQ==",
             "attachOrder": "1",
         }
 
-        FILE_2 = {
+        FILE_2: ClassVar[dict] = {
             "fileName": "aaa.pdf",
             "fileBytes": "",
             "fileUrl": "https://minio-dev.apps.silver.devops.gov.bc.ca/public/affidavit_v1.pdf",
@@ -45,14 +47,14 @@ class AttachmentFactory:  # pylint: disable=too-few-public-methods
     class RequestData(dict, Enum):
         """Attachment post request payload data."""
 
-        FILE_REQUEST_1 = {
+        FILE_REQUEST_1: ClassVar[dict] = {
             "fileName": "aaa.pdf",
             "fileBytes": "",
             "fileUrl": "https://minio-dev.apps.silver.devops.gov.bc.ca/public/affidavit_v1.pdf",
             "attachOrder": "1",
         }
 
-        FILE_REQUEST_2 = {
+        FILE_REQUEST_2: ClassVar[dict] = {
             "fileName": "bbb.text",
             "fileBytes": "SGVsbG8gV29ybGQgYnkgdHh0ICEhIQ==",
             "fileUrl": "",
@@ -62,32 +64,26 @@ class AttachmentFactory:  # pylint: disable=too-few-public-methods
     class RequestBadData(dict, Enum):
         """Attachment post payload with inconsistent data."""
 
-        # name empty
-        FILE_REQUEST_BAD_1 = {
+        FILE_REQUEST_BAD_1: ClassVar[dict] = {
             "fileName": "",
             "fileBytes": "",
             "fileUrl": "https://minio-dev.apps.silver.devops.gov.bc.ca/public/affidavit_v1.pdf",
             "attachOrder": "1",
         }
 
-        # without name
-        FILE_REQUEST_BAD_2 = {
+        FILE_REQUEST_BAD_2: ClassVar[dict] = {
             "fileBytes": "",
             "fileUrl": "https://minio-dev.apps.silver.devops.gov.bc.ca/public/affidavit_v1.pdf",
             "attachOrder": "1",
         }
 
-        # file content empty
-        FILE_REQUEST_BAD_3 = {"fileName": "aaa.pdf", "fileBytes": "", "fileUrl": "", "attachOrder": 1}
+        FILE_REQUEST_BAD_3: ClassVar[dict] = {"fileName": "aaa.pdf", "fileBytes": "", "fileUrl": "", "attachOrder": 1}
 
-        # without file content
-        FILE_REQUEST_BAD_4 = {"fileName": "aaa.pdf", "fileBytes": "", "attachOrder": "1"}
+        FILE_REQUEST_BAD_4: ClassVar[dict] = {"fileName": "aaa.pdf", "fileBytes": "", "attachOrder": "1"}
 
-        # without file content
-        FILE_REQUEST_BAD_5 = {"fileName": "aaa.pdf", "fileUrl": "", "attachOrder": "1"}
+        FILE_REQUEST_BAD_5: ClassVar[dict] = {"fileName": "aaa.pdf", "fileUrl": "", "attachOrder": "1"}
 
-        # without file content
-        FILE_REQUEST_BAD_6 = {"fileName": "aaa.pdf", "attachOrder": "1"}
+        FILE_REQUEST_BAD_6: ClassVar[dict] = {"fileName": "aaa.pdf", "attachOrder": "1"}
 
     @staticmethod
     def create_model(session, content_id: int = 1, attachment_info: dict = Models.FILE_1):

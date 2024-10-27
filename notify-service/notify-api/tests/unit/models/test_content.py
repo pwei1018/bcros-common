@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Unit Test for the content model."""
+
 import pytest
 from pydantic import ValidationError
 

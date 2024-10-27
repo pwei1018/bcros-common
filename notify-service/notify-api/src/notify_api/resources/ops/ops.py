@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Endpoints to check and manage the health of the service."""
+
 from flask import Blueprint
 from sqlalchemy import exc, text
+from structured_logging import StructuredLogging
 
 from notify_api.models import db
-from notify_api.utils.logging import logger
+
+logger = StructuredLogging.get_logger()
 
 SQL = text("select 1")
 
@@ -31,7 +34,7 @@ def healthz():
     except exc.SQLAlchemyError as db_exception:
         logger.error("DB connection pool unhealthy:" + repr(db_exception))
         return {"message": "api is down"}, 500
-    except Exception as default_exception:  # noqa: B902; log error
+    except Exception as default_exception:  # ; log error
         logger.error("DB connection pool query failed:" + repr(default_exception))
         return {"message": "api is down"}, 500
 

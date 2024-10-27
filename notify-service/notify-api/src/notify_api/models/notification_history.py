@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Notification data model."""
-from datetime import datetime, timezone
 
-from .db import db  # noqa: I001
+from datetime import UTC, datetime, timezone
+
+from .db import db
 from .notification import Notification
 
 
@@ -25,9 +26,9 @@ class NotificationHistory(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     recipients = db.Column(db.String(2000), nullable=False)
-    request_date = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=True)
+    request_date = db.Column(db.DateTime(timezone=True), default=datetime.now(UTC), nullable=True)
     request_by = db.Column(db.String(100), nullable=True)
-    sent_date = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=True)
+    sent_date = db.Column(db.DateTime(timezone=True), default=datetime.now(UTC), nullable=True)
     subject = db.Column(db.String(2000), nullable=False)
     type_code = db.Column(db.String(15), nullable=False)
     status_code = db.Column(db.String(15), nullable=False)
@@ -55,7 +56,7 @@ class NotificationHistory(db.Model):
         return history_json
 
     @classmethod
-    def create_history(cls, notification: Notification, recipient: str = None, response_id: str = None):
+    def create_history(cls, notification: Notification, recipient: str | None = None, response_id: str | None = None):
         """Create notification."""
         db_history = NotificationHistory(
             recipients=recipient if recipient else notification.recipients,
@@ -75,7 +76,7 @@ class NotificationHistory(db.Model):
         return db_history
 
     @classmethod
-    def find_by_response_id(cls, response_id: str = None):
+    def find_by_response_id(cls, response_id: str | None = None):
         """Return a Notification by the gc notify response id."""
         notification_history = None
         if response_id:

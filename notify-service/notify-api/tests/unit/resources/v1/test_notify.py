@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Unit Test for the API."""
+
 from http import HTTPStatus
 from unittest.mock import patch
 
@@ -85,7 +86,7 @@ def test_get_by_id_no_token(session, app, client):  # pylint: disable=unused-arg
 def test_find_by_id_not_found(session, app, client, jwt):  # pylint: disable=unused-argument
     """Assert the test cannot retrieve notification details with id not existing."""
     headers = create_header(jwt, [Role.SYSTEM.value], **{"Accept-Version": "v1"})
-    res = client.get(f"/api/v1/notify/{int(1000)}", headers=headers)
+    res = client.get(f"/api/v1/notify/{1000}", headers=headers)
     assert res.status_code == HTTPStatus.NOT_FOUND
 
 

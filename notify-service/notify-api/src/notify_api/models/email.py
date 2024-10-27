@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Email validator model."""
+
 import requests
 from email_validator import EmailNotValidError, validate_email
 from flask import current_app
@@ -41,9 +42,8 @@ class EmailValidator(BaseModel):
                 response = requests.get(validation_url, timeout=10)
 
                 res_json = response.json()
-                if res_json:
-                    if res_json["result"] != MillionverifierResult.OK.value:
-                        raise EmailNotValidError(f'{res_json["subresult"]} {res_json["error"]}')
+                if res_json and res_json["result"] != MillionverifierResult.OK.value:
+                    raise EmailNotValidError(f'{res_json["subresult"]} {res_json["error"]}')
         except EmailNotValidError as error_msg:
             raise ValueError(f"Invalid: {value} {error_msg}") from error_msg
 

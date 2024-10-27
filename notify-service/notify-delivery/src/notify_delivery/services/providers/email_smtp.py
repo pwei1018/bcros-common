@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This provides send email through SMTP."""
+
 import re
 import smtplib
 import unicodedata
@@ -19,13 +20,19 @@ from email.encoders import encode_base64
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import List
 
 from flask import current_app
-from notify_api.models import Notification, NotificationSendResponse, NotificationSendResponses
+from notify_api.models import (
+    Notification,
+    NotificationSendResponse,
+    NotificationSendResponses,
+)
+from structured_logging import StructuredLogging
+
+logger = StructuredLogging.get_logger()
 
 
-class EmailSMTP:  # pylint: disable=too-few-public-methods
+class EmailSMTP:
     """Send emails via SMTP."""
 
     def __init__(self, notification: Notification):
@@ -50,35 +57,25 @@ class EmailSMTP:  # pylint: disable=too-few-public-methods
                 part.set_payload(attachment.file_bytes)
                 encode_base64(part)
 
-                spaces = re.compile(r"[\s]+", re.UNICODE)
                 filename = unicodedata.normalize("NFKD", attachment.file_name)
-                filename = filename.encode("ascii", "ignore").decode("ascii")
-                filename = spaces.sub(" ", filename).strip()
-
-                try:
-                    filename and filename.encode("ascii")
-                except UnicodeEncodeError:
-                    filename = ("UTF8", "", filename)
+                filename = re.sub(r"[\s]+", " ", filename).strip().encode("ascii", "ignore").decode("ascii")
 
                 part.add_header("Content-Disposition", "attachment; filename=" + filename)
 
                 message.attach(part)
 
-        response_list: List[NotificationSendResponse] = []
+        response_list: list[NotificationSendResponse] = []
 
         try:
-            for email in message["To"].split(","):
-                try:
-                    server = smtplib.SMTP()
-                    server.connect(host=self.mail_server, port=self.mail_port)
-                    server.sendmail(message["From"], [email], message.as_string())
-                    sent_response = NotificationSendResponse(response_id=None, recipient=email)
-                    response_list.append(sent_response)
-                except Exception as e:
-                    current_app.logger.error(f"Error sending email: {e}")
-
-                server.quit()
+            with smtplib.SMTP(host=self.mail_server, port=self.mail_port) as server:
+                for email in message["To"].split(","):
+                    try:
+                        server.sendmail(message["From"], [email], message.as_string())
+                        sent_response = NotificationSendResponse(response_id=None, recipient=email)
+                        response_list.append(sent_response)
+                    except Exception as e:
+                        logger.error(f"Error sending email to {email}: {e}")
         except smtplib.SMTPException as e:
-            current_app.logger.error(f"Error sending email: {e}")
+            logger.error(f"Error connecting to SMTP server: {e}")
 
-        return NotificationSendResponses(**{"recipients": response_list})
+        return NotificationSendResponses(recipients=response_list)

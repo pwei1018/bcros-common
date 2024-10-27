@@ -19,10 +19,11 @@ All modules and lookups get their configuration from the
 Flask config, rather than reading environment variables directly
 or by accessing this configuration directly.
 """
+
 import os
 
 
-class Config:  # pylint: disable=too-few-public-methods
+class Config:
     """Config object."""
 
     DEBUG = False
@@ -38,9 +39,7 @@ class Config:  # pylint: disable=too-few-public-methods
     DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
     DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
     DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
-    DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")  # POSTGRESQL
-
-    # POSTGRESQL
+    DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
     if DB_UNIX_SOCKET := os.getenv("NOTIFY_DATABASE_UNIX_SOCKET", None):
         SQLALCHEMY_DATABASE_URI = (
             f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?unix_sock={DB_UNIX_SOCKET}/.s.PGSQL.5432"

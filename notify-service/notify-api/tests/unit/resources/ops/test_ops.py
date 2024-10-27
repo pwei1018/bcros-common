@@ -16,6 +16,7 @@
 
 Test-Suite to ensure that the /ops endpoint is working as expected.
 """
+
 from unittest.mock import patch
 
 from sqlalchemy import exc
@@ -26,7 +27,7 @@ from notify_api.models import db
 def test_ops_healthz_success(session, client):  # pylint: disable=unused-argument
     """Assert that the service is healthy if it can successfully access the database."""
     rv = client.get("/ops/healthz")
-    assert rv.status_code == 200
+    assert rv.status_code == 200  # noqa: PLR2004
     assert rv.json == {"message": "api is healthy"}
 
 
@@ -34,11 +35,11 @@ def test_ops_healthz_exception(session, client):  # pylint: disable=unused-argum
     """Assert that the service is healthy if it can successfully access the database."""
     with patch.object(db.session, "execute", side_effect=exc.SQLAlchemyError):
         rv = client.get("/ops/healthz")
-        assert rv.status_code == 500
+        assert rv.status_code == 500  # noqa: PLR2004
         assert rv.json == {"message": "api is down"}
     with patch.object(db.session, "execute", side_effect=Exception):
         rv = client.get("/ops/healthz")
-        assert rv.status_code == 500
+        assert rv.status_code == 500  # noqa: PLR2004
         assert rv.json == {"message": "api is down"}
 
 
@@ -46,5 +47,5 @@ def test_ops_readyz(client):
     """Asserts that the service is ready to serve."""
     rv = client.get("/ops/readyz")
 
-    assert rv.status_code == 200
+    assert rv.status_code == 200  # noqa: PLR2004
     assert rv.json == {"message": "api is ready"}

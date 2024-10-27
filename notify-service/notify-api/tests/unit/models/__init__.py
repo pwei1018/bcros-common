@@ -13,12 +13,12 @@
 # limitations under the License.
 
 """The Test-Suite used to ensure that the Model objects are working correctly."""
+
 import base64
 import uuid
 from datetime import datetime, timezone
 
 from freezegun import freeze_time
-from sqlalchemy_continuum import versioning_manager
 
 from notify_api.models import db
 from tests import EPOCH_DATETIME, FROZEN_DATETIME

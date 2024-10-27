@@ -12,13 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This provides send email through GC Notify Service."""
+
 import base64
-from typing import List
 
 from flask import current_app
 from notifications_python_client import NotificationsAPIClient
 from notifications_python_client.errors import HTTPError
-from notify_api.models import Notification, NotificationSendResponse, NotificationSendResponses
+from notify_api.models import (
+    Notification,
+    NotificationSendResponse,
+    NotificationSendResponses,
+)
+from structured_logging import StructuredLogging
+
+logger = StructuredLogging.get_logger()
 
 
 class GCNotify:
@@ -42,18 +49,21 @@ class GCNotify:
             "email_body": self.notification.content[0].body,
         }
 
+        # Collect attachments if they exist
         if self.notification.content[0].attachments:
-            for idx, attachment in enumerate(self.notification.content[0].attachments):
-                attachment_encoded = base64.b64encode(attachment.file_bytes)
-                email_content[f"attachment{idx}"] = {
-                    "file": attachment_encoded.decode(),
-                    "filename": attachment.file_name,
-                    "sending_method": "attach",
+            email_content.update(
+                {
+                    f"attachment{idx}": {
+                        "file": base64.b64encode(attachment.file_bytes).decode(),
+                        "filename": attachment.file_name,
+                        "sending_method": "attach",
+                    }
+                    for idx, attachment in enumerate(self.notification.content[0].attachments)
                 }
+            )
 
-        response_list: List[NotificationSendResponse] = []
-
-        # send one email at a time
+        # Send one email at a time and collect responses
+        response_list = []
         for recipient in self.notification.recipients.split(","):
             try:
                 response = client.send_email_notification(
@@ -62,12 +72,8 @@ class GCNotify:
                     personalisation=email_content,
                     email_reply_to_id=self.gc_notify_email_reply_to_id,
                 )
+                response_list.append(NotificationSendResponse(response_id=response["id"], recipient=recipient))
+            except (HTTPError, Exception) as e:
+                logger.error(f"Error sending email to {recipient}: {e}")
 
-                sent_response = NotificationSendResponse(response_id=response["id"], recipient=recipient)
-                response_list.append(sent_response)
-            except HTTPError as e:
-                current_app.logger.error(f"Error sending email to {recipient}: {e}")
-            except Exception as e:
-                current_app.logger.error(f"Error sending email to {recipient}: {e}")
-
-        return NotificationSendResponses(**{"recipients": response_list})
+        return NotificationSendResponses(recipients=response_list)

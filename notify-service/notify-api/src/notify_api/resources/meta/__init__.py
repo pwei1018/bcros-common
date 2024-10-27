@@ -12,4 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Exposes all of the resource endpoints mounted in Flask-Blueprints."""
+
 from .meta import bp as meta_bp
