@@ -70,4 +70,6 @@ class RequestInfo:
             info["pageNumber"] = self.page_number
         if self.request_data:
             info["requestData"] = self.request_data
+            if self.request_data.get("author"):
+                info["author"] = self.request_data.get("author")
         return info

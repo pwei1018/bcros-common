@@ -50,6 +50,7 @@ class Document(db.Model):
     consumer_filing_date = db.mapped_column("consumer_filing_date", db.DateTime, nullable=True, index=True)
     doc_storage_url = db.mapped_column("doc_storage_url", db.String(1000), nullable=True)
     description = db.mapped_column("description", db.String(1000), nullable=True)
+    author = db.mapped_column("author", db.String(256), nullable=True)
 
     # parent keys
     document_type = db.mapped_column(
@@ -87,6 +88,7 @@ class Document(db.Model):
             "documentTypeDescription": self.doc_type.document_type_desc if self.doc_type else "",
             "documentClass": self.doc_type.document_class if self.doc_type else "",
             "documentURL": self.doc_storage_url if self.doc_storage_url else "",
+            "author": self.author if self.author else "",
         }
         if self.description:
             document["description"] = self.description
@@ -217,6 +219,8 @@ class Document(db.Model):
             self.document_type = request_data.get("documentType")
         if request_data.get("documentClass"):
             self.document_class = request_data.get("documentClass")
+        if request_data.get("author"):
+            self.author = request_data.get("author")
 
     @staticmethod
     def create_from_json(doc_json: dict, doc_type: str):
@@ -235,5 +239,7 @@ class Document(db.Model):
             doc.consumer_filing_date = model_utils.ts_from_iso_date_noon(doc_json["consumerFilingDate"])
         if doc_json.get("description"):
             doc.description = doc_json.get("description")
+        if doc_json.get("author"):
+            doc.author = doc_json.get("author")
         doc.get_generated_values()
         return doc

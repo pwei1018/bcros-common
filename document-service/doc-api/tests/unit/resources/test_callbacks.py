@@ -91,10 +91,7 @@ def test_create_doc_rec(session, client, jwt, desc, payload_json, has_key, autho
         doc: Document = Document.find_by_doc_service_id(doc_json.get("documentServiceId"))
         assert doc
         doc_json = doc.json
-        if len(payload_json.get("consumerDocumentId")) == 8 and req_json.get("author"):
-            assert doc_json.get("scanningInformation")
-        else:
-            assert not doc_json.get("scanningInformation")
+        assert not doc_json.get("scanningInformation")
 
 
 def is_ci_testing() -> bool:

@@ -18,6 +18,7 @@ from http import HTTPStatus
 from flask import Blueprint, jsonify, request
 
 from doc_api.exceptions import BusinessException, DatabaseException
+from doc_api.models import Document
 from doc_api.models.type_tables import RequestTypes
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
@@ -46,8 +47,13 @@ def post_document_records():
         extra_validation_msg = resource_utils.validate_request(info)
         if extra_validation_msg != "":
             return resource_utils.extra_validation_error_response(extra_validation_msg)
-        response_json = resource_utils.save_callback_create_rec(info)
-        return jsonify(response_json), HTTPStatus.CREATED
+        doc: Document = Document.find_by_document_id(request_json.get("consumerDocumentId"))
+        if doc:
+            response_json = resource_utils.save_callback_update_rec(info, doc)
+            return jsonify(response_json), HTTPStatus.OK
+        else:
+            response_json = resource_utils.save_callback_create_rec(info)
+            return jsonify(response_json), HTTPStatus.CREATED
     except DatabaseException as db_exception:
         return resource_utils.db_exception_response(
             db_exception, account_id, f"POST create callback document record id={account_id}"

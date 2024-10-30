@@ -92,9 +92,17 @@ TEST_DOC_REC_MODERN = {
     "accountId": "123456",
     "consumerDocumentId": "1099990950",
     "consumerIdentifier": "108924",
-    "documentType": "MHR_MISC",
+    "documentType": "TRAN",
     "documentClass": "MHR",
     "author": "John Jones"
+}
+TEST_DOC_REC_UPDATE = {
+    "accountId": "123456",
+    "consumerDocumentId": "1099990950",
+    "consumerIdentifier": "108925",
+    "documentType": "MHR_MISC",
+    "documentClass": "MHR",
+    "author": "JAMES Jones"
 }
 
 # testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff})
@@ -144,19 +152,25 @@ TEST_UPDATE_DATA = [
 ]
 # testdata pattern is ({document}, {token}, {filename})
 TEST_REPLACE_DATA = [(TEST_DOCUMENT, TEST_TOKEN, TEST_FILENAME)]
-# testdata pattern is ({request_data})
+# testdata pattern is ({request_data}, {update})
 TEST_CALLBACK_REC_DATA = [
-    (TEST_DOC_REC_LEGACY),
-    (TEST_DOC_REC_MODERN),
+    (TEST_DOC_REC_LEGACY, False),
+    (TEST_DOC_REC_MODERN, True),
 ]
 
 
-@pytest.mark.parametrize("request_data", TEST_CALLBACK_REC_DATA)
-def test_save_callback_data(session, request_data):
+@pytest.mark.parametrize("request_data, update", TEST_CALLBACK_REC_DATA)
+def test_save_callback_data(session, request_data, update):
     """Assert that POST request resource_utils.save_callback_create_rec works as expected."""
     info: RequestInfo = RequestInfo(RequestTypes.ADD.value, None, None, None)
     info = resource_utils.get_callback_request_info(request_data, info)
-    result = resource_utils.save_callback_create_rec(info)
+    result = None
+    if update:
+        doc: Document = Document.create_from_json(TEST_DOC_REC_UPDATE, TEST_DOC_REC_UPDATE.get("documentType"))
+        doc.save()
+        result = resource_utils.save_callback_update_rec(info, doc)
+    else:
+        result = resource_utils.save_callback_create_rec(info)
     assert result
     assert result.get("documentServiceId")
     assert result.get("createDateTime")
@@ -165,12 +179,10 @@ def test_save_callback_data(session, request_data):
     assert result.get("documentClass") == request_data.get("documentClass")
     assert result.get("consumerDocumentId") == request_data.get("consumerDocumentId")
     assert result.get("consumerIdentifier") == request_data.get("consumerIdentifier")
+    assert result.get("author") == request_data.get("author")
     assert not result.get("consumerFilename")
     assert not result.get("documentURL")
-    if len(request_data.get("consumerDocumentId")) == 8 and request_data.get("author"):
-        assert result.get("scanningInformation")
-    else:
-        assert not result.get("scanningInformation")
+    assert not result.get("scanningInformation")
 
 
 @pytest.mark.parametrize("document,token,filename", TEST_REPLACE_DATA)

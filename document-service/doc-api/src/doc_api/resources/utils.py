@@ -412,20 +412,26 @@ def save_callback_create_rec(info: RequestInfo) -> dict:
     info.request_type = RequestTypes.PENDING.value
     logger.info("save_callback_create_rec building doc request model...")
     doc_request: DocumentRequest = build_doc_request(info, None, document.id)
-    logger.info("save_callback_create_rec building doc scan model and saving...")
     db.session.add(document)
     db.session.add(doc_request)
-    if info.request_data.get("author") and document.consumer_document_id and len(document.consumer_document_id) == 8:
-        doc_scan: DocumentScanning = DocumentScanning(
-            consumer_document_id=document.consumer_document_id,
-            document_class=document.document_class,
-            scan_date=model_utils.default_scan_date(),
-        )
-        doc_scan.author = info.request_data.get("author")
-        db.session.add(doc_scan)
     db.session.commit()
     doc_json = document.json
     logger.info("save_callback_create_rec completed...")
+    return doc_json
+
+
+def save_callback_update_rec(info: RequestInfo, document: Document) -> dict:
+    """Save updated document record information."""
+    logger.info("save_callback_update_rec starting, updating Document model...")
+    document.update(info.request_data)
+    info.request_type = RequestTypes.UPDATE.value
+    logger.info("save_callback_update_rec building doc request model...")
+    doc_request: DocumentRequest = build_doc_request(info, None, document.id)
+    db.session.add(document)
+    db.session.add(doc_request)
+    db.session.commit()
+    doc_json = document.json
+    logger.info("save_callback_update_rec completed...")
     return doc_json
 
 
