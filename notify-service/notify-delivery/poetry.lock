@@ -1151,9 +1151,9 @@ structured-logging = {git = "https://github.com/bcgov/sbc-connect-common.git", b
 
 [package.source]
 type = "git"
-url = "https://github.com/pwei1018/bcros-common.git"
-reference = "improve-logging"
-resolved_reference = "8e16e58d5ec602f94fdce8b0dc32747c39b15ef6"
+url = "https://github.com/bcgov/bcros-common.git"
+reference = "main"
+resolved_reference = "c7940dbde2f879d6bd474a11225ed234739cf7e6"
 subdirectory = "notify-service/notify-api"
 
 [[package]]
@@ -2010,4 +2010,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "2979a7b336347558ea31acd636973cadd618c389e9d502f801df77891b4e5392"
+content-hash = "e4fe2066cec36305b68c339d13af8a1bb43213a0db899eb565820bb3335acb59"
