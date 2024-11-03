@@ -12,28 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Notification Content data model."""
-from __future__ import annotations
 
-from typing import ForwardRef, List, Optional  # noqa: F401 # pylint: disable=unused-import
+from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from notify_api.utils.util import to_camel
 
-from .attachment import Attachment, AttachmentRequest  # noqa: F401 # pylint: disable=unused-import
-from .db import db  # noqa: I001
-
-ListAttachmentRequest = ForwardRef("List[AttachmentRequest]")
+from .attachment import Attachment, AttachmentRequest
+from .db import db
 
 
-class ContentRequest(BaseModel):  # pylint: disable=too-few-public-methods
+class ContentRequest(BaseModel):
     """Entity Request model for the Notification content."""
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel, coerce_numbers_to_str=True)
 
     subject: str = Field(alias="subject")
     body: str = Field(alias="body")
-    attachments: Optional[ListAttachmentRequest] | None = None
+    attachments: list[AttachmentRequest] | None = None
 
     @field_validator("subject")
     @classmethod

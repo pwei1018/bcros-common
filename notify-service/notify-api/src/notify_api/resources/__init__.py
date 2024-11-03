@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Exposes all of the resource endpoints mounted in Flask-Blueprint style."""
+
 from .constants import EndpointVersionPath
 from .meta import meta_bp
 from .ops import ops_bp
@@ -19,9 +20,7 @@ from .v1 import notify_bp
 from .v2 import callback_bp_v2, email_validation_bp_v2, resend_bp_v2, safe_list_bp_v2
 from .version_endpoint import VersionEndpoint
 
-meta_endpoint = VersionEndpoint(
-    name="META", path=EndpointVersionPath.META, bps=[meta_bp]
-)  # pylint: disable=invalid-name
+meta_endpoint = VersionEndpoint(name="META", path=EndpointVersionPath.META, bps=[meta_bp])  # pylint: disable=invalid-name
 
 ops_endpoint = VersionEndpoint(name="OPS", path=EndpointVersionPath.OPS, bps=[ops_bp])  # pylint: disable=invalid-name
 

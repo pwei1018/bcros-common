@@ -15,6 +15,7 @@
 
 Test-Suite to ensure that Alembic and Migration are working as expected.
 """
+
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 

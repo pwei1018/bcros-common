@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Constants used in managing the end-points."""
+
 from __future__ import annotations
 
 from enum import Enum

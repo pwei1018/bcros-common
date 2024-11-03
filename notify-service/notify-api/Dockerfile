@@ -1,6 +1,4 @@
-FROM python:3.12-bullseye AS development_build
-
-USER root
+FROM python:3.12.2-bullseye as development_build
 
 ARG VCS_REF="missing"
 ARG BUILD_DATE="missing"
@@ -12,7 +10,9 @@ ENV PORT=8080
 LABEL org.label-schema.vcs-ref=${VCS_REF} \
     org.label-schema.build-date=${BUILD_DATE}
 
-LABEL maintainer="thorwolpert"
+USER root
+
+LABEL maintainer="pwei"
 LABEL vendor="BCROS"
 
 ARG APP_ENV \
@@ -86,8 +86,4 @@ USER web
 FROM development_build AS production_build
 COPY --chown=web:web . /code
 
-# ENV PYTHONPATH=/opt/app-root/src
-
-# CMD gunicorn --bind 0.0.0.0:${PORT} --config /code/gunicorn_config.py wsgi:app
-
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 wsgi:app
+CMD gunicorn --bind 0.0.0.0:${PORT} --config /code/gunicorn_config.py wsgi:app

@@ -2,6 +2,7 @@
 # flake8: noqa
 # This will get moved to an external library, which is linted by black (different than our rules)
 """Move this to external library."""
+
 import functools
 from http import HTTPStatus
 
@@ -9,8 +10,10 @@ import google.oauth2.id_token as id_token
 from cachecontrol import CacheControl
 from flask import abort, current_app, request
 from google.auth.transport.requests import Request
-from notify_api.utils.logging import logger
 from requests.sessions import Session
+from structured_logging import StructuredLogging
+
+logger = StructuredLogging.get_logger()
 
 
 def verify_jwt(session):

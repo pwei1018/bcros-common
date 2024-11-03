@@ -13,8 +13,10 @@
 # limitations under the License.
 
 """notification factory."""
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
+from typing import ClassVar
 
 from faker import Faker
 
@@ -31,7 +33,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
     class Models(dict, Enum):
         """Notification model data."""
 
-        PENDING_1 = {
+        PENDING_1: ClassVar[dict] = {
             "id": 1,
             "recipients": faker.safe_email(),
             "requestDate": faker.date_time(),
@@ -39,7 +41,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             "statusCode": Notification.NotificationStatus.PENDING,
         }
 
-        PENDING_2 = {
+        PENDING_2: ClassVar[dict] = {
             "id": 2,
             "recipients": faker.safe_email(),
             "requestDate": faker.date_time(),
@@ -47,18 +49,18 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             "statusCode": Notification.NotificationStatus.PENDING,
         }
 
-        LESS_1_HOUR = {
+        LESS_1_HOUR: ClassVar[dict] = {
             "id": 1,
             "recipients": faker.safe_email(),
-            "requestDate": datetime.now(timezone.utc) - timedelta(hours=1),
+            "requestDate": datetime.now(UTC) - timedelta(hours=1),
             "requestBy": faker.user_name(),
             "statusCode": Notification.NotificationStatus.FAILURE,
         }
 
-        OVER_1_HOUR = {
+        OVER_1_HOUR: ClassVar[dict] = {
             "id": 1,
             "recipients": faker.safe_email(),
-            "requestDate": datetime.now(timezone.utc) - timedelta(hours=10),
+            "requestDate": datetime.now(UTC) - timedelta(hours=10),
             "requestBy": faker.user_name(),
             "statusCode": Notification.NotificationStatus.FAILURE,
         }
@@ -66,21 +68,21 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
     class RequestData(dict, Enum):
         """Notification post request payload data."""
 
-        REQUEST_1 = {
+        REQUEST_1: ClassVar[dict] = {
             "recipients": "abc@gmail.com",
             "requestBy": faker.user_name(),
             "requestDate": faker.date_time(),
             "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
         }
 
-        REQUEST_2 = {
-            "recipients": "abc@gmail.com",
+        REQUEST_2: ClassVar[dict] = {
+            "recipients": "abc1@gmail.com",
             "requestBy": faker.user_name(),
             "requestDate": faker.date_time(),
             "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
         }
 
-        REQUEST_3 = {
+        REQUEST_3: ClassVar[dict] = {
             "recipients": "abc@gmail.com",
             "requestDate": faker.date_time(),
             "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
@@ -89,7 +91,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
     class RequestProviderData(dict, Enum):
         """Content post request payload data for test provider."""
 
-        REQUEST_PROVIDER_1 = {
+        REQUEST_PROVIDER_1: ClassVar[dict] = {
             "provider": Notification.NotificationProvider.GC_NOTIFY,
             "data": {
                 "recipients": "abc@gmail.com",
@@ -100,7 +102,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             },
         }
 
-        REQUEST_PROVIDER_2 = {
+        REQUEST_PROVIDER_2: ClassVar[dict] = {
             "provider": Notification.NotificationProvider.SMTP,
             "data": {
                 "recipients": "abc@gmail.com",
@@ -111,7 +113,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             },
         }
 
-        REQUEST_PROVIDER_3 = {
+        REQUEST_PROVIDER_3: ClassVar[dict] = {
             "provider": Notification.NotificationProvider.GC_NOTIFY,
             "data": {
                 "recipients": "+12508888888",
@@ -126,66 +128,69 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
         """Notification post payload with inconsistent data."""
 
         # email empty
-        REQUEST_BAD_1 = {
+        REQUEST_BAD_1: ClassVar[dict] = {
             "recipients": "",
             "requestBy": faker.user_name(),
             "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
         }
 
         # without email
-        REQUEST_BAD_2 = {"requestBy": faker.user_name(), "content": ContentFactory.RequestData.CONTENT_REQUEST_1}
+        REQUEST_BAD_2: ClassVar[dict] = {
+            "requestBy": faker.user_name(),
+            "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
+        }
         # bad email
-        REQUEST_BAD_3 = {
+        REQUEST_BAD_3: ClassVar[dict] = {
             "recipients": "aaa",
             "requestBy": faker.user_name(),
             "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
         }
         # bad email
-        REQUEST_BAD_4 = {
+        REQUEST_BAD_4: ClassVar[dict] = {
             "recipients": "aaa@aaa.com, bbbb",
             "requestBy": faker.user_name(),
             "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
         }
         # bad email
-        REQUEST_BAD_5 = {
+        REQUEST_BAD_5: ClassVar[dict] = {
             "recipients": "aaa@aaa.com, bbbb@bbb",
             "requestBy": faker.user_name(),
             "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
         }
         # bad email
-        REQUEST_BAD_6 = {
+        REQUEST_BAD_6: ClassVar[dict] = {
             "recipients": "aaa.com, bbbb@bbb.com",
             "requestBy": faker.user_name(),
             "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
         }
 
         # bad phone
-        REQUEST_BAD_61 = {
+        REQUEST_BAD_61: ClassVar[dict] = {
             "recipients": "+345678901230",
             "requestBy": faker.user_name(),
             "content": ContentFactory.RequestData.CONTENT_REQUEST_1,
         }
 
         # subject empty
-        REQUEST_BAD_7 = {
+        REQUEST_BAD_7: ClassVar[dict] = {
             "recipients": faker.safe_email(),
             "requestBy": faker.user_name(),
             "content": ContentFactory.RequestBadData.CONTENT_REQUEST_BAD_1,
         }
         # without subject
-        REQUEST_BAD_8 = {
+        REQUEST_BAD_8: ClassVar[dict] = {
             "recipients": faker.safe_email(),
             "requestBy": faker.user_name(),
             "content": ContentFactory.RequestBadData.CONTENT_REQUEST_BAD_2,
         }
         # without body
-        REQUEST_BAD_9 = {
+        REQUEST_BAD_9: ClassVar[dict] = {
             "recipients": faker.safe_email(),
             "requestBy": faker.user_name(),
             "content": ContentFactory.RequestBadData.CONTENT_REQUEST_BAD_3,
         }
         # name empty
-        REQUEST_BAD_10 = {
+        REQUEST_BAD_10: ClassVar[dict] = {
             "recipients": faker.safe_email(),
             "requestBy": faker.user_name(),
             "content": {
@@ -195,7 +200,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             },
         }
         # without name
-        REQUEST_BAD_11 = {
+        REQUEST_BAD_11: ClassVar[dict] = {
             "recipients": faker.safe_email(),
             "requestBy": faker.user_name(),
             "content": {
@@ -205,7 +210,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             },
         }
         # file content empty
-        REQUEST_BAD_12 = {
+        REQUEST_BAD_12: ClassVar[dict] = {
             "recipients": faker.safe_email(),
             "requestBy": faker.user_name(),
             "content": {
@@ -215,7 +220,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             },
         }
         # without file content
-        REQUEST_BAD_13 = {
+        REQUEST_BAD_13: ClassVar[dict] = {
             "recipients": faker.safe_email(),
             "requestBy": faker.user_name(),
             "content": {
@@ -225,7 +230,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             },
         }
         # without file content
-        REQUEST_BAD_14 = {
+        REQUEST_BAD_14: ClassVar[dict] = {
             "recipients": faker.safe_email(),
             "requestBy": faker.user_name(),
             "content": {
@@ -235,7 +240,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             },
         }
         # without file content
-        REQUEST_BAD_15 = {
+        REQUEST_BAD_15: ClassVar[dict] = {
             "recipients": faker.safe_email(),
             "requestBy": faker.user_name(),
             "content": {
@@ -259,7 +264,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
             recipients=notification_info["recipients"],
             request_date=notification_info["requestDate"],
             request_by=notification_info.get("requestBy", ""),
-            status_code=notification_info.get("statusCode", None),
+            status_code=notification_info.get("statusCode"),
         )
         session.add(notification)
         session.commit()

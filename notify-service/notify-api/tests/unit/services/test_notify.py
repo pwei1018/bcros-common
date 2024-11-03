@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Unit Test for the Service."""
+
 from notify_api.services.notify_service import NotifyService
 from tests.factories.notification import NotificationFactory
 

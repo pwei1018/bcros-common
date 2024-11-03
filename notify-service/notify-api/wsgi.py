@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Provides the WSGI entry point for running the application."""
+
 import os
 
 from notify_api import create_app

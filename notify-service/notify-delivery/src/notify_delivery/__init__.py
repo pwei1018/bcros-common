@@ -15,6 +15,7 @@
 
 The service worker for applying payments, receipts and account balance to payment system.
 """
+
 from __future__ import annotations
 
 import os
@@ -22,14 +23,14 @@ import os
 from flask import Flask
 from flask_migrate import Migrate
 from notify_api.models import db
-from notify_api.utils.logging import logger, setup_logging
+from structured_logging import StructuredLogging
 
 from notify_delivery.config import config
 from notify_delivery.metadata import APP_RUNNING_ENVIRONMENT
 from notify_delivery.resources import register_endpoints
 from notify_delivery.services.gcp_queue import queue
 
-setup_logging(os.path.join(os.path.abspath(os.path.dirname(__file__)), "logging.yaml"))  # important to do this first
+logger = StructuredLogging.get_logger()
 
 
 def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):

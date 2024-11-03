@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Safe List data model."""
-from __future__ import annotations
 
-from typing import List
+from __future__ import annotations
 
 from pydantic import BaseModel
 
-from .db import db  # noqa: I001
+from .db import db
 
 
 class SafeListRequest(BaseModel):  # pylint: disable=too-few-public-methods
-    """Notification model for resquest."""
+    """Notification model for request."""
 
-    email: List[str] | None = None
+    email: list[str] | None = None
 
 
 class SafeList(db.Model):
@@ -51,7 +50,7 @@ class SafeList(db.Model):
             db.session.add(db_email)
             db.session.commit()
             db.session.refresh(db_email)
-        except Exception:  # NOQA # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             db.session.rollback()
 
         return db_email
@@ -72,7 +71,7 @@ class SafeList(db.Model):
         return (cls.query.filter_by(email=email).all())[0]
 
     @classmethod
-    def find_all(cls) -> List[SafeList]:
+    def find_all(cls) -> list[SafeList]:
         """Return all of the safe emails."""
         safe_emails = cls.query.all()
         return safe_emails

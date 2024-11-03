@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Test Suites to ensure that the worker is operating correctly."""
+
 import unittest
 from http import HTTPStatus
 from unittest.mock import patch
@@ -82,7 +83,7 @@ class TestGCNotify(unittest.TestCase):
             data={"notificationId": "test_notification_id"},
         )
         response = self.client.post("/gcnotify", data="{}")
-        assert response.status_code == HTTPStatus.OK
+        assert response.status_code == HTTPStatus.BAD_REQUEST
         mock_process_message.assert_not_called()
 
     @patch("notify_delivery.resources.gc_notify.Notification.find_notification_by_id")
@@ -117,7 +118,7 @@ class TestGCNotify(unittest.TestCase):
     @patch("notify_delivery.resources.gc_notify.NotificationHistory.create_history")
     @patch("notify_delivery.resources.gc_notify.Notification.update_notification")
     @patch("notify_delivery.resources.gc_notify.Notification.delete_notification")
-    def test_process_message_success(
+    def test_process_message_success(  # noqa: PLR0913
         self,
         mock_delete_notification,
         mock_update_notification,

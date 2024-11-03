@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Test Suites to ensure that the worker is operating correctly."""
+
 import unittest
 from http import HTTPStatus
 from unittest.mock import patch
@@ -104,7 +105,7 @@ class TestEmailSMTP(unittest.TestCase):
             data={"notificationRequest": "test_notification_request", "notificationProvider": "SMTP"},
         )
         response = self.client.post("/smtp", data="{}")
-        assert response.status_code == HTTPStatus.OK
+        assert response.status_code == HTTPStatus.BAD_REQUEST
         mock_process_message.assert_not_called()
 
     @patch("notify_delivery.resources.email_smtp.NotificationRequest.model_validate_json")
@@ -114,7 +115,7 @@ class TestEmailSMTP(unittest.TestCase):
         mock_model_validate_json.return_value = None
         with pytest.raises(Exception) as e:
             process_message({"notificationRequest": None, "notificationProvider": "SMTP"})
-        assert str(e.value) == "Notification data not found."
+        assert str(e.value) == "notificationRequest not found in notification data."
 
     @patch("notify_delivery.resources.email_smtp.NotificationRequest.model_validate_json")
     @patch("notify_delivery.resources.email_smtp.Notification.create_notification")
@@ -123,7 +124,7 @@ class TestEmailSMTP(unittest.TestCase):
         mock_model_validate_json.return_value = None
         with pytest.raises(Exception) as e:
             process_message({"notificationRequest": "test_notification_request", "notificationProvider": None})
-        assert str(e.value) == "Notification provider not found."
+        assert str(e.value) == "notificationProvider not found in notification data."
 
     @patch("notify_delivery.resources.email_smtp.NotificationRequest.model_validate_json")
     @patch("notify_delivery.resources.email_smtp.Notification.create_notification")
@@ -140,7 +141,7 @@ class TestEmailSMTP(unittest.TestCase):
     @patch("notify_delivery.resources.email_smtp.NotificationHistory.create_history")
     @patch("notify_delivery.resources.email_smtp.Notification.update_notification")
     @patch("notify_delivery.resources.email_smtp.Notification.delete_notification")
-    def test_process_message_success(
+    def test_process_message_success(  # noqa: PLR0913
         self,
         mock_delete_notification,
         mock_update_notification,
@@ -197,13 +198,11 @@ class TestEmailSMTP(unittest.TestCase):
     ):
         """Test process_message with failed notification delivery."""
         notification_request = NotificationRequest(
-            Content=[
-                ContentRequest(
-                    subject="Test Subject",
-                    body="Test Body",
-                    attachments=[],
-                )
-            ],
+            Content=ContentRequest(
+                subject="Test Subject",
+                body="Test Body",
+                attachments=[],
+            ),
             recipients="abc@gmail.com",
         )
         mock_model_validate_json.return_value = notification_request
@@ -224,7 +223,7 @@ class TestEmailSMTP(unittest.TestCase):
         mock_model_validate_json.assert_called_once_with("test_notification_request")
         mock_create_notification.assert_called_once()
         mock_send.assert_called_once()
-        assert mock_update_notification.call_count == 2
+        assert mock_update_notification.call_count == 2  # noqa: PLR2004
         assert isinstance(result, Notification)
         assert result.status_code == Notification.NotificationStatus.FAILURE
 
@@ -264,7 +263,7 @@ class TestEmailSMTP(unittest.TestCase):
             provider_code=Notification.NotificationProvider.SMTP,
         )
         mock_send.side_effect = Exception("Test Error")
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             result = process_message(
                 {"notificationRequest": "test_notification_request", "notificationProvider": "smtp"}
             )

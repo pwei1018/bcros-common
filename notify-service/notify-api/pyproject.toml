@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "notify-api"
-version = "3.1.3"
+version = "3.1.4"
 description = ""
 authors = ["pwei <patrick.wei@gov.bc.ca>"]
 license = "Apache 2.0"
@@ -21,10 +21,10 @@ email-validator= "1.3.1"
 phonenumbers = "8.13.39"
 notifications-python-client = "7.0.0"
 beautifulsoup4 = "4.12.3"
-sqlalchemy-continuum = "^1.4.2"
 pg8000 = "^1.31.2"
 cachecontrol = "^0.14.0"
-flask-jwt-oidc = { git = "https://github.com/thorwolpert/flask-jwt-oidc.git"}
+
+flask-jwt-oidc = {git = "https://github.com/seeker25/flask-jwt-oidc.git", branch = "main" }
 gcp-queue = { git = "https://github.com/bcgov/sbc-connect-common.git", subdirectory = "python/gcp-queue", branch = "main" }
 structured-logging = { git = "https://github.com/bcgov/sbc-connect-common.git", subdirectory = "python/structured-logging", branch = "main" }
 
@@ -38,84 +38,91 @@ faker = "^25.9.2"
 freezegun = "^1.5.1"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.4.2"
-pylint = "^3.2.5"
-bandit = "^1.7.9"
-flake8-pyproject = "^1.2.3"
-isort = "^5.13.2"
+ruff = "^0.3.4"
 
-[tool.bandit]
-exclude_dirs = [".venv","tests"]
-skips = ["B104"]
-
-[tool.flake8]
-ignore = ["F401","E402", "Q000", "E203"]
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
 exclude = [
-    ".venv",
-    ".git",
-    ".history",
+    ".vscode",
+    "dist",
+    "htmlcov",
+    "venv",
+    "migrations",
     "devops",
-    "*migrations*",
+    ".history"
 ]
-per-file-ignores = [
-    "__init__.py:F401",
-    "*.py:B902"
-]
-max-line-length = 120
-docstring-min-length=10
-count = true
 
-[tool.black]
-target-version =  ["py310", "py311", "py312"]
+# Same as Black.
 line-length = 120
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # The following are specific to Black, you probably don't want those.
-  migrations
-  | devops
-  | .history
-)/
-'''
+indent-width = 4
 
-[tool.isort]
-atomic = true
-profile = "black"
-line_length = 120
-skip_gitignore = true
-skip_glob = ["migrations", "devops"]
+# Assume Python 3.12
+target-version = "py312"
 
-[tool.pylint.main]
-fail-under = 10
-max-line-length = 120
-ignore = [ "migrations", "devops", "tests"]
-ignore-patterns = ["^\\.#"]
-ignored-modules= ["flask_sqlalchemy", "sqlalchemy", "SQLAlchemy" , "alembic", "scoped_session"]
-ignored-classes= "scoped_session"
-ignore-long-lines = "^\\s*(# )?<?https?://\\S+>?$"
-extension-pkg-whitelist = "pydantic"
-notes = ["FIXME","XXX","TODO"]
-overgeneral-exceptions = ["builtins.BaseException", "builtins.Exception"]
-confidence = ["HIGH", "CONTROL_FLOW", "INFERENCE", "INFERENCE_FAILURE", "UNDEFINED"]
-disable = "C0209,C0301,W0511,W0613,W0703,W1514,W1203,R0801,R0902,R0903,R0911,R0401,R1705,R1718,W3101"
-argument-naming-style = "snake_case"
-attr-naming-style = "snake_case"
-class-attribute-naming-style = "any"
-class-const-naming-style = "UPPER_CASE"
-class-naming-style = "PascalCase"
-const-naming-style = "UPPER_CASE"
-function-naming-style = "snake_case"
-inlinevar-naming-style = "any"
-method-naming-style = "snake_case"
-module-naming-style = "any"
-variable-naming-style = "snake_case"
-docstring-min-length = -1
-good-names = ["i", "j", "k", "ex", "Run", "_"]
-bad-names = ["foo", "bar", "baz", "toto", "tutu", "tata"]
-defining-attr-methods = ["__init__", "__new__", "setUp", "asyncSetUp", "__post_init__"]
-exclude-protected = ["_asdict", "_fields", "_replace", "_source", "_make", "os._exit"]
-valid-classmethod-first-arg = ["cls"]
-valid-metaclass-classmethod-first-arg = ["mcs"]
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+#
+# This is currently disabled by default, but it is planned for this
+# to be opt-out in the future.
+docstring-code-format = true
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint]
+select = [
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "ERA", # flake8-eradicate/eradicate
+    "I",   # isort
+    "N",   # pep8-naming
+    "PIE", # flake8-pie
+    "PL",  # pyLint
+    "PGH", # pygrep
+    "RUF", # ruff checks
+    "SIM", # flake8-simplify
+    "T20", # flake8-print
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "UP",  # pyupgrade
+]
+ignore = [
+    "B904", # use 'raise ... from err'
+    "B905", # use explicit 'strict=' parameter with 'zip()'
+    "N999"
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = [
+    "ERA", # do not autoremove commented out code
+]
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.isort]
+known-first-party = ["notify_api"]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
 
 [tool.pytest.ini_options]
 minversion = "2.0"
@@ -130,7 +137,7 @@ norecursedirs = [
    ".git", ".tox", "venv*", "requirements*", "build",
 ]
 log_cli = true
-log_cli_level = "1"
+log_cli_level = "INFO"
 filterwarnings = [
    "ignore::UserWarning"
 ]

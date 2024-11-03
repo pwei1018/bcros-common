@@ -13,7 +13,9 @@
 # limitations under the License.
 
 """Conent factory."""
+
 from enum import Enum
+from typing import ClassVar
 
 from faker import Faker
 
@@ -29,20 +31,20 @@ class ContentFactory:  # pylint: disable=too-few-public-methods
     class Models(dict, Enum):
         """Content model data."""
 
-        CONTENT_1 = {"subject": faker.text(), "body": faker.text()}
+        CONTENT_1: ClassVar[dict] = {"subject": faker.text(), "body": faker.text()}
 
     class RequestData(dict, Enum):
         """Content post request payload data."""
 
-        CONTENT_REQUEST_1 = {"subject": faker.text(), "body": faker.text()}
+        CONTENT_REQUEST_1: ClassVar[dict] = {"subject": faker.text(), "body": faker.text()}
 
-        CONTENT_REQUEST_2 = {
+        CONTENT_REQUEST_2: ClassVar[dict] = {
             "subject": faker.text(),
             "body": faker.text(),
             "attachments": [AttachmentFactory.RequestData.FILE_REQUEST_1],
         }
 
-        CONTENT_REQUEST_3 = {
+        CONTENT_REQUEST_3: ClassVar[dict] = {
             "subject": faker.text(),
             "body": faker.text(),
             "attachments": [AttachmentFactory.RequestData.FILE_REQUEST_1, AttachmentFactory.RequestData.FILE_REQUEST_2],
@@ -51,21 +53,24 @@ class ContentFactory:  # pylint: disable=too-few-public-methods
     class RequestProviderData(dict, Enum):
         """Content post request payload data for test provider."""
 
-        CONTENT_REQUEST_PROVIDER_1 = {"subject": faker.text(), "body": faker.text()}
+        CONTENT_REQUEST_PROVIDER_1: ClassVar[dict] = {"subject": faker.text(), "body": faker.text()}
 
-        CONTENT_REQUEST_PROVIDER_2 = {"subject": faker.text(), "body": f"<html><body>{faker.text()}</body></html>"}
+        CONTENT_REQUEST_PROVIDER_2: ClassVar[dict] = {
+            "subject": faker.text(),
+            "body": f"<html><body>{faker.text()}</body></html>",
+        }
 
     class RequestBadData(dict, Enum):
         """Content post payload with inconsistent data."""
 
         # subject empty
-        CONTENT_REQUEST_BAD_1 = {"subject": "", "body": faker.text()}
+        CONTENT_REQUEST_BAD_1: ClassVar[dict] = {"subject": "", "body": faker.text()}
 
         # without subject
-        CONTENT_REQUEST_BAD_2 = {"body": faker.text()}
+        CONTENT_REQUEST_BAD_2: ClassVar[dict] = {"body": faker.text()}
 
         # without body
-        CONTENT_REQUEST_BAD_3 = {"subject": faker.text()}
+        CONTENT_REQUEST_BAD_3: ClassVar[dict] = {"subject": faker.text()}
 
     @staticmethod
     def create_model(session, notification_id: int = 1, content_info: dict = Models.CONTENT_1):

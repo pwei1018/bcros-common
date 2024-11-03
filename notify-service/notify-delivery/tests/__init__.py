@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Test Suites to ensure that the service is built and operating correctly."""
+
 import collections
 import datetime
 import time
-from typing import Dict, List
 
-EPOCH_DATETIME = datetime.datetime.fromtimestamp(0, datetime.timezone.utc)
-FROZEN_DATETIME = datetime.datetime(2001, 8, 5, 7, 7, 58, 272362).replace(tzinfo=datetime.timezone.utc)
-FROZEN_2018_DATETIME = datetime.datetime(2018, 12, 25, 0, 0, 50, 0).replace(tzinfo=datetime.timezone.utc)
+EPOCH_DATETIME = datetime.datetime.fromtimestamp(0, datetime.UTC)
+FROZEN_DATETIME = datetime.datetime(2001, 8, 5, 7, 7, 58, 272362).replace(tzinfo=datetime.UTC)
+FROZEN_2018_DATETIME = datetime.datetime(2018, 12, 25, 0, 0, 50, 0).replace(tzinfo=datetime.UTC)
 TIMEZONE_OFFSET = time.timezone / 60 / 60 if time.timezone else 0
 
 
@@ -36,7 +36,7 @@ def add_years(d, years):
         return d + (datetime.date(d.year + years, 3, 1) - datetime.date(d.year, 3, 1))
 
 
-def strip_keys_from_dict(orig_dict: Dict, keys: List) -> Dict:
+def strip_keys_from_dict(orig_dict: dict, keys: list) -> dict:
     """Return a deep copy of the dict with the keys stripped out."""
     try:
         collections_abc = collections.abc
@@ -71,7 +71,7 @@ def strip_keys_from_dict(orig_dict: Dict, keys: List) -> Dict:
                 try:
                     if item not in keys:
                         modified_list.append(item)
-                except:  # noqa: E722  # pylint: disable=bare-except
+                except:  # pylint: disable=bare-except
                     modified_list.append(item)
         return modified_list
 

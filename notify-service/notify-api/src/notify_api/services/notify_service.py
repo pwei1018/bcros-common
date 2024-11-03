@@ -12,18 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This provides the service for email notify calls."""
+
 import uuid
 import warnings
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 from flask import current_app
 from simple_cloudevent import SimpleCloudEvent
+from structured_logging import StructuredLogging
 
 from notify_api.models import Notification, NotificationHistory, NotificationRequest, SafeList
 from notify_api.services.gcp_queue import GcpQueue, queue
-from notify_api.utils.logging import logger
 
+logger = StructuredLogging.get_logger()
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 
@@ -89,7 +91,7 @@ class NotifyService:
                         id=str(uuid.uuid4()),
                         source="notify-api",
                         subject=None,
-                        time=datetime.now(tz=timezone.utc).isoformat(),
+                        time=datetime.now(tz=UTC).isoformat(),
                         type=f"bc.registry.notify.{provider}",
                         data=data,
                     )
@@ -99,7 +101,7 @@ class NotifyService:
 
                     notification.status_code = notification_status
                     notification.provider_code = provider
-                    notification.sent_date = datetime.now(timezone.utc)
+                    notification.sent_date = datetime.now(UTC)
                     notification.update_notification()
 
                     if provider == Notification.NotificationProvider.SMTP:
@@ -107,11 +109,11 @@ class NotifyService:
                         notification.status_code = Notification.NotificationStatus.FORWARDED
                         NotificationHistory.create_history(notification)
                         notification.delete_notification()
-                except Exception as err:  # NOQA # pylint: disable=broad-except
-                    logger.error(err)
+                except Exception as err:  # pylint: disable=broad-except
+                    logger.error(f"Error processing notification for {recipient}: {err}")
                     notification.status_code = Notification.NotificationStatus.FAILURE
                     notification.provider_code = provider
-                    notification.sent_date = datetime.now(timezone.utc)
+                    notification.sent_date = datetime.now(UTC)
                     notification.update_notification()
                     return Notification(recipients=recipient, status_code=Notification.NotificationStatus.FAILURE)
 
@@ -122,7 +124,6 @@ class NotifyService:
         notifications = Notification.find_resend_notifications()
 
         for notification in notifications:
-
             deliery_topic = current_app.config.get("NOTIFY_DELIVERY_GCNOTIFY_TOPIC")
             data = {
                 "notificationId": notification.id,
@@ -132,7 +133,7 @@ class NotifyService:
                 id=str(uuid.uuid4()),
                 source="notify-api",
                 subject=None,
-                time=datetime.now(tz=timezone.utc).isoformat(),
+                time=datetime.now(tz=UTC).isoformat(),
                 type=f"bc.registry.notify.{notification.provider_code}",
                 data=data,
             )

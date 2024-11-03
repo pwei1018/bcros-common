@@ -15,53 +15,49 @@
 
 This module is the API for the BC Registries Notify application.
 """
-import os
 
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate, upgrade
+from structured_logging import StructuredLogging
 
-from notify_api import errorhandlers, models
+from notify_api import models
 from notify_api.config import config
+from notify_api.exceptions import ExceptionHandler
 from notify_api.metadata import APP_RUNNING_ENVIRONMENT
 from notify_api.models import db
 from notify_api.resources import meta_endpoint, ops_endpoint, v1_endpoint, v2_endpoint
 from notify_api.services.gcp_queue import queue
 from notify_api.utils.auth import jwt
-from notify_api.utils.logging import logger, setup_logging
 
-setup_logging(os.path.join(os.path.abspath(os.path.dirname(__file__)), "logging.yaml"))  # important to do this first
+logger = StructuredLogging.get_logger()
 
 
-def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
+def create_app(run_mode=APP_RUNNING_ENVIRONMENT, **kwargs):
     """Return a configured Flask App using the Factory method."""
     app = Flask(__name__)
-    CORS(app)
-    app.config.from_object(config[service_environment])
+    app.config.from_object(config[run_mode])
     app.url_map.strict_slashes = False
 
-    errorhandlers.init_app(app)
-
+    CORS(app, resources="*")
     db.init_app(app)
-    Migrate(app, db)
-    logger.info("Running migration upgrade.")
-    with app.app_context():
-        upgrade(directory="migrations", revision="head", sql=False, tag=None)
 
-    # Alembic has it's own logging config, we'll need to restore our logging here.
-    setup_logging(os.path.join(os.path.abspath(os.path.dirname(__file__)), "logging.yaml"))
-    logger.info("Finished migration upgrade.")
+    if run_mode == "migration":
+        Migrate(app, db)
+        logger.info("Running migration upgrade.")
+        with app.app_context():
+            upgrade(directory="migrations", revision="head", sql=False, tag=None)
+        logger.info("Finished migration upgrade.")
+    else:
+        queue.init_app(app)
+        meta_endpoint.init_app(app)
+        ops_endpoint.init_app(app)
+        v1_endpoint.init_app(app)
+        v2_endpoint.init_app(app)
 
-    queue.init_app(app)
-
-    meta_endpoint.init_app(app)
-    ops_endpoint.init_app(app)
-    v1_endpoint.init_app(app)
-    v2_endpoint.init_app(app)
-
-    setup_jwt_manager(app, jwt)
-
-    register_shellcontext(app)
+        ExceptionHandler(app)
+        setup_jwt_manager(app, jwt)
+        register_shellcontext(app)
 
     return app
 

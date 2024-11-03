@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Callback data model."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel
 
-from .db import db  # noqa: I001
+from .db import db
 
 
 class CallbackRequest(BaseModel):  # pylint: disable=too-few-public-methods
@@ -91,5 +92,5 @@ class Callback(db.Model):
             db.session.add(db_callback)
             db.session.commit()
             db.session.refresh(db_callback)
-        except Exception:  # NOQA # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             db.session.rollback()

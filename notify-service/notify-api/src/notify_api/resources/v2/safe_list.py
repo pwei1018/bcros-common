@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """API endpoints for validate email address."""
+
 from http import HTTPStatus
 
 from flask import Blueprint
 from flask_pydantic import validate
+from structured_logging import StructuredLogging
 
 from notify_api.models import SafeList, SafeListRequest
 from notify_api.utils.auth import jwt
 from notify_api.utils.enums import Role
-from notify_api.utils.logging import logger
 
+logger = StructuredLogging.get_logger()
 bp = Blueprint("SAFE_LIST", __name__, url_prefix="/safe_list")
 
 
@@ -34,8 +36,8 @@ def safe_list(body: SafeListRequest):  # pylint: disable=unused-argument
     for email in body.email:
         try:
             SafeList.add_email(email.lower().strip())
-        except Exception as err:  # NOQA # pylint: disable=broad-except
-            logger.debug(err)
+        except Exception as err:  # pylint: disable=broad-except
+            logger.error(f"Error adding email {email}: {err}")
 
     return {}, HTTPStatus.OK
 
@@ -52,8 +54,8 @@ def delete_email(email: str):
     try:
         safe_email = SafeList.find_by_email(email)
         safe_email.delete_email()
-    except Exception as err:  # NOQA # pylint: disable=broad-except
-        logger.debug(err)
+    except Exception as err:  # pylint: disable=broad-except
+        logger.error(f"Error deleting email {email}: {err}")
     return {}, HTTPStatus.OK
 
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Notification Attachment data model."""
+
 from __future__ import annotations
 
 import base64
@@ -20,7 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from notify_api.utils.util import download_file, to_camel
 
-from .db import db  # noqa: I001
+from .db import db
 
 
 class AttachmentRequest(BaseModel):  # pylint: disable=too-few-public-methods
