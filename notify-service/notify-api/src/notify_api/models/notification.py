@@ -165,7 +165,7 @@ class Notification(db.Model):
             recipients=recipient or notification.recipients,
             request_date=datetime.now(UTC),
             request_by=notification.request_by,
-            type_code=notification.notify_type,
+            type_code=notification.notify_type or Notification.NotificationType.EMAIL,
         )
         db.session.add(db_notification)
         db.session.commit()
