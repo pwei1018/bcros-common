@@ -47,7 +47,6 @@ def worker():
             return {}, HTTPStatus.BAD_REQUEST
 
         logger.info(f"Event Message Processed: {ce.id}")
-
         return {}, HTTPStatus.OK
     except Exception as e:
         logger.error(f"Failed to process queue message: {e}")

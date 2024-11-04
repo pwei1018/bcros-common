@@ -1153,7 +1153,7 @@ structured-logging = {git = "https://github.com/bcgov/sbc-connect-common.git", b
 type = "git"
 url = "https://github.com/bcgov/bcros-common.git"
 reference = "main"
-resolved_reference = "c7940dbde2f879d6bd474a11225ed234739cf7e6"
+resolved_reference = "b4c0ff8baa6c8ecd928187e61971122d92332721"
 subdirectory = "notify-service/notify-api"
 
 [[package]]

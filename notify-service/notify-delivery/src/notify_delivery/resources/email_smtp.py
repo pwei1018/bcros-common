@@ -49,11 +49,13 @@ def worker():
     try:
         logger.info(f"Event Message Received: {ce}")
         if ce.type == "bc.registry.notify.smtp":
-            return process_message(ce.data)
+            process_message(ce.data)
         else:
             logger.error("Invalid queue message type")
             return {}, HTTPStatus.BAD_REQUEST
 
+        logger.info(f"Event Message Processed: {ce.id}")
+        return {}, HTTPStatus.OK
     except Exception as e:
         logger.error(f"Failed to process queue message: {e}")
         return {}, HTTPStatus.INTERNAL_SERVER_ERROR
