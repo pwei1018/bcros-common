@@ -80,25 +80,27 @@ def process_message(data: dict) -> NotificationHistory | Notification:
 
     # create notification record in OCP database
     notification_request = NotificationRequest.model_validate_json(notification_data)
-    notification: Notification = Notification.create_notification(notification_request)
-    notification.status_code = Notification.NotificationStatus.SENT
-    notification.provider_code = notification_provider
-    notification.sent_date = datetime.now(UTC)
-    notification.update_notification()
 
-    smtp_provider = EmailSMTP(notification)
-    responses: NotificationSendResponses = smtp_provider.send()
-
-    if responses:
-        for response in responses.recipients:
-            # save to history as per recipient
-            history = NotificationHistory.create_history(notification, response.recipient, response.response_id)
-
-        # clean notification record
-        notification.delete_notification()
-    else:
-        notification.status_code = Notification.NotificationStatus.FAILURE
+    for recipient in notification_request.recipients.split(","):
+        notification: Notification = Notification.create_notification(notification_request, recipient.strip())
+        notification.status_code = Notification.NotificationStatus.SENT
+        notification.provider_code = notification_provider
+        notification.sent_date = datetime.now(UTC)
         notification.update_notification()
-        return notification
+
+        smtp_provider = EmailSMTP(notification)
+        responses: NotificationSendResponses = smtp_provider.send()
+
+        if responses:
+            for response in responses.recipients:
+                # save to history as per recipient
+                history = NotificationHistory.create_history(notification, response.recipient, response.response_id)
+
+            # clean notification record
+            notification.delete_notification()
+        else:
+            notification.status_code = Notification.NotificationStatus.FAILURE
+            notification.update_notification()
+            return notification
 
     return history
