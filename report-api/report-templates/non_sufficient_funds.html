@@ -462,10 +462,10 @@
 
                                 {{ month_names[month] }} {{ day|int }}, {{ year }}
                             </td>
-                            <td>${{"{:,.2f}".format(lineItemProduct.total - lineItemProduct.service_fees - lineItemProduct.gst)}}</td>
+                            <td>${{"{:,.2f}".format(lineItemProduct.total)}}</td>
                             <td>${{"{:,.2f}".format(lineItemProduct.gst)}}</td>
                             <td>${{"{:,.2f}".format(lineItemProduct.service_fees)}}</td>
-                            <td>${{"{:,.2f}".format(lineItemProduct.total)}}</td>
+                            <td>${{"{:,.2f}".format(lineItemProduct.total + lineItemProduct.gst + lineItemProduct.service_fees )}}</td>
                         </tr>
                     {% endfor %}
                 {% endfor %}
