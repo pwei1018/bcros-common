@@ -61,12 +61,7 @@ def process_message(data: dict) -> NotificationHistory | Notification:
     notification: Notification = Notification.find_notification_by_id(notification_id)
 
     if notification is None:
-        logger.error(f"Unknown notification for notificationId {notification_id}")
         raise ValueError(f"Unknown notification for notificationId {notification_id}")
-
-    if notification.status_code != Notification.NotificationStatus.QUEUED:
-        logger.error(f"Notification status is not {notification.status_code}")
-        raise ValueError(f"Notification status is not {notification.status_code}")
 
     gc_notify_provider = GCNotify(notification)
     responses: NotificationSendResponses = gc_notify_provider.send()

@@ -65,7 +65,6 @@ class NotifyService:
 
             notification_request.recipients = ",".join(recipients) if recipients else None
 
-        notification_status: str = Notification.NotificationStatus.QUEUED
         notification_data = {
             "notificationId": None,
             "notificationProvider": provider,
@@ -94,11 +93,9 @@ class NotifyService:
                         f"Queued {notification_request.recipients} {notification_request.content.subject} {publish_future}"
                     )
 
-                    notification_status = Notification.NotificationStatus.FORWARDED
-                    notification.status_code = notification_status
+                    notification.status_code = Notification.NotificationStatus.FORWARDED
                     notification.provider_code = provider
                     notification.sent_date = datetime.now(UTC)
-                    logger.info(f"{notification.recipients}")
                     NotificationHistory.create_history(notification)
                     notification.delete_notification()
                 except Exception as err:  # pylint: disable=broad-except
@@ -132,7 +129,7 @@ class NotifyService:
                         publish_future = queue.publish(delivery_topic, GcpQueue.to_queue_message(cloud_event))
                         logger.info(f"Queued {recipient} {notification_request.content.subject} {publish_future}")
 
-                        notification.status_code = notification_status
+                        notification.status_code = Notification.NotificationStatus.QUEUED
                         notification.provider_code = provider
                         notification.sent_date = datetime.now(UTC)
                         notification.update_notification()
@@ -145,7 +142,9 @@ class NotifyService:
                         notification.update_notification()
                         return Notification(recipients=recipient, status_code=Notification.NotificationStatus.FAILURE)
 
-        return Notification(recipients=notification_request.recipients, status_code=notification_status)
+        return Notification(
+            recipients=notification_request.recipients, status_code=Notification.NotificationStatus.QUEUED
+        )
 
     def queue_republish(self):
         """Republish notifications to queue."""
