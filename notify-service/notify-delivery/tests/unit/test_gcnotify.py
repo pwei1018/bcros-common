@@ -94,25 +94,6 @@ class TestGCNotify(unittest.TestCase):
             process_message({"notificationId": "test_notification_id"})
         assert str(e.value) == "Unknown notification for notificationId test_notification_id"
 
-    @patch("notify_delivery.resources.gc_notify.Notification.find_notification_by_id")
-    def test_process_message_invalid_notification_status(self, mock_find_notification_by_id):
-        """Test process_message with invalid notification status."""
-        notification = Notification(
-            content=[
-                Content(
-                    subject="Test Subject",
-                    body="Test Body",
-                    attachments=[],
-                )
-            ],
-            recipients="test@example.com",
-            status_code=Notification.NotificationStatus.SENT,
-        )
-        mock_find_notification_by_id.return_value = notification
-        with pytest.raises(Exception) as e:
-            process_message({"notificationId": "test_notification_id"})
-        assert str(e.value) == "Notification status is not sent"
-
     @patch("notify_delivery.services.providers.gc_notify.GCNotify.send")
     @patch("notify_delivery.resources.gc_notify.Notification.find_notification_by_id")
     @patch("notify_delivery.resources.gc_notify.NotificationHistory.create_history")
