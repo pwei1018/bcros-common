@@ -32,6 +32,8 @@ serialPipeline:
       container-name: "report-api-dev"
       cloudsql-instances: ""
       container-port: "8080"
+      resources-cpu: 2000m
+      resources-memory: 2Gi
       service-account: "sa-api@c4hnrd-dev.iam.gserviceaccount.com"
  - targetId: c4hnrd-test
    profiles: [test]
@@ -46,6 +48,8 @@ serialPipeline:
       container-name: "report-api-test"
       cloudsql-instances: ""
       container-port: "8080"
+      resources-cpu: 2000m
+      resources-memory: 2Gi
       service-account: "sa-api@c4hnrd-test.iam.gserviceaccount.com"
  - targetId: c4hnrd-sandbox
    profiles: [sandbox]
