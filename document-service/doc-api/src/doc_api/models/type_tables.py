@@ -24,6 +24,7 @@ class RequestTypes(BaseEnum):
     """Render an Enum of the document service request types."""
 
     ADD = "ADD"
+    DELETE = "DELETE"
     GET = "GET"
     PENDING = "PENDING"
     REPLACE = "REPLACE"
@@ -35,6 +36,7 @@ class DocumentClasses(BaseEnum):
 
     COOP = "COOP"
     CORP = "CORP"
+    DELETED = "DELETED"
     FIRM = "FIRM"
     LP_LLP = "LP_LLP"
     MHR = "MHR"
@@ -171,6 +173,7 @@ class DocumentTypes(BaseEnum):
     HSR = "HSR"
     RPL = "RPL"
     FINS = "FINS"
+    DELETED = "DELETED"
 
 
 class RequestType(db.Model):  # pylint: disable=too-few-public-methods
@@ -231,7 +234,7 @@ class DocumentClass(db.Model):  # pylint: disable=too-few-public-methods
     @classmethod
     def find_by_doc_class(cls, doc_class: str):
         """Return a specific record by type."""
-        if not doc_class or doc_class not in DocumentClasses:
+        if not doc_class or doc_class not in DocumentClasses or doc_class == DocumentClasses.DELETED.value:
             return None
         return db.session.query(DocumentClass).filter(DocumentClass.document_class == doc_class).one_or_none()
 
@@ -285,13 +288,13 @@ class DocumentType(db.Model):  # pylint: disable=too-few-public-methods
     @classmethod
     def find_by_doc_type(cls, doc_type: str):
         """Return a specific record by type."""
-        if not doc_type or doc_type not in DocumentTypes:
+        if not doc_type or doc_type not in DocumentTypes or doc_type == DocumentTypes.DELETED.value:
             return None
         return db.session.query(DocumentType).filter(DocumentType.document_type == doc_type).one_or_none()
 
     @classmethod
     def find_by_doc_class(cls, doc_class: str):
         """Return all types that belong to the class."""
-        if not doc_class or doc_class not in DocumentClasses:
+        if not doc_class or doc_class not in DocumentClasses or doc_class == DocumentClasses.DELETED.value:
             return None
         return db.session.query(DocumentType).filter(DocumentType.document_class == doc_class).all()

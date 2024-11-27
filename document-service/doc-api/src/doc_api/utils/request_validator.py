@@ -148,6 +148,8 @@ def validate_get(info: RequestInfo, error_msg: str) -> str:
 def validate_patch(info: RequestInfo, error_msg: str) -> str:
     """Validate the patch request."""
     try:
+        if info.request_data and info.request_data.get("removed"):
+            return error_msg
         if (
             not info.consumer_filedate
             and not info.consumer_identifier

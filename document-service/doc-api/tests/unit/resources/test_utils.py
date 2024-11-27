@@ -80,6 +80,9 @@ UPDATE_DOC = {
     "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
     "description": "Updated description of the document.",
 }
+REMOVE_DOC = {
+    "removed": True
+}
 TEST_DOC_REC_LEGACY = {
     "accountId": "123456",
     "consumerDocumentId": "99990950",
@@ -104,6 +107,18 @@ TEST_DOC_REC_UPDATE = {
     "documentClass": "MHR",
     "author": "JAMES Jones"
 }
+TEST_DOCUMENT_DELETE = Document(
+    id=200000001,
+    document_service_id="UTD9999990",
+    document_type=DocumentTypes.PPR_MISC.value,
+    document_class=DocumentClasses.PPR.value,
+    add_ts=model_utils.now_ts(),
+    consumer_document_id="TD0000001",
+    consumer_identifier="TD0000002",
+    consumer_filename="test-delete.pdf",
+    consumer_filing_date=model_utils.ts_from_iso_date_noon("2024-07-01"),
+    description="Original",
+)
 
 # testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff})
 TEST_DATA_REQUEST_INFO = [
@@ -157,6 +172,13 @@ TEST_CALLBACK_REC_DATA = [
     (TEST_DOC_REC_LEGACY, False),
     (TEST_DOC_REC_MODERN, True),
 ]
+# testdata pattern is ({document}, {token}, {filename})
+TEST_DELETE_DATA = [(TEST_DOCUMENT_DELETE, TEST_TOKEN, TEST_FILENAME)]
+# testdata pattern is ({document}, {token}, {scan_info})
+TEST_REMOVE_DATA = [
+    (TEST_DOCUMENT, TEST_TOKEN, None),
+    (TEST_DOCUMENT, TEST_TOKEN, DOC_SCAN)
+]
 
 
 @pytest.mark.parametrize("request_data, update", TEST_CALLBACK_REC_DATA)
@@ -191,10 +213,16 @@ def test_save_replace(session, document, token, filename):
     doc: Document = copy.deepcopy(document)
     doc.save()
     assert not doc.doc_storage_url
-    info: RequestInfo = RequestInfo(RequestTypes.REPLACE.value, None, doc.document_type, None)
+    info: RequestInfo = RequestInfo(RequestTypes.REPLACE.value,
+                                    None,
+                                    doc.document_type,
+                                    resource_utils.get_doc_storage_type(doc.document_class))
     info.account_id = "1234"
+    info.document_service_id = doc.document_service_id
+    info.staff = True
+    info.document_class = doc.document_class
     info.consumer_filename = filename
-    # info.document_class = doc_class
+    info.content_type = model_utils.CONTENT_TYPE_PDF
     raw_data = None
     with open(TEST_DATAFILE, "rb") as data_file:
         raw_data = data_file.read()
@@ -211,6 +239,38 @@ def test_save_replace(session, document, token, filename):
     assert result.get("consumerFilename") == filename
     assert result.get("consumerFilingDateTime")
     assert result.get("documentURL")
+
+
+@pytest.mark.parametrize("document,token,filename", TEST_DELETE_DATA)
+def test_save_delete(session, document, token, filename):
+    """Assert that DELETE request resource_utils.save_delete works as expected."""
+    doc: Document = copy.deepcopy(document)
+    doc.save()
+    assert not doc.doc_storage_url
+    info: RequestInfo = RequestInfo(RequestTypes.REPLACE.value,
+                                    None,
+                                    doc.document_type,
+                                    resource_utils.get_doc_storage_type(doc.document_class))
+    info.account_id = "1234"
+    info.document_service_id = doc.document_service_id
+    info.staff = True
+    info.content_type = model_utils.CONTENT_TYPE_PDF
+    info.document_class = doc.document_class
+    info.consumer_filename = filename
+    # info.document_class = doc_class
+    raw_data = None
+    with open(TEST_DATAFILE, "rb") as data_file:
+        raw_data = data_file.read()
+        data_file.close()
+    result1 = resource_utils.save_replace(info, doc, token, raw_data)
+    assert doc.doc_storage_url
+    assert result1.get("documentURL")
+
+    info.request_type = RequestTypes.DELETE.value
+    del_doc: Document = Document.find_by_doc_service_id(doc.document_service_id)
+    result = resource_utils.save_delete(info, del_doc, token)
+    assert not doc.doc_storage_url
+    assert not result.get("documentURL")
 
 
 @pytest.mark.parametrize("document,token,,doc_class,scan_info,update_scan_info,update_class_type", TEST_UPDATE_DATA)
@@ -272,6 +332,32 @@ def test_save_update(session, document, token, doc_class, scan_info,  update_sca
             assert scan_json.get("pageCount") == update_scan_info.get("pageCount")
     else:
         assert not result.get("scanningInformation")
+
+
+@pytest.mark.parametrize("document,token,scan_info", TEST_REMOVE_DATA)
+def test_save_remove(session, document, token, scan_info):
+    """Assert that patch request resource_utils.save_update works as expected when removing a doc record."""
+    doc: Document = copy.deepcopy(document)
+    doc.save()
+    scan_doc: DocumentScanning = None
+    if scan_info:
+        scan_doc = DocumentScanning.create_from_json(scan_info, doc.consumer_document_id, doc.document_class)
+        scan_doc.id = 200000000
+        scan_doc.save()
+    info: RequestInfo = RequestInfo(RequestTypes.UPDATE.value, None, doc.document_type, None)
+    request_data = copy.deepcopy(REMOVE_DOC)
+    info.request_data = request_data
+    info.account_id = "1234"
+    info.document_class = doc.document_class
+    info.document_type = doc.document_type
+    info.document_service_id = doc.document_service_id
+    result = resource_utils.save_update(info, doc, token)
+    assert not result
+    test_doc = Document.find_by_id(doc.id)
+    assert test_doc
+    if scan_doc:
+        test_scan = DocumentScanning.find_by_id(scan_doc.id)
+        assert test_scan
 
 
 @pytest.mark.parametrize("doc_class,start_offset,doc_type,cons_id,no_results", TEST_DATA_DOC_DATES)

@@ -138,10 +138,50 @@ def replace_document(doc_service_id: str):
         return resource_utils.default_exception_response(default_exception)
 
 
+@bp.route("/<string:doc_service_id>", methods=["DELETE", "OPTIONS"])
+@jwt.requires_auth
+def delete_document(doc_service_id: str):
+    """Permanently delete from document storage a previously uploaded associated with the document service ID."""
+    try:
+        req_path: str = CHANGE_REQUEST_PATH.format(doc_service_id=doc_service_id)
+        account_id = resource_utils.get_account_id(request)
+        if account_id is None:
+            return resource_utils.account_required_response()
+        logger.info(f"Starting delete document request {req_path}, account={account_id}")
+        if not is_staff(jwt):
+            logger.error("User not staff: currently requests are staff only.")
+            return resource_utils.unauthorized_error_response(account_id)
+        document: Document = Document.find_by_doc_service_id(doc_service_id)
+        if not document:
+            logger.warning(f"No document found for document service id={doc_service_id}.")
+            return resource_utils.not_found_error_response("PUT document", doc_service_id)
+        if not document.doc_storage_url:
+            msg: str = f"Delete document no document in storage for document service id={doc_service_id}."
+            logger.info(msg)
+            return resource_utils.bad_request_response(msg)
+        doc_class: str = document.doc_type.document_class
+        info: RequestInfo = RequestInfo(
+            RequestTypes.DELETE, req_path, document.document_type, resource_utils.get_doc_storage_type(doc_class)
+        )
+        info = resource_utils.update_request_info(request, info, doc_service_id, doc_class, is_staff(jwt))
+        # Additional validation not covered by the schema.
+        extra_validation_msg = resource_utils.validate_request(info)
+        if extra_validation_msg != "":
+            return resource_utils.extra_validation_error_response(extra_validation_msg)
+        response_json = resource_utils.save_delete(info, document, g.jwt_oidc_token_info)
+        return jsonify(response_json), HTTPStatus.OK
+    except DatabaseException as db_exception:
+        return resource_utils.db_exception_response(db_exception, account_id, "PUT document")
+    except BusinessException as exception:
+        return resource_utils.business_exception_response(exception)
+    except Exception as default_exception:  # noqa: B902; return nicer default error
+        return resource_utils.default_exception_response(default_exception)
+
+
 @bp.route("/verify/<string:consumer_doc_id>", methods=["GET", "OPTIONS"])
 @jwt.requires_auth
 def verify_document_id(consumer_doc_id: str):
-    """Add or replace the document that is associated with the document service ID."""
+    """Verify that a document record exists by getting information by consumer document ID."""
     try:
         req_path: str = VERIFY_REQUEST_PATH.format(consumer_doc_id=consumer_doc_id)
         account_id = resource_utils.get_account_id(request)

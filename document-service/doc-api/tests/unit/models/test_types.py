@@ -34,6 +34,7 @@ TEST_DOC_TYPES = [
     (DocumentTypes.REG_101.value, DocumentClasses.MHR.value, True),
     (DocumentTypes.FIRM_MISC.value, DocumentClasses.FIRM.value, True),
     (DocumentTypes.LTR.value, DocumentClasses.OTHER.value, True),
+    (DocumentTypes.DELETED.value, DocumentClasses.DELETED.value, False)
 ]
 # testdata pattern is ({doc_class}, {doc_type}, {has_results}, {type_exists})
 TEST_DOC_TYPE_CLASSES = [
@@ -46,6 +47,7 @@ TEST_DOC_TYPE_CLASSES = [
     (DocumentClasses.FIRM.value, DocumentTypes.FIRM_MISC.value, True, True),
     (DocumentClasses.OTHER.value, DocumentTypes.LTR.value, True, True),
     (DocumentClasses.OTHER.value, DocumentTypes.PPR_MISC.value, True, False),
+    (DocumentClasses.DELETED.value, DocumentTypes.DELETED.value, False, False)
 ]
 # testdata pattern is ({doc_class}, {exists})
 TEST_DOC_CLASSES = [
@@ -57,6 +59,7 @@ TEST_DOC_CLASSES = [
     (DocumentClasses.MHR.value, True),
     (DocumentClasses.FIRM.value, True),
     (DocumentClasses.OTHER.value, True),
+    (DocumentClasses.DELETED.value, False)
 ]
 
 

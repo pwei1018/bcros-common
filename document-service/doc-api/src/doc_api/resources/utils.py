@@ -19,7 +19,7 @@ from flask import current_app, jsonify, request
 from doc_api.exceptions import ResourceErrorCodes
 from doc_api.models import Document, DocumentRequest, DocumentScanning, User, db, search_utils
 from doc_api.models import utils as model_utils
-from doc_api.models.type_tables import DocumentClasses, RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentTypes, RequestTypes
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils import request_validator
@@ -76,6 +76,7 @@ TO_STORAGE_TYPE = {
     DocumentClasses.XP: StorageDocTypes.BUSINESS,
 }
 STORAGE_TYPE_DEFAULT = StorageDocTypes.BUSINESS
+REMOVE_PREFIX = "DEL-"
 
 
 def serialize(errors):
@@ -292,7 +293,7 @@ def remove_quotes(text: str) -> str:
 
 
 def save_to_doc_storage(document: Document, info: RequestInfo, raw_data) -> str:
-    """Save request binaary data to document storage. Return a download link"""
+    """Save request binary data to document storage. Return a download link"""
     storage_type: str = info.document_storage_type
     content_type = info.content_type
     logger.info(f"Save to storage type={storage_type}, content type={content_type}")
@@ -301,6 +302,15 @@ def save_to_doc_storage(document: Document, info: RequestInfo, raw_data) -> str:
     logger.info(f"Save doc to storage {storage_name} successful: link= {doc_link}")
     document.doc_storage_url = storage_name
     return doc_link
+
+
+def delete_from_doc_storage(document: Document, info: RequestInfo) -> str:
+    """Delete document record document from storage."""
+    storage_type: str = info.document_storage_type
+    storage_name: str = document.doc_storage_url
+    logger.info(f"Delete from storage type={storage_type}, name={storage_name}")
+    GoogleStorageService.delete_document(storage_name, storage_type)
+    logger.info(f"Delete doc from storage successful for {storage_name}")
 
 
 def build_doc_request(info: RequestInfo, user: User, doc_id: int) -> DocumentRequest:
@@ -343,10 +353,45 @@ def save_add(info: RequestInfo, token, raw_data) -> dict:
     return doc_json
 
 
+def save_remove(info: RequestInfo, document: Document, token) -> dict:
+    """Mark a document record as removed from subsequent searches."""
+    logger.info(f"save_remove starting for doc service id={document.document_service_id}, getting user from token...")
+    user: User = User.get_or_create_user_by_jwt(token, info.account_id)
+    info.request_type = RequestTypes.DELETE.value
+    doc_class: str = DocumentClasses.DELETED.value
+    doc_type: str = DocumentTypes.DELETED.value
+    cons_doc_id: str = REMOVE_PREFIX + document.consumer_document_id
+    doc_scan: DocumentScanning = None
+    if len(document.consumer_document_id) < 10:
+        doc_scan = DocumentScanning.find_by_document_id(document.consumer_document_id, document.document_class)
+    if doc_scan:
+        logger.info("save_remove found existing scanning record to update")
+        doc_scan.consumer_document_id = cons_doc_id
+        doc_scan.document_class = doc_class
+    document.document_class = doc_class
+    document.document_type = doc_type
+    document.consumer_document_id = cons_doc_id
+    document.document_service_id = REMOVE_PREFIX + document.document_service_id
+    if document.consumer_identifier:
+        document.consumer_identifier = REMOVE_PREFIX + document.consumer_identifier
+    logger.info("save_remove saving updated document model and document_request...")
+    doc_request: DocumentRequest = build_doc_request(info, user, document.id)
+    db.session.add(document)
+    if doc_scan:
+        db.session.add(doc_scan)
+    db.session.add(doc_request)
+    db.session.commit()
+    doc_json = document.json
+    logger.info(f"save_remove completed document updated to {doc_json}")
+    return {}
+
+
 def save_update(info: RequestInfo, document: Document, token) -> dict:
     """Save updated document information including optional document scanning. Return the updated information."""
     logger.info("save_update starting, getting user from token...")
     user: User = User.get_or_create_user_by_jwt(token, info.account_id)
+    if info.request_data and info.request_data.get("removed"):
+        return save_remove(info, document, token)
     doc_scan: DocumentScanning = None
     update_doc_id: str = info.request_data.get("consumerDocumentId") if info.request_data else None
     update_doc_class: str = info.request_data.get("documentClass") if info.request_data else None
@@ -401,6 +446,24 @@ def save_replace(info: RequestInfo, document: Document, token, raw_data) -> dict
     if doc_link:
         doc_json["documentURL"] = doc_link
     logger.info("save_replace completed...")
+    return doc_json
+
+
+def save_delete(info: RequestInfo, document: Document, token) -> dict:
+    """Save request binary data to document storage, adding or replacing the existing document. Return a link"""
+    logger.info("save_delete starting, getting user from token...")
+    service_id: str = document.document_service_id
+    user: User = User.get_or_create_user_by_jwt(token, info.account_id)
+    logger.info(f"save_delete service ID {service_id} deleting existing doc storage file {document.doc_storage_url}...")
+    delete_from_doc_storage(document, info)
+    document.doc_storage_url = None
+    logger.info("save_delete building doc request model and saving...")
+    doc_request: DocumentRequest = build_doc_request(info, user, document.id)
+    db.session.add(document)
+    db.session.add(doc_request)
+    db.session.commit()
+    doc_json = document.json
+    logger.info("save_delete completed...")
     return doc_json
 
 

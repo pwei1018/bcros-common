@@ -55,6 +55,9 @@ PATCH_PAYLOAD = {
     "consumerIdentifier": "P8888999",
     "consumerFilingDateTime": "2024-08-08",
 }
+PATCH_REMOVE_PAYLOAD = {
+    "removed": True
+}
 
 
 # testdata pattern is ({description}, {content_type}, {roles}, {account}, {doc_class}, {doc_type}, {status})
@@ -72,6 +75,7 @@ TEST_PATCH_DATA = [
     ("Invalid role", INVALID_ROLES, "UT1234", "INVALID", PATCH_PAYLOAD, HTTPStatus.UNAUTHORIZED),
     ("Invalid doc service id", STAFF_ROLES, "UT1234", "INVALID", PATCH_PAYLOAD, HTTPStatus.NOT_FOUND),
     ("Valid staff", STAFF_ROLES, "UT1234", None, PATCH_PAYLOAD, HTTPStatus.OK),
+    ("Valid staff removed", STAFF_ROLES, "UT1234", None, PATCH_REMOVE_PAYLOAD, HTTPStatus.OK),
 ]
 # testdata pattern is ({description}, {roles}, {account}, {doc_service_id}, {status})
 TEST_PUT_DATA = [
@@ -86,6 +90,13 @@ TEST_DOC_ID_DATA = [
     ("Invalid role", INVALID_ROLES, "UT1234", "INVALID", HTTPStatus.UNAUTHORIZED),
     ("Not found doc id", STAFF_ROLES, "UT1234", "UT-99990001", HTTPStatus.NOT_FOUND),
     ("Doc ID exists", STAFF_ROLES, "UT1234", "UT999999", HTTPStatus.OK),
+]
+# testdata pattern is ({description}, {content_type}, {roles}, {account}, {doc_class}, {doc_type}, {status})
+TEST_DELETE_DATA = [
+    ("Invalid doc type", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, "JUNK", HTTPStatus.BAD_REQUEST),
+    ("Staff missing account", MEDIA_PDF, STAFF_ROLES, None, DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST),
+    ("Invalid role", MEDIA_PDF, INVALID_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.UNAUTHORIZED),
+    ("Valid staff", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED)
 ]
 
 
@@ -159,14 +170,17 @@ def test_update(session, client, jwt, desc, roles, account, doc_service_id, payl
     # logger.info(response.json)
     assert response.status_code == status
     if response.status_code == HTTPStatus.OK:
-        doc_json = response.json
-        assert doc_json
-        assert doc_json.get("documentServiceId")
-        assert doc_json.get("documentClass")
-        assert doc_json.get("consumerDocumentId") == payload.get("consumerDocumentId")
-        assert doc_json.get("consumerIdentifier") == payload.get("consumerIdentifier")
-        assert doc_json.get("consumerFilename") == payload.get("consumerFilename")
-        assert not doc_json.get("documentURL")
+        if desc != "Valid staff removed":
+            doc_json = response.json
+            assert doc_json
+            assert doc_json.get("documentServiceId")
+            assert doc_json.get("documentClass")
+            assert doc_json.get("consumerDocumentId") == payload.get("consumerDocumentId")
+            assert doc_json.get("consumerIdentifier") == payload.get("consumerIdentifier")
+            assert doc_json.get("consumerFilename") == payload.get("consumerFilename")
+            assert not doc_json.get("documentURL")
+        else:
+            assert not response.json
 
 
 @pytest.mark.parametrize("desc,roles,account,doc_service_id,status", TEST_PUT_DATA)
@@ -208,6 +222,46 @@ def test_replace(session, client, jwt, desc, roles, account, doc_service_id, sta
         assert doc_json.get("consumerIdentifier")
         assert doc_json.get("consumerFilename") == TEST_FILENAME
         assert doc_json.get("documentURL")
+
+
+@pytest.mark.parametrize("desc,content_type,roles,account,doc_class,doc_type,status", TEST_DELETE_DATA)
+def test_delete(session, client, jwt, desc, content_type, roles, account, doc_class, doc_type, status):
+    """Assert that a delete document from storage works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    json_data = {}
+    if account:
+        headers = create_header_account_upload(jwt, roles, "UT-TEST", account, content_type)
+    else:
+        headers = create_header_upload(jwt, roles, content_type)
+    req_path = PATH.format(doc_class=doc_class, doc_type=doc_type)
+    # test
+    if status != HTTPStatus.CREATED:
+        response = client.post(req_path, json=json_data, headers=headers, content_type=content_type)
+    else:
+        raw_data = None
+        with open(TEST_DATAFILE, "rb") as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+        response = client.post(req_path, data=raw_data, headers=headers, content_type=content_type)
+        # logger.info(response.json)
+
+    # check
+    assert response.status_code == status
+    if response.status_code == HTTPStatus.CREATED:
+        doc_json = response.json
+        assert doc_json
+        assert doc_json.get("documentServiceId")
+        assert doc_json.get("documentURL")
+        req_path = CHANGE_PATH.format(doc_service_id=doc_json.get("documentServiceId"))
+        response = client.delete(req_path, headers=headers)
+        assert response.status_code == HTTPStatus.OK
+        doc_json = response.json
+        assert not doc_json.get("documentURL")
+        doc: Document = Document.find_by_doc_service_id(doc_json.get("documentServiceId"))
+        assert doc
+        assert not doc.doc_storage_url
 
 
 @pytest.mark.parametrize("desc,roles,account,doc_id,status", TEST_DOC_ID_DATA)

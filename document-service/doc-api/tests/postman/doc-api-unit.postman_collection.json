@@ -425,6 +425,51 @@
 			"description": "Submit requests to create new document records with or without a document payload."
 		},
 		{
+			"name": "delete_document",
+			"item": [
+				{
+					"name": "Delete from document storage",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/pdf",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100622",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100622"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Submit requests to add a document or replace an existing document by document service ID."
+		},
+		{
 			"name": "put_add_replace",
 			"item": [
 				{
@@ -983,7 +1028,45 @@
 			"name": "patch_update",
 			"item": [
 				{
-					"name": "Update Consumer Doc Id",
+					"name": "Delete document record",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"removed\": true\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/documents/DS0000100622",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"documents",
+								"DS0000100622"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Consumer Doc Id Copy",
 					"request": {
 						"method": "PATCH",
 						"header": [
@@ -1908,11 +1991,11 @@
 	"variable": [
 		{
 			"key": "apikey",
-			"value": "PROVIDE"
+			"value": "provide"
 		},
 		{
 			"key": "account_id",
-			"value": "PROVIDE"
+			"value": "provide"
 		},
 		{
 			"key": "base_url_prism",
@@ -1930,7 +2013,7 @@
 		},
 		{
 			"key": "jwt",
-			"value": "PROVIDE",
+			"value": "provide",
 			"type": "string"
 		}
 	]

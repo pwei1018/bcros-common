@@ -33,7 +33,7 @@ select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_ident
        dc.document_class_desc, d.description
   from documents d, document_types dt, document_classes dc
  where d.document_type = dt.document_type
-   and d.document_class = dc.document_class
+   and d.document_class = dc.document_class and d.document_class != 'DELETED'
    and d.document_class = :query_val1
    and d.add_ts between to_timestamp(:query_val2, 'YYYY-MM-DD HH24:MI:SS')
                     and to_timestamp(:query_val3, 'YYYY-MM-DD HH24:MI:SS')
@@ -44,20 +44,20 @@ select d2.document_service_id, d2.add_ts, d2.consumer_document_id, d2.consumer_i
        d2.description
   from documents d2, document_types dt, document_classes dc
  where d2.document_type = dt.document_type
-   and d2.document_class = dc.document_class
+   and d2.document_class = dc.document_class and dc.document_class != 'DELETED'
    and d2.consumer_document_id in (?)
  order by d2.add_ts desc
 """
 SEARCH_COUNT_ANY_BASE = """
 select count(distinct d.consumer_document_id)
   from documents d, document_types dt
- where d.document_type = dt.document_type
+ where d.document_type = dt.document_type and d.document_class != 'DELETED'
 """
 SEARCH_FILTER_BASE = """
 select distinct consumer_document_id
   from (select d.consumer_document_id
           from documents d, document_types dt2
-         where d.document_type = dt2.document_type
+         where d.document_type = dt2.document_type and d.document_class != 'DELETED'
 """
 SEARCH_SORT_DEFAULT = " ORDER BY d.add_ts DESC"
 SEARCH_SORT_DOC_ID = " ORDER BY d.consumer_document_id, d.add_ts DESC"

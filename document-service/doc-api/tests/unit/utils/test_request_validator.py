@@ -43,6 +43,9 @@ TEST_SCAN3 = {
     "pageCount": 3,
 }
 TEST_SCAN4 = {"scanDateTime": "2024-07-01"}
+TEST_REMOVE = {
+    "removed": True
+}
 # test data pattern is ({description}, {valid}, {payload}, {new}, {cons_doc_id}, {doc_class}, {message_content})
 TEST_DATA_SCANNING = [
     ("Valid new", True, TEST_SCAN1, True, "UT000001", DocumentClasses.CORP, None),
@@ -185,6 +188,7 @@ TEST_DATA_SEARCH_DATES = [
 # test data pattern is ({description},{valid},{doc_id},{cons_id},{filename},{filing_date},{desc},{message_content})
 TEST_DATA_PATCH = [
     ("Valid doc id", True, "89999999", None, None, None, None, None),
+    ("Valid removed", True, None, None, None, None, None, None),
     ("Valid consumer id", True, None, "BC0700000", None, None, None, None),
     ("Valid filename", True, None, None, "change_address.pdf", None, None, None),
     ("Valid filing date", True, None, None, None, "2024-07-31", None, None),
@@ -358,6 +362,8 @@ def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_
         info.consumer_filedate = filing_date
     if description:
         info.description = description
+    if desc == "Valid removed":
+        info.request_data = TEST_REMOVE
     error_msg = validator.validate_request(info)
     if valid:
         assert error_msg == ""
