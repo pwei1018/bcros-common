@@ -48,7 +48,7 @@ export async function getDocuments(params: DocumentRequestIF): Promise<ApiRespon
   const url = `${baseURL}/searches?${queryParams.toString()}`
 
   try {
-    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
     return {
       data: response.data,
       status: response.status
@@ -102,7 +102,7 @@ export async function postDocument(params: DocumentRequestIF, document: RequestD
   const url = `${baseURL}/documents/${documentClass}/${documentType}?${queryParams.toString()}`
 
   try {
-    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options, consumerIdentifier)
     return {
       data: response.data,
       status: response.status
@@ -146,7 +146,7 @@ export async function updateDocument(params: DocumentRequestIF, document: Reques
   const url = `${baseURL}/documents/${documentServiceId}?${queryParams.toString()}`
 
   try {
-    await useBcrosFetch<ApiResponseIF>(url, options).then((response) => {
+    await useBcrosDocFetch<ApiResponseIF>(url, options).then((response) => {
       return {
         data: response.data,
         status: response.status
@@ -197,7 +197,7 @@ export async function updateDocumentRecord(params: DocumentRequestIF)
   const url = `${baseURL}/documents/${documentServiceId}`
 
   try {
-    await useBcrosFetch<ApiResponseIF>(url, options).then((response) => {
+    await useBcrosDocFetch<ApiResponseIF>(url, options, consumerIdentifier).then((response) => {
       return {
         data: response.data,
         status: response.status
@@ -237,7 +237,7 @@ export async function createScanningRecord(params: DocumentRequestIF)
   const url = `${baseURL}/scanning/${documentClass}/${consumerDocumentId}`
 
   try {
-    await useBcrosFetch<ApiResponseIF>(url, options).then((response) => {
+    await useBcrosDocFetch<ApiResponseIF>(url, options).then((response) => {
       return {
         data: response.data,
         status: response.status
@@ -277,7 +277,7 @@ export async function updateScanningRecord(params: DocumentRequestIF)
   const url = `${baseURL}/scanning/${documentClass}/${consumerDocumentId}`
 
   try {
-    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
     return {
       data: response.data,
       status: response.status,
@@ -309,7 +309,7 @@ export async function getDocumentRecord(consumerDocumentId: string): Promise<Api
   const url = `${baseURL}/documents/verify/${consumerDocumentId}`
 
   try {
-    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
     return {
       data: response.data,
       status: response.status
@@ -345,7 +345,7 @@ export async function getDocumentUrl(documentClass: string, docServiceId: string
   const url = `${baseURL}/searches/${documentClass}?${queryParams.toString()}`
 
   try {
-    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
     return {
       data: response.data,
       status: response.status
@@ -376,7 +376,7 @@ export async function getDocumentRecordReport(consumerDocumentId: string): Promi
   const url = `${baseURL}/reports/document-records/${consumerDocumentId}`
 
   try {
-    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
     saveBlob(response.data.value, `${consumerDocumentId}.pdf`)
     return {
       data: response.data,
@@ -409,7 +409,7 @@ export async function getScanningRecord(documentClass: string, documentId: strin
     const url = `${baseURL}/scanning/${documentClass}/${documentId}`
 
   try {
-    const response = await useBcrosFetch<ApiResponseIF>(url, options)
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
     return {
       data: response.data,
       status: response.status

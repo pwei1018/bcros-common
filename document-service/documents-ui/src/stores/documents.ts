@@ -26,7 +26,8 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     description: '',
     consumerFilingDate: '',
     documentList: [],
-    documentListSnapshot: [],
+    // New uploaded document files on edit record.
+    uploadedDocumentList: [],
     scanningDetails: null,
     scanningDetailsSnapshot: null,
 
@@ -46,6 +47,10 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     // Document Editing
     isEditing: false,
     isEditingReview: false,
+
+    // Error Handling
+    isError: false,
+    errorMsg: []
   })
 
   // Initial state

@@ -39,7 +39,6 @@ watch(() => noIdCheckbox.value, (hasNoId: boolean) => {
 watch(() => documentRecord.value.documentClass, () => {
   documentRecord.value.documentType = ''
 })
-documentRecord.documentClass
 
 </script>
 <template>

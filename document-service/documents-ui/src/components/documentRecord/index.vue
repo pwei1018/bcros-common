@@ -8,14 +8,13 @@ defineProps({
   }
 })
 const {
-  documentList,
-  documentListSnapshot,
+  uploadedDocumentList,
   documentRecord,
   documentRecordSnapshot,
   scanningDetails,
   scanningDetailsSnapshot
 } = storeToRefs(useBcrosDocuments())
-const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
+const { updatedDocumentList, fetchUrlAndDownload, getDocumentDescription } = useDocuments()
 </script>
 <template>
   <ContentWrapper
@@ -125,7 +124,7 @@ const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
             v-if="documentRecord.consumerDocumentId.length === 8"
             variant="solid"
             color="primary"
-            label="SCANNING PENDDING"
+            label="SCAN PENDDING"
             class="badge px-2.5 py-1.5"
           />
         </span>
@@ -152,13 +151,13 @@ const { fetchUrlAndDownload, getDocumentDescription } = useDocuments()
           <HasChangesBadge
             v-if="isReviewMode"
             class="w-[65px]"
-            :baseline="documentListSnapshot"
-            :current-state="documentList"
+            :baseline="[]"
+            :current-state="uploadedDocumentList"
           />
         </span>
         <span class="col-span-2 flex flex-col">
           <span
-            v-for="(file, i) in documentList"
+            v-for="(file, i) in updatedDocumentList"
             :key="`file-${i}`"
             class="spanLink pb-2"
           >

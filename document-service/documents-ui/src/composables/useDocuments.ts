@@ -5,7 +5,6 @@ import {
   updateDocumentRecord,
   createScanningRecord,
   updateScanningRecord,
-  updateDocument,
   getDocumentUrl
 } from '~/utils/documentRequests'
 import type { ApiResponseOrError } from '~/interfaces/request-interfaces'
@@ -26,12 +25,12 @@ export const useDocuments = () => {
     scanningDetails,
     scanningDetailsSnapshot,
     documentList,
-    documentListSnapshot,
+    uploadedDocumentList,
     validateIndex,
     isLoading,
     documentInfoRO,
     displayDocumentReview,
-    searchDocumentClass,
+    searchDocumentClass
   } = storeToRefs(useBcrosDocuments())
 
   /** Computed flag to check if there are any changes in the document metadata **/
@@ -46,9 +45,15 @@ export const useDocuments = () => {
 
   /** Computed flag to check if there are any changes to the document files **/
   const hasDocumentFileChanges = computed(() => {
-    return documentListSnapshot.value.length !== documentList.value.length ||
-      documentListSnapshot.value.some((file, index) =>
-        file.name !== documentList.value[index].name)
+    return uploadedDocumentList.value.length > 0
+  })
+
+  /** Computed property that combines the document list and uploaded documents. **/
+  const updatedDocumentList = computed (() => {
+    return [
+      ...documentList.value,
+      ...uploadedDocumentList.value
+    ]
   })
 
   /** Computed flag to check if there are any changes in the document record **/
@@ -240,7 +245,7 @@ export const useDocuments = () => {
 
       try {
         // Iterate over the document list and handle requests sequentially
-        for (const document of documentList.value) {
+        for (const document of updatedDocumentList.value) {
 
           // Update Document Record Meta Data
           if (hasDocumentMetaChanges.value) {
@@ -257,9 +262,15 @@ export const useDocuments = () => {
 
           // Update Document Files
           if (hasDocumentFileChanges.value && !!document.size) {
-            await updateDocument({
-                documentServiceId: documentRecord.value.documentServiceId,
-                consumerFilename: document.name,
+            await postDocument(
+              {
+                consumerDocumentId: documentRecord.value.consumerDocumentId,
+                consumerIdentifier: documentRecord.value.consumerIdentifier,
+                documentClass: documentRecord.value.documentClass,
+                documentType: documentRecord.value.documentType,
+                description: documentRecord.value.description,
+                consumerFilingDate: formatDateToISO(documentRecord.value.consumerFilingDateTime),
+                consumerFilename: document.name
               },
               document
             )
@@ -317,9 +328,11 @@ export const useDocuments = () => {
         navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
       }
       if (data.value) {
+        const consumerFilenames = []
+        data.value.forEach(record => (record.consumerFilename && consumerFilenames.push(record.consumerFilename)));
         documentRecord.value = {
           ...data.value[0],
-          consumerFilenames: data.value.map((record) => (record.consumerFilename)),
+          consumerFilenames: consumerFilenames,
           documentServiceIds: data.value.map((record) => (record.documentServiceId))
         }
         documentList.value = documentRecord.value.consumerFilenames?.map((file) => ({
@@ -332,7 +345,7 @@ export const useDocuments = () => {
 
         // Set Snapshots for change tracking
         documentRecordSnapshot.value = { ...documentRecord.value }
-        documentListSnapshot.value = [...documentList.value]
+        uploadedDocumentList.value = []
         scanningDetailsSnapshot.value = { ...scanningData.data.value }
 
       }
@@ -346,6 +359,7 @@ export const useDocuments = () => {
     hasDocumentRecordChanges,
     isValidIndexData,
     isValidRecordEdit,
+    updatedDocumentList,
     findCategoryByPrefix,
     getDocumentTypesByClass,
     getDocumentDescription,

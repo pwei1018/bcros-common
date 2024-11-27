@@ -91,6 +91,9 @@ export default defineAppConfig({
         background: 'bg-gray-900/75',
       }
     },
+    notifications: {
+      inner: 'w-0 flex-1 justify-center',
+    },
     badge: {
       font: 'font-bold'
     },

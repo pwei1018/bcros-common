@@ -11,7 +11,8 @@ const { isLoading } = storeToRefs(useBcrosDocuments())
           class="animate-spin text-[50px] text-blue-500 absolute top-40 left-[50%]"
         />
       </template>
-
       <NuxtPage />
+      <ModalError />
+      <UNotifications />
     </NuxtLayout>
 </template>

@@ -312,7 +312,7 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
               </ULink>
             </span>
           </div>
-          <div v-else>
+          <div v-else-if="row.consumerFilenames.length === 1">
             <span class="block my-2">
               <DocumentsTableDownloadLink
                 :download-url="row.consumerFilenames[0]"
@@ -320,6 +320,7 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
               />
             </span>
           </div>
+          <div v-else />
         </template>
         <template #description-data="{ row }">
           <div v-if="row.description" class="w-[300px]">
