@@ -6,7 +6,9 @@ defineProps({
   }
 })
 
-const { isEditing, documentList, documentListSnapshot } = storeToRefs(useBcrosDocuments())
+const { fetchUrlAndDownload } = useDocuments()
+
+const { isEditing, documentList, uploadedDocumentList, documentRecordSnapshot } = storeToRefs(useBcrosDocuments())
 const t = useNuxtApp().$i18n.t
 const fileError = ref(null)
 
@@ -41,13 +43,13 @@ const uploadFile = (files: FileList) => {
   // If all files are valid, add them to the documents array
   if (!invalidFile) {
     fileError.value = null
-    documentList.value.push(...allFiles)
+    uploadedDocumentList.value.push(...allFiles)
   }
 }
 
 /** Remove a file from the documents array. */
 const removeFile = (index: number) => {
-  documentList.value.splice(index, 1)
+  uploadedDocumentList.value.splice(index, 1)
 }
 </script>
 <template>
@@ -56,11 +58,11 @@ const removeFile = (index: number) => {
     class="pl-7"
   >
     <template #label>
-      <h3>Upload Documents</h3>
+      <h3>Documents</h3>
       <HasChangesBadge
         v-if="isEditing"
-        :baseline="documentListSnapshot"
-        :current-state="documentList"
+        :baseline="[]"
+        :current-state="uploadedDocumentList"
       />
     </template>
 
@@ -86,9 +88,9 @@ const removeFile = (index: number) => {
         </div>
       </UFormGroup>
 
-      <section v-if="documentList.length" class="mt-6">
+      <section v-if="uploadedDocumentList.length > 0" class="mt-6">
         <div
-          v-for="(supportingDocument, index) in documentList"
+          v-for="(supportingDocument, index) in uploadedDocumentList"
           :key="supportingDocument.name"
         >
           <div class="flex justify-between mt-2 pl-4 rounded items-center bg-bcGovColor-ltBlue h-[50px] text-gray-900">
@@ -114,6 +116,39 @@ const removeFile = (index: number) => {
             </UButton>
           </div>
         </div>
+      </section>
+      <UDivider class="my-10" />
+      <section v-if="documentList.length > 0" class="mt-6">
+        <div class="flex gap-x-1.5 mb-6">
+        <h3>Filed Documents</h3>
+        <UTooltip
+        class="align-middle cursor-pointer"
+        :popper="{ placement: 'top', arrow: true }"
+        :text="t('documentUpload.filedDocumentTooltip')"
+        :ui="{ base: 'w-[265px]' }"
+      >
+        <UIcon
+          name="i-mdi-information-outline"
+          class="w-5 h-5 mr-1 text-primary"
+        />
+      
+      </UTooltip>
+    </div>
+        <div
+            v-for="(file, i) in documentList"
+            :key="`file-${i}`"
+            class="pb-2"
+          >
+             <ULink
+               inactive-class="text-primary underline"
+               @click="fetchUrlAndDownload(
+                  documentRecordSnapshot.documentClass, 
+                  documentRecordSnapshot.documentServiceIds[i]
+                )"
+              > 
+               {{ file.name }}
+             </ULink>
+            </div>
       </section>
 
     </template>

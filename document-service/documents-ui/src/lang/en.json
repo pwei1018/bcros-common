@@ -109,7 +109,8 @@
     "placeholder": "Select Documents (Optional)",
     "help": "File must be a PDF. Maximum 50 MB.",
     "fileSizeError": "Documents exceeds maximum 50 MB file size",
-    "fileTypeError": "Documents must be of PDF file type"
+    "fileTypeError": "Documents must be of PDF file type",
+    "filedDocumentTooltip": "Once documents are uploaded and saved to the document record, they cannot be deleted within the application. Deletion of a file must be conducted by an authorized agent."
   },
   "documentReview": {
     "title": "Document Information Saved",
@@ -155,5 +156,10 @@
     "description": "This will undo any changes you have made and return you to the original state.",
     "confirmButton": "Discard Changes",
     "cancelButton": "Keep Changes"
+  },
+  "errorDialog": {
+    "title": "Submission Error",
+    "description": "We couldn't process your submission at the moment. If the issue persists, please try again later or reach out to support with the error details provided below. ",
+    "okButton": "Close"
   }
 }

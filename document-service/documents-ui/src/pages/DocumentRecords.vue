@@ -6,7 +6,8 @@ const {
   isLoading,
   isEditing,
   isEditingReview,
-  validateRecordEdit
+  validateRecordEdit,
+  isError,
 } = storeToRefs(useBcrosDocuments())
 
 /**
@@ -54,7 +55,9 @@ const next = async () => {
     // Save document record here
     await updateDocuments()
 
-    navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
+    // Prevent navigation to the document management page if the error modal is displayed.
+    !isError && navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
+
     isEditing.value = false
     isEditingReview.value = false
   } else {
@@ -83,7 +86,7 @@ watch(() => isEditing.value, async (val: boolean) => {
   >
     <div class="app-inner-container app-body">
 
-      <ConfirmationModal
+      <ModalConfirmation
         :toggle-modal="showDialog"
         @close="showDialog = false"
         @confirm="cancel(true)"
@@ -124,7 +127,7 @@ watch(() => isEditing.value, async (val: boolean) => {
       v-if="isEditing"
       cancel-btn="Cancel"
       :back-btn="isEditingReview ? 'Back' : ''"
-      next-btn="Review and Confirm"
+      :next-btn="isEditingReview ? 'Save Changes' : 'Review and Confirm'"
       @cancel="cancel"
       @back="back"
       @next="next"

@@ -29,7 +29,8 @@ export interface DocumentStateIF {
   description: string
   consumerFilingDate: string
   documentList: Array<any>
-  documentListSnapshot: Array<any>
+  // New uploaded document list on edit screen.
+  uploadedDocumentList: Array<any>
   scanningDetails: ScanningDetailIF | null
   scanningDetailsSnapshot: ScanningDetailIF | null
 
@@ -49,6 +50,10 @@ export interface DocumentStateIF {
   // Document Editing
   isEditing: boolean
   isEditingReview: boolean
+
+  // Error Handling
+  isError: boolean
+  errorMsg: Array<string>
 }
 
 export interface DocumentDetailIF {
