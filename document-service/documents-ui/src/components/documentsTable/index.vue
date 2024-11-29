@@ -353,7 +353,7 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
         <!-- Actions -->
         <template #actions-data="{ row }">
           <div
-            class="flex justify-center items-center h-full border-l-4 border-solid border-gray-200 bg-white"
+            class="flex justify-center items-top h-full border-l-4 border-solid border-gray-200 bg-white p-4"
           >
             <UButton
               class="relative h-[35px] px-8 text-base"

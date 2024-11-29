@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { hasDocumentRecordChanges } = useDocuments()
 const emit = defineEmits(['cancel', 'back', 'next'])
 const props = defineProps({
   cancelBtn: {
@@ -13,6 +14,9 @@ const props = defineProps({
     type: String,
     default: ''
   }
+})
+const isNoChangeError = computed(() => {
+  return !hasDocumentRecordChanges.value && props.nextBtn === 'Review and Confirm'
 })
 </script>
 <template>
@@ -52,8 +56,9 @@ const props = defineProps({
           </UButton>
         </div>
 
-        <div class="col-span-1">
-          <UButton
+        <div class="col-span-1 text-center">
+         
+        <UButton
             v-if="props.nextBtn"
             trailing-icon="i-mdi-chevron-right"
             color="primary"
@@ -63,6 +68,11 @@ const props = defineProps({
           >
             {{ props.nextBtn }}
           </UButton>
+          <span
+            :class="['text-red-600', 'text-xs', isNoChangeError ? '' : 'invisible']"
+          >
+            No changes has been made
+          </span>
         </div>
 
       </div>
