@@ -21,6 +21,12 @@ const debouncedInput = debounce((newValue) => {
   }
 }, 500)
 
+watch(() => props.modelValue, (newValue) => {
+  if (filterValue.value !== newValue) {
+    filterValue.value = newValue
+  }
+})
+
 watch(filterValue, (newValue) => {
   debouncedInput(newValue)
 })
@@ -31,6 +37,7 @@ watch(filterValue, (newValue) => {
     <UDivider class="my-3 w-full" />
     <div class="h-11">
       <UInput
+        v-if="column.key!=='description'" 
         v-model="filterValue"
         class="min-w-[190px] w-full px-2 font-light"
         size="md"

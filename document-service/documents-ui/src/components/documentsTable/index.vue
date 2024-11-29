@@ -116,7 +116,13 @@ watch(() => searchEntityId.value, (id: string) => {
     // Format Entity Identifier
     searchEntityId.value = id.replace(/\s+/g, '')?.toUpperCase()
     // Assign and populate a prefix if a match is found
-    if (id.length >= 1) findCategoryByPrefix(id, true)
+    if (id.length >= 1) {
+      findCategoryByPrefix(id, true)
+    }
+    // If EntityID is cleared, document class should be empty as well.
+    else if(id.length === 0) {
+      searchDocumentClass.value = ''
+    }
 })
 
 watch(() => searchDocumentClass.value, (newValue: string) => {
