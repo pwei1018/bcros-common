@@ -16,7 +16,7 @@ defineProps({
       :data-cy="'header_' + name"
       :class="
         isTable
-          ? 'font-bold text-gray-900 bg-bcGovColor-ltBlue px-5 py-[18px]'
+          ? 'font-bold text-gray-900 bg-bcGovColor-ltBlue px-5 py-[18px] rounded-t'
           : 'font-bold text-gray-900 bg-bcGovColor-ltBlue px-8 py-[18px]'
       "
     >
