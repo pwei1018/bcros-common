@@ -11,6 +11,7 @@ import { useBcrosDocuments } from '~/stores/documents'
 
 export function useBcrosDocFetch<T>(url: string, options: any, consumerIdentifier?: string | undefined) {
     const { isError, errorMsg } = storeToRefs(useBcrosDocuments())
+    const { currentAccount } = storeToRefs(useBcrosAccount())
     return useFetch<T>(url, {
       ...options,
       watch: false,
@@ -18,7 +19,7 @@ export function useBcrosDocFetch<T>(url: string, options: any, consumerIdentifie
       onResponseError(response) {
         const requestMethod = response.options.method
         if(["POST", "PUT"].includes(requestMethod) && !isError.value){
-            const accountId = response.options.headers["Account-Id"]
+            const accountId = currentAccount.value.id
             // Extract only the base URL, excluding query parameters.
             const url = response.request.toString().split('?')[0]
             const message = JSON.stringify(response.response._data)
