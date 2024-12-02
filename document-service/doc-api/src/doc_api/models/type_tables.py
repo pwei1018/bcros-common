@@ -137,7 +137,6 @@ class DocumentTypes(BaseEnum):
     DIRS = "DIRS"
     CORC = "CORC"
     SOCF = "SOCF"
-
     CERT = "CERT"
     LTR = "LTR"
     CLW = "CLW"
@@ -174,6 +173,10 @@ class DocumentTypes(BaseEnum):
     RPL = "RPL"
     FINS = "FINS"
     DELETED = "DELETED"
+    COOP_RULES = "COOP_RULES"
+    COOP_MEMORANDUM = "COOP_MEMORANDUM"
+    CORP_AFFIDAVIT = "CORP_AFFIDAVIT"
+    DIRECTOR_AFFIDAVIT = "DIRECTOR_AFFIDAVIT"
 
 
 class RequestType(db.Model):  # pylint: disable=too-few-public-methods

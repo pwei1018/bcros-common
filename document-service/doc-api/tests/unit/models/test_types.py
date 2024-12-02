@@ -34,7 +34,9 @@ TEST_DOC_TYPES = [
     (DocumentTypes.REG_101.value, DocumentClasses.MHR.value, True),
     (DocumentTypes.FIRM_MISC.value, DocumentClasses.FIRM.value, True),
     (DocumentTypes.LTR.value, DocumentClasses.OTHER.value, True),
-    (DocumentTypes.DELETED.value, DocumentClasses.DELETED.value, False)
+    (DocumentTypes.DELETED.value, DocumentClasses.DELETED.value, False),
+    (DocumentTypes.COOP_MEMORANDUM.value, DocumentClasses.COOP.value, True),
+    (DocumentTypes.CORP_AFFIDAVIT.value, DocumentClasses.CORP.value, True),
 ]
 # testdata pattern is ({doc_class}, {doc_type}, {has_results}, {type_exists})
 TEST_DOC_TYPE_CLASSES = [
@@ -47,7 +49,9 @@ TEST_DOC_TYPE_CLASSES = [
     (DocumentClasses.FIRM.value, DocumentTypes.FIRM_MISC.value, True, True),
     (DocumentClasses.OTHER.value, DocumentTypes.LTR.value, True, True),
     (DocumentClasses.OTHER.value, DocumentTypes.PPR_MISC.value, True, False),
-    (DocumentClasses.DELETED.value, DocumentTypes.DELETED.value, False, False)
+    (DocumentClasses.DELETED.value, DocumentTypes.DELETED.value, False, False),
+    (DocumentClasses.COOP.value, DocumentTypes.COOP_RULES.value, True, True),
+    (DocumentClasses.CORP.value, DocumentTypes.DIRECTOR_AFFIDAVIT.value, True, True),
 ]
 # testdata pattern is ({doc_class}, {exists})
 TEST_DOC_CLASSES = [
