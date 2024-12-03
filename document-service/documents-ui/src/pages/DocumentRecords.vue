@@ -56,10 +56,11 @@ const next = async () => {
     await updateDocuments()
 
     // Prevent navigation to the document management page if the error modal is displayed.
-    !isError && navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
-
-    isEditing.value = false
-    isEditingReview.value = false
+    if(!isError) {
+      navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
+      isEditing.value = false
+      isEditingReview.value = false
+    }
   } else {
     if (!hasDocumentRecordChanges.value) {
       scrollToTop()
