@@ -82,7 +82,6 @@ TEST_DATA_ADD = [
         DocumentClasses.CORP,
         None,
     ),
-    ("Valid no class", True, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, None, None),
     (
         "Invalid missing doc type",
         False,
@@ -137,6 +136,7 @@ TEST_DATA_ADD = [
         DocumentClasses.FIRM,
         validator.INVALID_DOC_CLASS_TYPE,
     ),
+    ("Valid no class", True, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, None, None),
 ]
 # test data pattern is ({description}, {valid}, {filing_date}, {message_content})
 TEST_DATA_ADD_DATES = [

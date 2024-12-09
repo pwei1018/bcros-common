@@ -86,7 +86,7 @@ class Document(db.Model):
             "consumerIdentifier": self.consumer_identifier if self.consumer_identifier else "",
             "documentType": self.document_type,
             "documentTypeDescription": self.doc_type.document_type_desc if self.doc_type else "",
-            "documentClass": self.doc_type.document_class if self.doc_type else "",
+            "documentClass": self.document_class if self.document_class else "",
             "documentURL": self.doc_storage_url if self.doc_storage_url else "",
             "author": self.author if self.author else "",
         }

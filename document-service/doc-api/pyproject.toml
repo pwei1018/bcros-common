@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "doc-api"
-version = "0.1.7"
+version = "0.1.8"
 description = ""
 authors = ["dlovett <doug@daxiom.com>"]
 license = "BSD 3"

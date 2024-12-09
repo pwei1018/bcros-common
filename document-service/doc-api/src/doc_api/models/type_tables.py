@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This module holds model definitions for the MHR type tables."""
-
+from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 
 from doc_api.utils.base import BaseEnum
@@ -177,6 +177,7 @@ class DocumentTypes(BaseEnum):
     COOP_MEMORANDUM = "COOP_MEMORANDUM"
     CORP_AFFIDAVIT = "CORP_AFFIDAVIT"
     DIRECTOR_AFFIDAVIT = "DIRECTOR_AFFIDAVIT"
+    PART = "PART"
 
 
 class RequestType(db.Model):  # pylint: disable=too-few-public-methods
@@ -210,7 +211,7 @@ class DocumentClass(db.Model):  # pylint: disable=too-few-public-methods
     schedule_number = db.mapped_column("schedule_number", db.Integer, nullable=True)
 
     # Relationships
-    doc_type = db.relationship("DocumentType", back_populates="doc_class")
+    doc_type_class = db.relationship("DocumentTypeClass", back_populates="doc_class")
 
     @property
     def scanning_json(self) -> dict:
@@ -248,12 +249,6 @@ class DocumentType(db.Model):  # pylint: disable=too-few-public-methods
     __tablename__ = "document_types"
 
     document_type = db.mapped_column("document_type", PG_ENUM(DocumentTypes, name="documenttype"), primary_key=True)
-    document_class = db.mapped_column(
-        "document_class",
-        PG_ENUM(DocumentClasses, name="documentclass"),
-        db.ForeignKey("document_classes.document_class"),
-        nullable=False,
-    )
     document_type_desc = db.mapped_column("document_type_desc", db.String(100), nullable=False)
     product = db.mapped_column("product", db.String(20), nullable=False)
     doc_id_required = db.mapped_column("doc_id_required", db.Boolean, nullable=False)
@@ -262,9 +257,7 @@ class DocumentType(db.Model):  # pylint: disable=too-few-public-methods
     application_id = db.mapped_column("application_id", db.String(20), nullable=True)
 
     # Relationships
-    doc_class = db.relationship(
-        "DocumentClass", foreign_keys=[document_class], back_populates="doc_type", cascade="all, delete", uselist=False
-    )
+    doc_type_class = db.relationship("DocumentTypeClass", back_populates="doc_type")
     document = db.relationship("Document", back_populates="doc_type")
 
     @property
@@ -301,3 +294,83 @@ class DocumentType(db.Model):  # pylint: disable=too-few-public-methods
         if not doc_class or doc_class not in DocumentClasses or doc_class == DocumentClasses.DELETED.value:
             return None
         return db.session.query(DocumentType).filter(DocumentType.document_class == doc_class).all()
+
+
+class DocumentTypeClass(db.Model):  # pylint: disable=too-few-public-methods
+    """This class defines the relationship between a document type and a document class."""
+
+    __tablename__ = "document_type_classes"
+
+    document_type = db.mapped_column(
+        "document_type",
+        PG_ENUM(DocumentTypes, name="documenttype"),
+        db.ForeignKey("document_types.document_type"),
+        primary_key=True,
+        index=True,
+    )
+    document_class = db.mapped_column(
+        "document_class",
+        PG_ENUM(DocumentClasses, name="documentclass"),
+        db.ForeignKey("document_classes.document_class"),
+        primary_key=True,
+        index=True,
+    )
+    active = db.mapped_column("active", db.Boolean, nullable=False)
+
+    # Relationships
+    doc_type = db.relationship(
+        "DocumentType", foreign_keys=[document_type], back_populates="doc_type_class", cascade="all, delete"
+    )
+    doc_class = db.relationship(
+        "DocumentClass", foreign_keys=[document_class], back_populates="doc_type_class", cascade="all, delete"
+    )
+
+    @classmethod
+    def find_all(cls):
+        """Return all the active document types sorted by document class then document type."""
+        return (
+            db.session.query(DocumentTypeClass)
+            .filter(DocumentTypeClass.active)
+            .order_by(DocumentTypeClass.document_class, DocumentTypeClass.document_type)
+            .all()
+        )
+
+    @classmethod
+    def find_all_json(cls) -> dict:
+        """Return all the active document types with descriptions as json sorted by document class, document type."""
+        doc_types = cls.find_all()
+        doc_class: str = None
+        results = {}
+        for type_class in doc_types:
+            if not doc_class or type_class.document_class != doc_class:
+                doc_class = type_class.document_class.value
+                results[doc_class] = []
+            doc_type = {"documentType": type_class.document_type.value}
+            if type_class.doc_type:
+                doc_type["documentTypeDescription"] = type_class.doc_type.document_type_desc
+            else:
+                doc_type["documentTypeDescription"] = ""
+            results[doc_class].append(doc_type)
+        return results
+
+    @classmethod
+    def find_by_doc_type(cls, doc_type: str):
+        """Return a specific set of records by type."""
+        if not doc_type or doc_type not in DocumentTypes or doc_type == DocumentTypes.DELETED.value:
+            return None
+        return (
+            db.session.query(DocumentTypeClass)
+            .filter(and_(DocumentTypeClass.document_type == doc_type, DocumentTypeClass.active))
+            .all()
+        )
+
+    @classmethod
+    def find_by_doc_class(cls, doc_class: str):
+        """Return all types that belong to the class."""
+        if not doc_class or doc_class not in DocumentClasses or doc_class == DocumentClasses.DELETED.value:
+            return None
+        return (
+            db.session.query(DocumentTypeClass)
+            .filter(and_(DocumentTypeClass.document_class == doc_class, DocumentTypeClass.active))
+            .all()
+        )

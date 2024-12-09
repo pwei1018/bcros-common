@@ -19,7 +19,7 @@ from flask import Blueprint, g, jsonify, request
 
 from doc_api.exceptions import BusinessException, DatabaseException
 from doc_api.models import Document
-from doc_api.models.type_tables import RequestTypes
+from doc_api.models.type_tables import DocumentTypeClass, RequestTypes
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
 from doc_api.services.authz import is_staff
@@ -83,7 +83,7 @@ def update_document_info(doc_service_id: str):
         if not document:
             logger.warning(f"No document found for document service id={doc_service_id}.")
             return resource_utils.not_found_error_response("PATCH document information", doc_service_id)
-        doc_class: str = document.doc_type.document_class
+        doc_class: str = document.document_class
         info: RequestInfo = RequestInfo(
             RequestTypes.UPDATE, req_path, document.document_type, resource_utils.get_doc_storage_type(doc_class)
         )
@@ -119,7 +119,7 @@ def replace_document(doc_service_id: str):
         if not document:
             logger.warning(f"No document found for document service id={doc_service_id}.")
             return resource_utils.not_found_error_response("PUT document", doc_service_id)
-        doc_class: str = document.doc_type.document_class
+        doc_class: str = document.document_class
         info: RequestInfo = RequestInfo(
             RequestTypes.REPLACE, req_path, document.document_type, resource_utils.get_doc_storage_type(doc_class)
         )
@@ -159,7 +159,7 @@ def delete_document(doc_service_id: str):
             msg: str = f"Delete document no document in storage for document service id={doc_service_id}."
             logger.info(msg)
             return resource_utils.bad_request_response(msg)
-        doc_class: str = document.doc_type.document_class
+        doc_class: str = document.document_class
         info: RequestInfo = RequestInfo(
             RequestTypes.DELETE, req_path, document.document_type, resource_utils.get_doc_storage_type(doc_class)
         )
@@ -204,6 +204,30 @@ def verify_document_id(consumer_doc_id: str):
         return jsonify(response_json), HTTPStatus.OK
     except DatabaseException as db_exception:
         return resource_utils.db_exception_response(db_exception, account_id, "PUT document")
+    except BusinessException as exception:
+        return resource_utils.business_exception_response(exception)
+    except Exception as default_exception:  # noqa: B902; return nicer default error
+        return resource_utils.default_exception_response(default_exception)
+
+
+@bp.route("/document-types", methods=["GET", "OPTIONS"])
+@jwt.requires_auth
+def get_doc_types():
+    """Get the complete set of active document types sorted by class then type."""
+    try:
+        account_id = resource_utils.get_account_id(request)
+        if account_id is None:
+            return resource_utils.account_required_response()
+        logger.info(f"Starting get document types, account={account_id}")
+        if not is_staff(jwt):
+            logger.error("User not staff: currently requests are staff only.")
+            return resource_utils.unauthorized_error_response(account_id)
+        response_json = DocumentTypeClass.find_all_json()
+        if not response_json:
+            return resource_utils.not_found_error_response("get document types information", account_id)
+        return jsonify(response_json), HTTPStatus.OK
+    except DatabaseException as db_exception:
+        return resource_utils.db_exception_response(db_exception, account_id, "GET document types info")
     except BusinessException as exception:
         return resource_utils.business_exception_response(exception)
     except Exception as default_exception:  # noqa: B902; return nicer default error

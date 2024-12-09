@@ -123,7 +123,9 @@ def test_find_by_doc_service_id(session, id, has_results, doc_type, doc_class):
         document: Document = Document.find_by_doc_service_id(id)
         assert not document
     else:
-        save_doc: Document = Document.create_from_json(DOC1, doc_type)
+        req_json = copy.deepcopy(DOC1)
+        req_json["documentClass"] = doc_class
+        save_doc: Document = Document.create_from_json(req_json, doc_type)
         save_doc.save()
         assert save_doc.id
         assert save_doc.document_service_id
@@ -177,7 +179,9 @@ def test_find_by_consumer_id(session, id, has_results, doc_type, doc_class, quer
         document: Document = Document.find_by_consumer_id(id)
         assert not document
     else:
-        save_doc: Document = Document.create_from_json(DOC1, doc_type)
+        req_json = copy.deepcopy(DOC1)
+        req_json["documentClass"] = doc_class
+        save_doc: Document = Document.create_from_json(req_json, doc_type)
         save_doc.save()
         assert save_doc.id
         assert save_doc.document_service_id

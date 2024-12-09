@@ -519,15 +519,15 @@ def get_docs(info: RequestInfo) -> list:
     if info.document_service_id:
         logger.info(f"get_docs class {info.document_class} query by service id {info.document_service_id}")
         result = Document.find_by_doc_service_id(info.document_service_id)
-        if result and result.doc_type and result.doc_type.document_class == info.document_class:
+        if result and result.doc_type and result.document_class == info.document_class:
             results.append(result.json)
     elif info.consumer_doc_id:
         logger.info(f"get_docs class {info.document_class} query by document id {info.consumer_doc_id}")
         query_results = Document.find_by_document_id(info.consumer_doc_id)
         if query_results:
             for result in query_results:
-                # logger.info(f'Checking doc class {result.doc_type.document_class} with {info.document_class}')
-                if result.doc_type and result.doc_type.document_class == info.document_class:
+                # logger.info(f'Checking doc class {result.document_class} with {info.document_class}')
+                if result.doc_type and result.document_class == info.document_class:
                     results.append(result.json)
     elif info.consumer_identifier and not (info.query_start_date or info.query_end_date):
         logger.info(f"get_docs class {info.document_class} query by consumer id {info.consumer_identifier}")
@@ -536,7 +536,7 @@ def get_docs(info: RequestInfo) -> list:
         query_results = Document.find_by_consumer_id(info.consumer_identifier, info.document_type)
         if query_results:
             for result in query_results:
-                if result.doc_type and result.doc_type.document_class == info.document_class:
+                if result.doc_type and result.document_class == info.document_class:
                     results.append(result.json)
     elif info.query_start_date and info.query_end_date:
         return search_utils.get_docs_by_date_range(

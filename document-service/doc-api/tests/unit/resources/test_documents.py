@@ -48,6 +48,7 @@ PARAMS1 = (
 PATH: str = "/api/v1/documents/{doc_class}/{doc_type}" + PARAMS1
 CHANGE_PATH = "/api/v1/documents/{doc_service_id}"
 VERIFY_PATH = "/api/v1/documents/verify/{doc_id}"
+DOC_TYPE_PATH = "/api/v1/documents/document-types"
 PATCH_PAYLOAD_INVALID = {}
 PATCH_PAYLOAD = {
     "consumerDocumentId": "P0000001",
@@ -97,6 +98,12 @@ TEST_DELETE_DATA = [
     ("Staff missing account", MEDIA_PDF, STAFF_ROLES, None, DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST),
     ("Invalid role", MEDIA_PDF, INVALID_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.UNAUTHORIZED),
     ("Valid staff", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED)
+]
+# testdata pattern is ({description}, {roles}, {account}, {status})
+TEST_TYPE_DATA = [
+    ("Staff missing account", STAFF_ROLES, None, HTTPStatus.BAD_REQUEST),
+    ("Invalid role", INVALID_ROLES, "UT1234", HTTPStatus.UNAUTHORIZED),
+    ("Valid staff", STAFF_ROLES, "UT1234", HTTPStatus.OK),
 ]
 
 
@@ -297,3 +304,35 @@ def test_verify_doc_id(session, client, jwt, desc, roles, account, doc_id, statu
             assert doc_json.get("documentType")
             assert doc_json.get("consumerDocumentId") == doc_id
             assert not doc_json.get("documentURL")
+
+
+@pytest.mark.parametrize("desc,roles,account,status", TEST_TYPE_DATA)
+def test_get_types(session, client, jwt, desc, roles, account, status):
+    """Assert that a request to get document types works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    if account:
+        headers = create_header_account(jwt, roles, "UT-TEST", account)
+    else:
+        headers = create_header(jwt, roles)
+    # test
+    response = client.get(DOC_TYPE_PATH, headers=headers)
+
+    # check
+    # logger.info(response.json)
+    assert response.status_code == status
+    if response.status_code == HTTPStatus.OK:
+        types_json = response.json
+        assert types_json
+        assert types_json.get("COOP")
+        assert types_json.get("CORP")
+        assert types_json.get("FIRM")
+        assert types_json.get("LP_LLP")
+        assert types_json.get("MHR")
+        assert types_json.get("NR")
+        assert types_json.get("OTHER")
+        assert types_json.get("PPR")
+        assert types_json.get("SOCIETY")
+        assert types_json["SOCIETY"][0].get("documentType")
+        assert types_json["SOCIETY"][0].get("documentTypeDescription")

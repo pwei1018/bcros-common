@@ -19,7 +19,7 @@ from datetime import datetime
 
 from doc_api.models import DocumentScanning
 from doc_api.models import utils as model_utils
-from doc_api.models.type_tables import DocumentClasses, DocumentType, DocumentTypes, RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentTypeClass, DocumentTypes, RequestTypes
 from doc_api.resources.request_info import RequestInfo
 from doc_api.utils.logging import logger
 
@@ -185,9 +185,15 @@ def validate_class_type(info: RequestInfo) -> str:
     error_msg: str = ""
     if not info.document_class or not info.document_type:
         return error_msg
-    doc_type: DocumentType = DocumentType.find_by_doc_type(info.document_type)
-    if doc_type and doc_type.document_class != info.document_class:
-        error_msg = INVALID_DOC_CLASS_TYPE.format(doc_type=info.document_type, doc_class=info.document_class)
+    doc_types = DocumentTypeClass.find_by_doc_type(info.document_type)
+    if doc_types:
+        valid_class: bool = False
+        for type_class in doc_types:
+            if type_class.document_class == info.document_class:
+                valid_class = True
+                break
+        if not valid_class:
+            error_msg = INVALID_DOC_CLASS_TYPE.format(doc_type=info.document_type, doc_class=info.document_class)
     return error_msg
 
 
@@ -197,8 +203,11 @@ def get_doc_class(info: RequestInfo) -> str:
     if info.document_class or not info.document_type:
         return error_msg
     try:
-        doc_type: DocumentType = DocumentType.find_by_doc_type(info.document_type)
-        info.document_class = doc_type.document_class
+        doc_classes = DocumentTypeClass.find_by_doc_type(info.document_type)
+        if doc_classes and len(doc_classes) == 1:
+            info.document_class = doc_classes[0].document_class
+        else:
+            error_msg += MISSING_DOC_CLASS
     except Exception as validation_exception:  # noqa: B902; eat all errors
         logger.error("validate_class_type exception: " + str(validation_exception))
         error_msg += VALIDATOR_ERROR
