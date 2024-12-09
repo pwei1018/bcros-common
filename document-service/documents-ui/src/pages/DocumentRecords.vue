@@ -83,7 +83,7 @@ watch(() => isEditing.value, async (val: boolean) => {
 /**  Runs before leaving the current route to reset the editing review state. */
 onBeforeRouteLeave(() => {
   isEditingReview.value = false
-});
+})
 
 </script>
 <template>
