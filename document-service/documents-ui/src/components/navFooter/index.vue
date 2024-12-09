@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { isEditing } = storeToRefs(useBcrosDocuments())
 const { hasDocumentRecordChanges } = useDocuments()
 const emit = defineEmits(['cancel', 'back', 'next'])
 const props = defineProps({
@@ -15,9 +16,20 @@ const props = defineProps({
     default: ''
   }
 })
+const hasInteracted = ref(false)
+
 const isNoChangeError = computed(() => {
-  return !hasDocumentRecordChanges.value && props.nextBtn === 'Review and Confirm'
+  return hasInteracted.value
+        && isEditing.value
+        && !hasDocumentRecordChanges.value
+        && props.nextBtn === 'Review and Confirm'
 })
+
+const handleClickNext = () => {
+  hasInteracted.value = true
+  emit('next')
+}
+
 </script>
 <template>
   <div
@@ -64,7 +76,7 @@ const isNoChangeError = computed(() => {
             color="primary"
             class="h-[40px] ml-[10px] font-bold px-5 text-nowrap"
             data-cy="nav-footer-next-btn"
-            @click="emit('next')"
+            @click="handleClickNext"
           >
             {{ props.nextBtn }}
           </UButton>

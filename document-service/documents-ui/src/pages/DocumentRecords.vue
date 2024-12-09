@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import EditRecord from '~/components/documentRecord/EditRecord.vue'
 import { scrollToTop } from '~/utils/commonUtils'
+import { onBeforeRouteLeave } from 'vue-router';
+
 const { updateDocuments, isValidRecordEdit, retrieveDocumentRecord, hasDocumentRecordChanges } = useDocuments()
 const {
   isLoading,
@@ -54,9 +56,8 @@ const next = async () => {
   if (isEditingReview.value) {
     // Save document record here
     await updateDocuments()
-
     // Prevent navigation to the document management page if the error modal is displayed.
-    if(!isError) {
+    if(!isError.value) {
       navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
       isEditing.value = false
       isEditingReview.value = false
@@ -78,6 +79,12 @@ const next = async () => {
 watch(() => isEditing.value, async (val: boolean) => {
   if (!val) await retrieveDocumentRecord(identifier)
 })
+
+/**  Runs before leaving the current route to reset the editing review state. */
+onBeforeRouteLeave(() => {
+  isEditingReview.value = false
+});
+
 </script>
 <template>
   <div
