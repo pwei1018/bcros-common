@@ -84,7 +84,9 @@ export default defineAppConfig({
         placement: 'bottom-start',
         offsetDistance: 0
       },
-      padding: 'p-0'
+      padding: 'p-0',
+      input: 'w-full m-0 px-2 py-3 border-0 placeholder-gray-700 text-sm h-[44px] bg-gray-100 ring-0 ' +
+        ' hover:bg-gray-200 hover:border-gray-600 focus:border-primary-500'
     },
     modal: {
       overlay: {

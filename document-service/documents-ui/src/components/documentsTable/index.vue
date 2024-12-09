@@ -214,10 +214,14 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
                 :options="documentTypeOptions"
                 value-attribute="type"
                 option-attribute="description"
+                searchable
+                :searchable-placeholder="`Search ${column.label}`"
+                clear-search-on-close
                 size="md"
                 :ui="{
                   icon: { trailing: { pointer: '' } },
                   size: { md: 'h-[44px]' },
+                  input: 'relative text-red border-0 border-b-[1px] border-gray-500 ring-0 focus:ring-0'
                 }"
               >
                 <template #trailing>
