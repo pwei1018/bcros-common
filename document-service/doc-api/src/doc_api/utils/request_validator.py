@@ -198,15 +198,22 @@ def validate_class_type(info: RequestInfo) -> str:
 
 
 def get_doc_class(info: RequestInfo) -> str:
-    """Get the document class for the document type."""
+    """Get the document class for the document type if the mapping is 1 to 1."""
     error_msg: str = ""
     if info.document_class or not info.document_type:
         return error_msg
+    # doc class is optional for GET (Searches)
+    optional: bool = (
+        info.request_type
+        and info.request_type == RequestTypes.GET
+        and info.request_path
+        and info.request_path.endswith("*")
+    )
     try:
         doc_classes = DocumentTypeClass.find_by_doc_type(info.document_type)
         if doc_classes and len(doc_classes) == 1:
             info.document_class = doc_classes[0].document_class
-        else:
+        elif not optional:
             error_msg += MISSING_DOC_CLASS
     except Exception as validation_exception:  # noqa: B902; eat all errors
         logger.error("validate_class_type exception: " + str(validation_exception))

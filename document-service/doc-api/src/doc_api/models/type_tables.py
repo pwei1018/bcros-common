@@ -178,6 +178,10 @@ class DocumentTypes(BaseEnum):
     CORP_AFFIDAVIT = "CORP_AFFIDAVIT"
     DIRECTOR_AFFIDAVIT = "DIRECTOR_AFFIDAVIT"
     PART = "PART"
+    REG_103E = "REG_103E"
+    AMEND_PERMIT = "AMEND_PERMIT"
+    CANCEL_PERMIT = "CANCEL_PERMIT"
+    REREGISTER_C = "REREGISTER_C"
 
 
 class RequestType(db.Model):  # pylint: disable=too-few-public-methods
