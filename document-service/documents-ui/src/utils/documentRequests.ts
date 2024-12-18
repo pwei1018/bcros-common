@@ -259,14 +259,13 @@ export async function createScanningRecord(params: DocumentRequestIF)
  * @param params - The parameters for the document scanning data request.
  * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
  */
-export async function updateScanningRecord(params: DocumentRequestIF)
+export async function updateScanningRecord(params: DocumentRequestIF, ignoreError=false)
   : Promise<ApiResponseOrError> {
   const {
     documentClass,
     consumerDocumentId,
     scanningDetails
   } = params
-
   const options = {
     method: 'PATCH',
     headers: { 'x-apikey': `${docApiKey}` },
@@ -277,7 +276,7 @@ export async function updateScanningRecord(params: DocumentRequestIF)
   const url = `${baseURL}/scanning/${documentClass}/${consumerDocumentId}`
 
   try {
-    const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options, undefined, ignoreError)
     return {
       data: response.data,
       status: response.status,
