@@ -10,7 +10,12 @@ import { useBcrosDocuments } from '~/stores/documents'
  * @returns {Promise<T>} - The response, typed as `T`.
  */
 
-export function useBcrosDocFetch<T>(url: string, options: any, consumerIdentifier?: string | undefined, ignoreError?: boolean | undefined) {
+export function useBcrosDocFetch<T>(
+  url: string,
+  options: any,
+  consumerIdentifier?: string | undefined,
+  ignoreError?: boolean | undefined
+) {
     const { isError, errorMsg } = storeToRefs(useBcrosDocuments())
     const { currentAccount } = storeToRefs(useBcrosAccount())
     return useFetch<T>(url, {
@@ -29,8 +34,6 @@ export function useBcrosDocFetch<T>(url: string, options: any, consumerIdentifie
             errorMsg.value.push(`${accountId}, ${timeStamp} ${consumerIdentifier ? ', ' + consumerIdentifier : ''}`)
             errorMsg.value.push(url)
             errorMsg.value.push(message)
-        } else {
-
         }
       }
     })
