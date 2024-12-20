@@ -3,6 +3,8 @@ import { formatToReadableDate } from "~/utils/dateHelper"
 import { documentResultColumns } from "~/utils/documentTypes"
 import { truncate } from "~/utils/documentRecords"
 import type { DocumentInfoIF } from "~/interfaces/document-types-interface"
+import { throttle } from 'lodash'
+
 const {
   getDocumentDescription,
   getDocumentTypesByClass,
@@ -53,16 +55,22 @@ const openDocumentRecord = (searchResult: DocumentInfoIF) => {
   })
 }
 
-const handleTableScroll = async () => {
+/**
+ * Handles table scroll event to load the next page of documents
+ * when the user scrolls to the bottom of the table.
+ * Throttled to prevent excessive calls.
+ */
+const handleTableScroll = throttle(async () => {
   if (documentRecordsTableRef.value) {
     const scrollTop = documentRecordsTableRef.value.$el.scrollTop
     const scrollHeight = documentRecordsTableRef.value.$el.scrollHeight
     const clientHeight = documentRecordsTableRef.value.$el.clientHeight
-    if (scrollTop + clientHeight >= scrollHeight) {
+    if (scrollTop + clientHeight >= scrollHeight - 10) { // Adjust for zoom levels
       await getNextDocumentsPage()
     }
   }
-}
+}, 1000)
+
 const toggleDescription = (consumerDocumentId) => {
   isDescriptionExpanded.value[consumerDocumentId] =
     !isDescriptionExpanded.value[consumerDocumentId]
@@ -311,7 +319,8 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
               class="block my-2"
             >
               <DocumentsTableDownloadLink
-                :download-url="row.consumerFilenames[i]"
+                :doc-class="row.documentClass"
+                :doc-service-id="row.documentServiceId"
                 :file-name="file"
               />
             </span>
@@ -325,7 +334,8 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
           <div v-else-if="row.consumerFilenames.length === 1">
             <span class="block my-2">
               <DocumentsTableDownloadLink
-                :download-url="row.consumerFilenames[0]"
+                :doc-class="row.documentClass"
+                :doc-service-id="row.documentServiceId"
                 :file-name="row.consumerFilenames[0]"
               />
             </span>

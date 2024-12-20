@@ -187,8 +187,7 @@ export const useDocumentSearch = () => {
   const getNextDocumentsPage = async () => {
     if (hasMorePages.value) {
       pageNumber.value += 1
-      await searchDocumentRecords()
-      sortSearchTable()
+      await searchDocumentRecords().then(()=> sortSearchTable())
     }
   }
 
@@ -197,6 +196,7 @@ export const useDocumentSearch = () => {
     isLoading.value = true
 
     if (sortBy.value.column === null) {
+      isLoading.value = false
       return
     }
     documentSearchResults.value = documentSearchResults.value.sort((a, b) => {

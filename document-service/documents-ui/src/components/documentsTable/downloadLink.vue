@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { truncate } from "~/utils/documentRecords"
 const {
-  downloadFileFromUrl,
+  fetchUrlAndDownload,
 } = useDocuments()
 
 defineProps({
-  downloadUrl: {
+  docClass: {
+    type: String,
+    required: false,
+    default: ''
+  },
+  docServiceId: {
     type: String,
     required: false,
     default: ''
@@ -21,7 +26,7 @@ defineProps({
   <ULink
     inactive-class="text-primary"
     class="flex align-center"
-    @click="downloadFileFromUrl(downloadUrl, fileName)"
+    @click="fetchUrlAndDownload(docClass, docServiceId)"
   >
       <UTooltip
         v-if="fileName.length > 20"

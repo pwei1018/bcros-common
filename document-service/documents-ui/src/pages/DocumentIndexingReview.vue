@@ -10,8 +10,8 @@ const {
   description,
   documentClass,
   documentType,
-  documentList,
   consumerFilingDate,
+  uploadedDocumentList
 } = storeToRefs(useBcrosDocuments())
 
 </script>
@@ -117,7 +117,7 @@ const {
                     }}</span>
                     <div class="col-span-2">
                       <ol
-                        v-for="(document, i) in documentList"
+                        v-for="(document, i) in uploadedDocumentList"
                         :key="document + i"
                         class="py-2"
                       >
