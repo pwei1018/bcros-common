@@ -242,6 +242,54 @@ export const useDocuments = () => {
     }
   }
 
+  /** Update document record and scanning information */
+  const updateDocument = async (document?: File): Promise<void> => {
+    // Update Document Record Meta Data
+    if (hasDocumentMetaChanges.value) {
+      await updateDocumentRecord({
+        documentServiceId: documentRecord.value.documentServiceId,
+        consumerDocumentId: documentRecord.value.consumerDocumentId,
+        consumerIdentifier: documentRecord.value.consumerIdentifier,
+        documentClass: documentRecord.value.documentClass,
+        documentType: documentRecord.value.documentType,
+        description: documentRecord.value.description,
+        consumerFilingDate: formatDateToISO(documentRecord.value.consumerFilingDateTime),
+      })
+    }
+
+    // Update Document Files
+    if (hasDocumentFileChanges.value && !!document.size) {
+      await postDocument(
+        {
+          consumerDocumentId: documentRecord.value.consumerDocumentId,
+          consumerIdentifier: documentRecord.value.consumerIdentifier,
+          documentClass: documentRecord.value.documentClass,
+          documentType: documentRecord.value.documentType,
+          description: documentRecord.value.description,
+          consumerFilingDate: formatDateToISO(documentRecord.value.consumerFilingDateTime),
+          consumerFilename: document.name
+        },
+        document
+      )
+    }
+    // Update or Create Scanning Details
+    if (hasDocumentScanningChanges.value) {
+      // Update Scanning Data
+      const scanningData = await updateScanningRecord({
+        consumerDocumentId: documentRecord.value.consumerDocumentId,
+        documentClass: documentRecord.value.documentClass,
+        scanningDetails: scanningDetails.value,
+      }, true)
+      if (scanningData.statusCode === 404) {
+        await createScanningRecord({
+          consumerDocumentId: documentRecord.value.consumerDocumentId,
+          documentClass: documentRecord.value.documentClass,
+          scanningDetails: scanningDetails.value,
+        })
+      }
+    }
+  }
+
   /** Validate and Update Document Records and Scanning information */
   const updateDocuments = async (): Promise<void> => {
     if (isValidRecordEdit.value) {
@@ -249,54 +297,12 @@ export const useDocuments = () => {
 
       try {
         // Iterate over the document list and handle requests sequentially
-        for (const document of updatedDocumentList.value) {
-
-          // Update Document Record Meta Data
-          if (hasDocumentMetaChanges.value) {
-            await updateDocumentRecord({
-              documentServiceId: documentRecord.value.documentServiceId,
-              consumerDocumentId: documentRecord.value.consumerDocumentId,
-              consumerIdentifier: documentRecord.value.consumerIdentifier,
-              documentClass: documentRecord.value.documentClass,
-              documentType: documentRecord.value.documentType,
-              description: documentRecord.value.description,
-              consumerFilingDate: formatDateToISO(documentRecord.value.consumerFilingDateTime),
-            })
+        if(updatedDocumentList.value.length > 0) {
+          for (const document of updatedDocumentList.value) {
+            updateDocument(document)
           }
-
-          // Update Document Files
-          if (hasDocumentFileChanges.value && !!document.size) {
-            await postDocument(
-              {
-                consumerDocumentId: documentRecord.value.consumerDocumentId,
-                consumerIdentifier: documentRecord.value.consumerIdentifier,
-                documentClass: documentRecord.value.documentClass,
-                documentType: documentRecord.value.documentType,
-                description: documentRecord.value.description,
-                consumerFilingDate: formatDateToISO(documentRecord.value.consumerFilingDateTime),
-                consumerFilename: document.name
-              },
-              document
-            )
-          }
-
-          // Update or Create Scanning Details
-          if (hasDocumentScanningChanges.value) {
-            // Update Scanning Data
-            const scanningData = await updateScanningRecord({
-              consumerDocumentId: documentRecord.value.consumerDocumentId,
-              documentClass: documentRecord.value.documentClass,
-              scanningDetails: scanningDetails.value,
-            })
-
-            if (scanningData.statusCode === 404) {
-              await createScanningRecord({
-                consumerDocumentId: documentRecord.value.consumerDocumentId,
-                documentClass: documentRecord.value.documentClass,
-                scanningDetails: scanningDetails.value,
-              })
-            }
-          }
+        } else {
+          updateDocument()
         }
       } catch (error) {
         console.error('Request failed:', error);

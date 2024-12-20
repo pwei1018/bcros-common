@@ -6,10 +6,16 @@ import { useBcrosDocuments } from '~/stores/documents'
  * @param {string} url - The endpoint URL for the request.
  * @param {any} options - Configuration options for the request.
  * @param {string | undefined} consumerIdentifier - Optional parameter for error reporting.
+ * @param {boolean | undefined} ignoreError = Optional parameter for error handling.
  * @returns {Promise<T>} - The response, typed as `T`.
  */
 
-export function useBcrosDocFetch<T>(url: string, options: any, consumerIdentifier?: string | undefined) {
+export function useBcrosDocFetch<T>(
+  url: string,
+  options: any,
+  consumerIdentifier?: string | undefined,
+  ignoreError?: boolean | undefined
+) {
     const { isError, errorMsg } = storeToRefs(useBcrosDocuments())
     const { currentAccount } = storeToRefs(useBcrosAccount())
     return useFetch<T>(url, {
@@ -18,7 +24,7 @@ export function useBcrosDocFetch<T>(url: string, options: any, consumerIdentifie
       $fetch: useNuxtApp().$bcrosFetch,
       onResponseError(response) {
         const requestMethod = response.options.method
-        if(["POST", "PUT"].includes(requestMethod) && !isError.value){
+        if(!ignoreError && ["POST", "PUT"].includes(requestMethod) && !isError.value){
             const accountId = currentAccount.value.id
             // Extract only the base URL, excluding query parameters.
             const url = response.request.toString().split('?')[0]
