@@ -50,6 +50,9 @@ PAYLOAD_VALID = {
     "author": "Jane Smith",
     "pageCount": 3,
 }
+PAYLOAD_VALID_MINIMAL = {
+    "pageCount": 1,
+}
 PATCH_PAYLOAD_VALID = {
     "scanDateTime": "2024-07-01T19:00:00+00:00",
     "accessionNumber": "AN-0001",
@@ -109,6 +112,7 @@ TEST_CREATE_DATA = [
     ("Staff missing account", PAYLOAD_VALID, STAFF_ROLES, None, DOC_CLASS1, "UT900001", HTTPStatus.BAD_REQUEST),
     ("Invalid role", PAYLOAD_VALID, INVALID_ROLES, "UT1234", DOC_CLASS1, "UT900001", HTTPStatus.UNAUTHORIZED),
     ("Valid staff", PAYLOAD_VALID, STAFF_ROLES, "UT1234", DOC_CLASS1, "UT900001", HTTPStatus.CREATED),
+    ("Valid staff minimal", PAYLOAD_VALID_MINIMAL, STAFF_ROLES, "UT1234", DOC_CLASS1, "UT900001", HTTPStatus.CREATED),
 ]
 # testdata pattern is ({description}, {payload}, {roles}, {account}, {doc_class}, {cons_doc_id}, {status})
 TEST_PATCH_DATA = [
@@ -218,11 +222,17 @@ def test_create(session, client, jwt, desc, payload, roles, account, doc_class, 
         assert scan_json
         assert scan_json.get("consumerDocumentId") == cons_doc_id
         assert scan_json.get("documentClass") == doc_class
-        assert scan_json.get("scanDateTime")
-        assert scan_json.get("accessionNumber")
-        assert scan_json.get("batchId")
-        assert scan_json.get("author")
-        assert scan_json.get("pageCount")
+        assert scan_json.get("createDateTime")
+        if payload.get("scanDateTime"):
+            assert scan_json.get("scanDateTime")
+        if payload.get("accessionNumber"):
+            assert scan_json.get("accessionNumber") == payload.get("accessionNumber")
+        if payload.get("batchId"):
+            assert scan_json.get("batchId") == payload.get("batchId")
+        if payload.get("author"):
+            assert scan_json.get("author") == payload.get("author")
+        if payload.get("pageCount"):
+            assert scan_json.get("pageCount") == payload.get("pageCount")
         scan_doc: DocumentScanning = DocumentScanning.find_by_document_id(cons_doc_id, doc_class)
         assert scan_doc
         assert scan_doc.document_class == doc_class

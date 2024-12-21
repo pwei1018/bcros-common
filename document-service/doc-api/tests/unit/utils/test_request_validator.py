@@ -42,7 +42,7 @@ TEST_SCAN3 = {
     "author": "Jane Smith",
     "pageCount": 3,
 }
-TEST_SCAN4 = {"scanDateTime": "2024-07-01"}
+TEST_SCAN4 = {"pageCount": 1}
 TEST_REMOVE = {
     "removed": True
 }
@@ -52,11 +52,12 @@ TEST_DATA_SCANNING = [
     ("Valid new minimal", True, TEST_SCAN4, True, "UT000001", DocumentClasses.CORP, None),
     ("Valid update", True, TEST_SCAN1, False, "UT000001", DocumentClasses.CORP, None),
     ("Valid update no date", True, TEST_SCAN2, False, "UT000001", DocumentClasses.CORP, None),
+    ("Valid new no scan date", True, TEST_SCAN2, True, "UT000001", DocumentClasses.CORP, None),
     ("Invalid new no payload", False, None, True, "UT000001", DocumentClasses.CORP, validator.MISSING_SCAN_PAYLOAD),
     ("Invalid new no class", False, TEST_SCAN1, True, "UT000001", None, validator.MISSING_DOC_CLASS),
     ("Invalid new class", False, TEST_SCAN1, True, "UT000001", "JUNK", validator.INVALID_DOC_CLASS),
     ("Invalid new no doc id", False, TEST_SCAN1, True, None, DocumentClasses.CORP, validator.MISSING_SCAN_DOCUMENT_ID),
-    ("Invalid new no date", False, TEST_SCAN2, True, "UT000001", None, validator.MISSING_SCAN_DATE),
+    ("Invalid new page count", False, TEST_SCAN1, True, "UT000001", DocumentClasses.CORP, validator.INVALID_PAGE_COUNT),
     ("Invalid update no payload", False, None, False, "UT000001", DocumentClasses.CORP, validator.MISSING_SCAN_PAYLOAD),
     ("Invalid update no class", False, TEST_SCAN1, False, "UT000001", None, validator.MISSING_DOC_CLASS),
     ("Invalid update class", False, TEST_SCAN1, False, "UT000001", "JUNK", validator.INVALID_DOC_CLASS),
@@ -415,6 +416,8 @@ def test_validate_scanning(session, desc, valid, payload, is_new, cons_doc_id, d
         doc_scan: DocumentScanning = DocumentScanning.create_from_json(scan_json, cons_doc_id, doc_class)
         doc_scan.id = 200000000
         doc_scan.save()
+    elif desc == "Invalid new page count":
+        scan_json["pageCount"] = 0
     error_msg = validator.validate_scanning(scan_json, is_new)
     if valid:
         assert error_msg == ""

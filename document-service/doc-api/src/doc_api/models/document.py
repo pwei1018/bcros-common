@@ -49,7 +49,7 @@ class Document(db.Model):
     consumer_filename = db.mapped_column("consumer_filename", db.String(1000), nullable=True, index=True)
     consumer_filing_date = db.mapped_column("consumer_filing_date", db.DateTime, nullable=True, index=True)
     doc_storage_url = db.mapped_column("doc_storage_url", db.String(1000), nullable=True)
-    description = db.mapped_column("description", db.String(1000), nullable=True)
+    description = db.mapped_column("description", db.String(4000), nullable=True)
     author = db.mapped_column("author", db.String(256), nullable=True)
 
     # parent keys

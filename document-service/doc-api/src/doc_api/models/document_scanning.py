@@ -34,7 +34,8 @@ class DocumentScanning(db.Model):
 
     id = db.mapped_column("id", db.Integer, db.Sequence("doc_scanning_id_seq"), primary_key=True)
     consumer_document_id = db.mapped_column("consumer_document_id", db.String(20), nullable=False, index=True)
-    scan_date = db.mapped_column("scan_date", db.DateTime, nullable=False, index=True)
+    create_ts = db.mapped_column("create_ts", db.DateTime, nullable=True, index=True)
+    scan_date = db.mapped_column("scan_date", db.DateTime, nullable=True, index=True)
     accession_number = db.mapped_column("accession_number", db.String(20), nullable=True)
     batch_id = db.mapped_column("batch_id", db.String(20), nullable=True)
     author = db.mapped_column("author", db.String(1000), nullable=True)
@@ -58,12 +59,14 @@ class DocumentScanning(db.Model):
         """Return the document scanning information as a json object."""
         scan_info = {
             "consumerDocumentId": self.consumer_document_id,
-            "scanDateTime": model_utils.format_ts(self.scan_date),
+            "createDateTime": model_utils.format_ts(self.create_ts),
             "documentClass": self.document_class,
             "accessionNumber": self.accession_number if self.accession_number else "",
             "batchId": self.batch_id if self.batch_id else "",
             "author": self.author if self.author else "",
         }
+        if self.scan_date:
+            scan_info["scanDateTime"] = model_utils.format_ts(self.scan_date)
         if self.page_count and self.page_count > 0:
             scan_info["pageCount"] = self.page_count
         return scan_info
@@ -127,10 +130,14 @@ class DocumentScanning(db.Model):
     def create_from_json(scan_json: dict, consumer_doc_id: str, doc_class: str):
         """Create a new document object from a new save document request."""
         doc_scan = DocumentScanning(
-            scan_date=model_utils.ts_from_iso_date_noon(scan_json.get("scanDateTime")),
+            create_ts=model_utils.now_ts(),
             consumer_document_id=consumer_doc_id,
             document_class=doc_class,
         )
+        if scan_json.get("scanDateTime"):
+            doc_scan.scan_date = model_utils.ts_from_iso_date_noon(scan_json.get("scanDateTime"))
+        elif scan_json.get("scanDate"):
+            doc_scan.scan_date = model_utils.ts_from_iso_date_noon(scan_json.get("scanDate"))
         if scan_json.get("accessionNumber"):
             doc_scan.accession_number = scan_json.get("accessionNumber")
         if scan_json.get("batchId"):

@@ -44,6 +44,7 @@ MISSING_SCAN_DATE = "Request invalid: missing required scanDateTime. "
 MISSING_SCAN_PAYLOAD = "Request invalid: document scanning missing required payload or missing payload properties. "
 MISSING_SCAN_DOCUMENT_ID = "Request invalid: missing required consumerDocumentId. "
 INVALID_SCAN_EXISTS = "Request invalid: record already exists for class {doc_class} and ID {cons_doc_id}. "
+INVALID_PAGE_COUNT = "The scan document page count must be greater than 0. "
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -79,15 +80,16 @@ def validate_scanning(request_json: dict, is_new: bool = True) -> str:
     logger.info(f"Validating new document scanning request new={is_new}...")
     error_msg: str = ""
     if not request_json:
+
         return MISSING_SCAN_PAYLOAD
     elif (
-        not request_json.get("scanDateTime")
-        and not request_json.get("accessionNumber")
+        not request_json.get("accessionNumber")
         and not request_json.get("batchId")
         and not request_json.get("author")
-        and not request_json.get("pageCount")
+        and "pageCount" not in request_json
     ):
-        return MISSING_SCAN_PAYLOAD
+        if "scanDateTime" not in request_json and "scanDate" not in request_json:
+            return MISSING_SCAN_PAYLOAD
     try:
         doc_class = request_json.get("documentClass")
         cons_doc_id = request_json.get("consumerDocumentId")
@@ -97,9 +99,9 @@ def validate_scanning(request_json: dict, is_new: bool = True) -> str:
             error_msg += INVALID_DOC_CLASS.format(doc_class=doc_class)
         if not cons_doc_id:
             error_msg += MISSING_SCAN_DOCUMENT_ID
+        if "pageCount" in request_json and int(request_json.get("pageCount")) < 1:
+            error_msg += INVALID_PAGE_COUNT
         if is_new:
-            if not request_json.get("scanDateTime"):
-                error_msg += MISSING_SCAN_DATE
             scan_doc: DocumentScanning = DocumentScanning.find_by_document_id(cons_doc_id, doc_class)
             if scan_doc:
                 error_msg += INVALID_SCAN_EXISTS.format(doc_class=doc_class, cons_doc_id=cons_doc_id)
@@ -225,7 +227,9 @@ def validate_scandate(request_json: dict) -> str:
     """Check that the optional scan date is in a valid date format."""
     error_msg: str = ""
     scan_date = request_json.get("scanDateTime")
-    if not scan_date:
+    if not scan_date and request_json.get("scanDate"):
+        scan_date = request_json.get("scanDate")
+    else:
         return error_msg
     try:
         test_date = model_utils.ts_from_iso_date_noon(scan_date)

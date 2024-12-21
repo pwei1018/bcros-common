@@ -87,7 +87,7 @@ def test_build_search_filter(session, doc_class, doc_type, start_dt, end_dt, con
     else:
         assert query.find(' AND d.add_ts BETWEEN TO_TIMESTAMP') == -1
     if cons_id:
-        assert query.find(f" AND d.consumer_identifier LIKE '{cons_id}%'") != -1
+        assert query.find(f" AND d.consumer_identifier LIKE '%{cons_id}%'") != -1
     else:
         assert query.find(' AND d.consumer_identifier LIKE ') == -1
     if doc_id:

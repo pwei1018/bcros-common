@@ -26,6 +26,7 @@ from doc_api.models.type_tables import DocumentClasses
 
 DOC_SCAN1 = {
     "consumerDocumentId": "T0000001",
+    "createDateTime": "2024-06-15T19:00:00+00:00",
     "scanDateTime": "2024-07-01T19:00:00+00:00",
     "documentClass": "MHR",
     "accessionNumber": "AN-0001",
@@ -43,6 +44,7 @@ DOC_SCAN2 = {
 TEST_DOC_SCAN = DocumentScanning(
     id=1,
     consumer_document_id="T0000001",
+    create_ts = model_utils.ts_from_iso_format("2024-06-15T19:00:00+00:00"),
     scan_date=model_utils.ts_from_iso_date_noon("2024-07-01"),
     document_class=DocumentClasses.MHR.value,
     accession_number="AN-0001",
@@ -61,8 +63,11 @@ TEST_UPDATE_DATA = [
     (200000001, "99990000", DocumentClasses.PPR.value, None, None),
     (200000001, "99990000", DocumentClasses.PPR.value, "99990000", DocumentClasses.CORP.value),
 ]
-# testdata pattern is ({consumer_doc_id}, {doc_type})
-TEST_CREATE_JSON_DATA = [("99990000", DocumentClasses.PPR.value), ("99990001", DocumentClasses.MHR.value)]
+# testdata pattern is ({consumer_doc_id}, {doc_type}, {has_scan_date})
+TEST_CREATE_JSON_DATA = [
+    ("99990000", DocumentClasses.PPR.value, True),
+    ("99990001", DocumentClasses.MHR.value, False)
+]
 # testdata pattern is ({batch_id}, {accession_num}, {query_accession_num}, {expected_id})
 TEST_MAX_BATCH_ID_DATA = [
     ("1000", "UT-MAX-0001", "UT-MAX-0001", 1000),
@@ -156,15 +161,21 @@ def test_doc_scan_json(session):
     assert doc_json == test_json
 
 
-@pytest.mark.parametrize("cons_doc_id, doc_class", TEST_CREATE_JSON_DATA)
-def test_create_from_json(session, cons_doc_id, doc_class):
+@pytest.mark.parametrize("cons_doc_id, doc_class, has_scan_date", TEST_CREATE_JSON_DATA)
+def test_create_from_json(session, cons_doc_id, doc_class, has_scan_date):
     """Assert that the new document scanning record is created from a new request json data correctly."""
     json_data = copy.deepcopy(DOC_SCAN1)
+    if has_scan_date:
+        json_data["scanDateTime"] = model_utils.format_ts(model_utils.now_ts_offset(3, True))
+    else:
+        del json_data["scanDateTime"]
     doc_scan: DocumentScanning = DocumentScanning.create_from_json(json_data, cons_doc_id, doc_class)
     assert doc_scan
     assert not doc_scan.id
+    assert doc_scan.create_ts
     assert doc_scan.consumer_document_id == cons_doc_id
-    assert doc_scan.scan_date
+    if has_scan_date:
+        assert doc_scan.scan_date
     assert doc_scan.document_class == doc_class
     assert doc_scan.batch_id == json_data.get("batchId")
     assert doc_scan.accession_number == json_data.get("accessionNumber")

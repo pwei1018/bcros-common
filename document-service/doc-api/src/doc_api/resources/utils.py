@@ -77,6 +77,7 @@ TO_STORAGE_TYPE = {
 }
 STORAGE_TYPE_DEFAULT = StorageDocTypes.BUSINESS
 REMOVE_PREFIX = "DEL-"
+CLASS_ENTITY_ID_PREFIX = {DocumentClasses.MHR.value: "MH"}
 
 
 def serialize(errors):
@@ -570,9 +571,16 @@ def get_callback_request_info(request_json: dict, info: RequestInfo) -> RequestI
         info.consumer_doc_id = request_json.get(PARAM_CONSUMER_DOC_ID)
         info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
         info.consumer_filedate = request_json.get(PARAM_CONSUMER_FILEDATE)
-        info.request_data = request_json
         info.has_payload = False
         info.staff = False
         info.document_storage_type = get_doc_storage_type(info.document_class)
+        if info.consumer_identifier:
+            info.consumer_identifier = info.consumer_identifier.strip().upper()
+        if info.document_class and info.consumer_identifier and CLASS_ENTITY_ID_PREFIX.get(info.document_class):
+            id_prefix: str = CLASS_ENTITY_ID_PREFIX.get(info.document_class)
+            if not info.consumer_identifier.startswith(id_prefix):
+                info.consumer_identifier = id_prefix + info.consumer_identifier
+                request_json["consumerIdentifier"] = info.consumer_identifier
+        info.request_data = request_json
         info.request_data["async"] = True
     return info

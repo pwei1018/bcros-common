@@ -65,7 +65,7 @@ SEARCH_FILTER_DOC_CLASS = " AND d.document_class = '?'"
 SEARCH_FILTER_DOC_TYPE = " AND d.document_type = '?'"
 SEARCH_FILTER_DOC_ID_PARTIAL = " AND d.consumer_document_id LIKE '?%'"
 SEARCH_FILTER_DOC_ID_EXACT = " AND d.consumer_document_id = '?'"
-SEARCH_FILTER_CONS_ID_PARTIAL = " AND d.consumer_identifier LIKE '?%'"
+SEARCH_FILTER_CONS_ID_PARTIAL = " AND d.consumer_identifier LIKE '%?%'"
 SEARCH_FILTER_CONS_ID_EXACT = " AND d.consumer_identifier = '?'"
 SEARCH_FILTER_FILENAME = " AND LOWER(d.consumer_filename) LIKE '?%'"
 SEARCH_FILTER_CREATE_DATE = (
