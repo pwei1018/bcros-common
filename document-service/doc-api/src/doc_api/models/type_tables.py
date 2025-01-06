@@ -182,6 +182,12 @@ class DocumentTypes(BaseEnum):
     AMEND_PERMIT = "AMEND_PERMIT"
     CANCEL_PERMIT = "CANCEL_PERMIT"
     REREGISTER_C = "REREGISTER_C"
+    MEAM = "MEAM"
+    COU = "COU"
+    CRT = "CRT"
+    INV = "INV"
+    NATB = "NATB"
+    NWP = "NWP"
 
 
 class RequestType(db.Model):  # pylint: disable=too-few-public-methods
