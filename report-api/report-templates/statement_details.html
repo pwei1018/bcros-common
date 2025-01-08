@@ -16,7 +16,7 @@
                             {% endif %}
                         </div>
                     {% else %}
-                        {% if not statement.is_interim_statement and payment_method_index.value == 0 %}
+                        {% if not statement.is_interim_statement and payment_method_index.value == 0 and statementSummary.dueDate %}
                             <div><span class="font-bold">Payment Due Date:</span> {{statementSummary.dueDate | format_datetime('mmm dd,yyyy')}}</div>
                         {% endif %}
                     {% endif %}
