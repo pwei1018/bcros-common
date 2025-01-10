@@ -400,6 +400,13 @@
     {% include 'report-templates/statement_transactions.html' with context %}
   {% endif %}
 {% endfor %}
+{% if not invoices %}
+  <div class="page-break-before">
+    {% include 'report-templates/statement_header.html' %}
+  </div>
+  {% include 'report-templates/statement_details.html' %}
+  {% include 'report-templates/statement_transactions.html' %}
+{% endif %}
 
   <!-- EFT Instructions -->
   {% if 'EFT' in invoices|map(attribute='payment_method')|list %}
