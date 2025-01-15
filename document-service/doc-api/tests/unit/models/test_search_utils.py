@@ -91,11 +91,11 @@ def test_build_search_filter(session, doc_class, doc_type, start_dt, end_dt, con
     else:
         assert query.find(' AND d.consumer_identifier LIKE ') == -1
     if doc_id:
-        assert query.find(f" AND d.consumer_document_id LIKE '{doc_id}%'") != -1
+        assert query.find(f" AND d.consumer_document_id LIKE '%{doc_id}%'") != -1
     else:
         assert query.find(' AND d.consumer_document_id LIKE ') == -1
     if filename:
-        assert query.find(f" AND LOWER(d.consumer_filename) LIKE '{filename}%'") != -1
+        assert query.find(f" AND LOWER(d.consumer_filename) LIKE '%{filename}%'") != -1
     else:
         assert query.find(' AND LOWER(d.consumer_filename) LIKE ') == -1
 

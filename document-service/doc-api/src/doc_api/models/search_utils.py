@@ -63,11 +63,11 @@ SEARCH_SORT_DEFAULT = " ORDER BY d.add_ts DESC"
 SEARCH_SORT_DOC_ID = " ORDER BY d.consumer_document_id, d.add_ts DESC"
 SEARCH_FILTER_DOC_CLASS = " AND d.document_class = '?'"
 SEARCH_FILTER_DOC_TYPE = " AND d.document_type = '?'"
-SEARCH_FILTER_DOC_ID_PARTIAL = " AND d.consumer_document_id LIKE '?%'"
+SEARCH_FILTER_DOC_ID_PARTIAL = " AND d.consumer_document_id LIKE '%?%'"
 SEARCH_FILTER_DOC_ID_EXACT = " AND d.consumer_document_id = '?'"
 SEARCH_FILTER_CONS_ID_PARTIAL = " AND d.consumer_identifier LIKE '%?%'"
 SEARCH_FILTER_CONS_ID_EXACT = " AND d.consumer_identifier = '?'"
-SEARCH_FILTER_FILENAME = " AND LOWER(d.consumer_filename) LIKE '?%'"
+SEARCH_FILTER_FILENAME = " AND LOWER(d.consumer_filename) LIKE '%?%'"
 SEARCH_FILTER_CREATE_DATE = (
     " AND d.add_ts BETWEEN TO_TIMESTAMP('query_start', 'YYYY-MM-DD HH24:MI:SS') AND "
     + "TO_TIMESTAMP('query_end', 'YYYY-MM-DD HH24:MI:SS')"
@@ -181,6 +181,7 @@ def get_search_docs(request_info: RequestInfo) -> dict:
     """Search for document information by any combination of request parameters."""
     results = []
     filter_clause: str = build_filter_clause(request_info)
+    logger.info(f"Search query filter {filter_clause}")
     search_count: int = get_search_count(filter_clause)
     search_results = {"resultCount": search_count, "results": results}
     if search_count <= 0:
