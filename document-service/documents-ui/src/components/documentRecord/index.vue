@@ -42,7 +42,7 @@ const { updatedDocumentList, fetchUrlAndDownload, getDocumentDescription } = use
       </div>
     </template>
     <template #content>
-      <div class="grid grid-cols-3 auto-rows-max">
+      <div :class="['grid grid-cols-3 auto-rows-max', updatedDocumentList.length ? 'pb-6' : 'pb-8']">
         <!-- Document Meta Data -->
         <span class="font-bold">{{ $t('documentReview.labels.documentId') }}</span>
         <span class="col-span-2">{{ documentRecord.consumerDocumentId }}</span>
