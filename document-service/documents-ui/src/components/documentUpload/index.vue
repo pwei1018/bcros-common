@@ -117,8 +117,9 @@ const removeFile = (index: number) => {
           </div>
         </div>
       </section>
-      <UDivider class="my-10" />
+      
       <section v-if="documentList.length > 0" class="mt-6">
+        <UDivider class="my-10" />
         <div class="flex gap-x-1.5 mb-6">
         <h3>Filed Documents</h3>
         <UTooltip

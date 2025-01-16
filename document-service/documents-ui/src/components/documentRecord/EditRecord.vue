@@ -164,6 +164,7 @@ watch(() => documentRecord.value.documentClass, () => {
                         value-attribute="type"
                         option-attribute="description"
                         :ui="{ placeholder: hasTypeError ? 'placeholder:text-red-500' : 'text-gray-700' }"
+                        :ui-menu="{ height: 'max-h-[308px]'}"
                       >
                       <template #trailing>
                         <UIcon name="i-mdi-arrow-drop-down" class="w-5 h-5 " />

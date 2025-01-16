@@ -67,7 +67,7 @@ export const useDocuments = () => {
    * @returns An array of document descriptions or an empty array if the category is not found
    */
   function getDocumentTypesByClass(documentClass: string = undefined): Array<DocumentDetailIF>|[]  {
-    return documentClass 
+    const filteredDocumentTypes = documentClass 
     ? documentTypes.find(doc => doc.class === documentClass)?.documents || []
     : documentTypes.reduce((docTypes: Array<DocumentDetailIF>, currentValue) => {
       currentValue.documents.forEach((docType) => {
@@ -76,7 +76,9 @@ export const useDocuments = () => {
         }
       })
       return docTypes;
-    }, []).sort((a,b) => a.description.localeCompare(b.description))
+    }, [])
+
+    return filteredDocumentTypes.sort((a,b) => a.description.localeCompare(b.description))
   }
 
   /**
