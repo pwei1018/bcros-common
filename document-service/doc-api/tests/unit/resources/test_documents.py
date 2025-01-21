@@ -55,20 +55,21 @@ PATCH_PAYLOAD = {
     "consumerFilename": "test_patch.pdf",
     "consumerIdentifier": "P8888999",
     "consumerFilingDateTime": "2024-08-08",
+    "consumerReferenceId": "7000001"
 }
 PATCH_REMOVE_PAYLOAD = {
     "removed": True
 }
 
 
-# testdata pattern is ({description}, {content_type}, {roles}, {account}, {doc_class}, {doc_type}, {status})
+# testdata pattern is ({description}, {content_type}, {roles}, {account}, {doc_class}, {doc_type}, {status}, {ref_id})
 TEST_CREATE_DATA = [
-    ("Invalid doc type", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, "JUNK", HTTPStatus.BAD_REQUEST),
-    ("Invalid content type", "XXXXX", STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST),
-    ("Staff missing account", MEDIA_PDF, STAFF_ROLES, None, DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST),
-    ("Invalid role", MEDIA_PDF, INVALID_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.UNAUTHORIZED),
-    ("Valid staff", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED),
-    ("Valid no payload", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED),
+    ("Invalid doc type", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, "JUNK", HTTPStatus.BAD_REQUEST, None),
+    ("Invalid content type", "XXXXX", STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST, None),
+    ("Staff missing account", MEDIA_PDF, STAFF_ROLES, None, DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST, None),
+    ("Invalid role", MEDIA_PDF, INVALID_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.UNAUTHORIZED, None),
+    ("Valid staff", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED, "UT0001"),
+    ("Valid no payload", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED, "UT0002"),
 ]
 # testdata pattern is ({description}, {roles}, {account}, {doc_service_id}, {payload}, {status})
 TEST_PATCH_DATA = [
@@ -107,8 +108,8 @@ TEST_TYPE_DATA = [
 ]
 
 
-@pytest.mark.parametrize("desc,content_type,roles,account,doc_class,doc_type,status", TEST_CREATE_DATA)
-def test_create(session, client, jwt, desc, content_type, roles, account, doc_class, doc_type, status):
+@pytest.mark.parametrize("desc,content_type,roles,account,doc_class,doc_type,status,ref_id", TEST_CREATE_DATA)
+def test_create(session, client, jwt, desc, content_type, roles, account, doc_class, doc_type, status, ref_id):
     """Assert that a post save new business document works as expected."""
     # setup
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
@@ -119,6 +120,8 @@ def test_create(session, client, jwt, desc, content_type, roles, account, doc_cl
     else:
         headers = create_header_upload(jwt, roles, content_type)
     req_path = PATH.format(doc_class=doc_class, doc_type=doc_type)
+    if ref_id:
+        req_path += "&consumerReferenceId=" + ref_id
     # test
     if status != HTTPStatus.CREATED:
         response = client.post(req_path, json=json_data, headers=headers, content_type=content_type)
@@ -146,6 +149,10 @@ def test_create(session, client, jwt, desc, content_type, roles, account, doc_cl
         doc: Document = Document.find_by_doc_service_id(doc_json.get("documentServiceId"))
         assert doc
         assert doc.document_type == doc_type
+        if ref_id:
+            assert doc_json.get("consumerReferenceId") == ref_id
+        else:
+            assert "consumerReferenceId" in doc_json
 
 
 @pytest.mark.parametrize("desc,roles,account,doc_service_id,payload,status", TEST_PATCH_DATA)
@@ -186,6 +193,7 @@ def test_update(session, client, jwt, desc, roles, account, doc_service_id, payl
             assert doc_json.get("consumerIdentifier") == payload.get("consumerIdentifier")
             assert doc_json.get("consumerFilename") == payload.get("consumerFilename")
             assert not doc_json.get("documentURL")
+            assert doc_json.get("consumerReferenceId") == payload.get("consumerReferenceId")
         else:
             assert not response.json
 

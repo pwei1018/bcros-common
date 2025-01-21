@@ -32,7 +32,8 @@ DOC1 = {
     "documentClass": "PPR",
     "consumerFilingDateTime": "2024-07-01T19:00:00+00:00",
     "description": "A meaningful description of the document.",
-    "author": "John Smith"
+    "author": "John Smith",
+    "consumerReferenceId": "9014001"
 }
 DOC_SCAN = {
     "scanDateTime": "2024-08-15T19:00:00+00:00",
@@ -49,7 +50,8 @@ UPDATE_DOC = {
     "documentClass": "CORP",
     "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
     "description": "Updated description of the document.",
-    "author": "John Smith"
+    "author": "John Smith",
+    "consumerReferenceId": "9014002"
 }
 TEST_DOCUMENT = Document(
     id=1,
@@ -62,7 +64,8 @@ TEST_DOCUMENT = Document(
     consumer_filename="test.pdf",
     consumer_filing_date=model_utils.ts_from_iso_date_noon("2024-07-01"),
     description="A meaningful description of the document.",
-    author = "John Smith"
+    author = "John Smith",
+    consumer_reference_id = "9014001"
 )
 
 # testdata pattern is ({id}, {has_results}, {doc_type), {doc_class})
@@ -170,6 +173,7 @@ def test_find_by_document_id(session, id, has_results, doc_type, doc_class, has_
             assert doc_json.get("scanningInformation")
         else:
             assert not doc_json.get("scanningInformation")
+        assert doc_json.get("consumerReferenceId") == DOC1.get("consumerReferenceId")
 
 
 @pytest.mark.parametrize("id, has_results, doc_type, doc_class, query_doc_type", TEST_CONSUMER_ID_DATA)
@@ -235,6 +239,7 @@ def test_create_from_json(session, has_doc_id, doc_type):
     assert document.consumer_identifier == json_data.get("consumerIdentifier")
     assert document.description == json_data.get("description")
     assert document.author == json_data.get("author")
+    assert document.consumer_reference_id == json_data.get("consumerReferenceId")
 
 
 @pytest.mark.parametrize("doc_info, update_doc_info, update_class_type", TEST_UPDATE_JSON_DATA)
@@ -270,3 +275,4 @@ def test_update(session, doc_info, update_doc_info, update_class_type):
     assert doc_json.get("consumerIdentifier") == update_doc_info.get("consumerIdentifier")
     assert doc_json.get("consumerFilingDateTime") == update_doc_info.get("consumerFilingDateTime")
     assert doc_json.get("author") == update_doc_info.get("author")
+    assert doc_json.get("consumerReferenceId") == update_doc_info.get("consumerReferenceId")

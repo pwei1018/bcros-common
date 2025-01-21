@@ -45,6 +45,7 @@ MISSING_SCAN_PAYLOAD = "Request invalid: document scanning missing required payl
 MISSING_SCAN_DOCUMENT_ID = "Request invalid: missing required consumerDocumentId. "
 INVALID_SCAN_EXISTS = "Request invalid: record already exists for class {doc_class} and ID {cons_doc_id}. "
 INVALID_PAGE_COUNT = "The scan document page count must be greater than 0. "
+INVALID_REFERENCE_ID = "The consumerReferenceId value cannot be greater than 50 characters in length. "
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -120,6 +121,7 @@ def validate_add(info: RequestInfo, error_msg: str) -> str:
         elif not model_utils.TO_FILE_TYPE.get(info.content_type):
             error_msg += INVALID_CONTENT_TYPE.format(content_type=info.content_type)
         error_msg += validate_filingdate(info)
+        error_msg += validate_reference_id(info)
     except Exception as validation_exception:  # noqa: B902; eat all errors
         logger.error("validate_add exception: " + str(validation_exception))
         error_msg += VALIDATOR_ERROR
@@ -161,6 +163,7 @@ def validate_patch(info: RequestInfo, error_msg: str) -> str:
         ):
             error_msg += MISSING_PATCH_PARAMS
         error_msg += validate_filingdate(info)
+        error_msg += validate_reference_id(info)
     except Exception as validation_exception:  # noqa: B902; eat all errors
         logger.error("validate_patch exception: " + str(validation_exception))
         error_msg += VALIDATOR_ERROR
@@ -253,6 +256,16 @@ def validate_filingdate(info: RequestInfo) -> str:
         error_msg = INVALID_FILING_DATE.format(param_date=info.consumer_filedate)
     except Exception:  # noqa: B902; eat all errors
         error_msg = INVALID_FILING_DATE.format(param_date=info.consumer_filedate)
+    return error_msg
+
+
+def validate_reference_id(info: RequestInfo) -> str:
+    """Check that the optional consumer reference ID length is not too long."""
+    error_msg: str = ""
+    if not info.consumer_reference_id:
+        return error_msg
+    if len(info.consumer_reference_id) > 50:
+        error_msg += INVALID_REFERENCE_ID
     return error_msg
 
 

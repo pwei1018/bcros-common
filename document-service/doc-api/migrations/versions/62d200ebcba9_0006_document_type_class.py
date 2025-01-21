@@ -181,6 +181,7 @@ def upgrade():
             {"document_type": "RGS", "document_class": "PPR", "active": True},
             {"document_type": "RPL", "document_class": "PPR", "active": True},
             {"document_type": "ADDR", "document_class": "SOCIETY", "active": True},
+            {"document_type": "AFDV", "document_class": "SOCIETY", "active": True},
             {"document_type": "AMAL", "document_class": "SOCIETY", "active": True},
             {"document_type": "AMLG", "document_class": "SOCIETY", "active": True},
             {"document_type": "ANNR", "document_class": "SOCIETY", "active": True},

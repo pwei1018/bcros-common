@@ -49,18 +49,18 @@ TEST_DOC_REC_INVALID = {
 }
 
 
-# testdata pattern is ({description}, {payload_json}, {has_key}, {author}, {status})
+# testdata pattern is ({description}, {payload_json}, {has_key}, {author}, {status}, {ref_id})
 TEST_CREATE_DATA = [
-    ("Invalid no doc class type", TEST_DOC_REC_INVALID, True, "John Smith", HTTPStatus.BAD_REQUEST),
-    ("Invalid no api key", TEST_DOC_REC_LEGACY, False, "John Smith", HTTPStatus.UNAUTHORIZED),
-    ("Invalid bad api key", TEST_DOC_REC_LEGACY, False, "John Smith", HTTPStatus.UNAUTHORIZED),
-    ("Valid legacy", TEST_DOC_REC_LEGACY, True, "John Smith", HTTPStatus.CREATED),
-    ("Valid modern", TEST_DOC_REC_MODERN, True, "John Smith", HTTPStatus.CREATED),
+    ("Invalid no doc class type", TEST_DOC_REC_INVALID, True, "John Smith", HTTPStatus.BAD_REQUEST, None),
+    ("Invalid no api key", TEST_DOC_REC_LEGACY, False, "John Smith", HTTPStatus.UNAUTHORIZED, None),
+    ("Invalid bad api key", TEST_DOC_REC_LEGACY, False, "John Smith", HTTPStatus.UNAUTHORIZED, None),
+    ("Valid legacy", TEST_DOC_REC_LEGACY, True, "John Smith", HTTPStatus.CREATED, None),
+    ("Valid modern", TEST_DOC_REC_MODERN, True, "John Smith", HTTPStatus.CREATED, "9014005"),
 ]
 
 
-@pytest.mark.parametrize("desc,payload_json,has_key,author,status", TEST_CREATE_DATA)
-def test_create_doc_rec(session, client, jwt, desc, payload_json, has_key, author, status):
+@pytest.mark.parametrize("desc,payload_json,has_key,author,status,ref_id", TEST_CREATE_DATA)
+def test_create_doc_rec(session, client, jwt, desc, payload_json, has_key, author, status, ref_id):
     """Assert that a post save new callback document record works as expected."""
     if is_ci_testing() or not current_app.config.get("SUBSCRIPTION_API_KEY"):
         return
@@ -76,6 +76,8 @@ def test_create_doc_rec(session, client, jwt, desc, payload_json, has_key, autho
     req_json = copy.deepcopy(payload_json)
     if author:
         req_json["author"] = author
+    if ref_id:
+        req_json["consumerReferenceId"] = ref_id
     # test
     payload = json.dumps(req_json).encode("utf-8")
     response = client.post(req_path, data=payload, headers=headers)
@@ -88,6 +90,8 @@ def test_create_doc_rec(session, client, jwt, desc, payload_json, has_key, autho
         assert doc_json
         assert doc_json.get("documentServiceId")
         assert not doc_json.get("documentURL")
+        if ref_id:
+            assert doc_json.get("consumerReferenceId") == ref_id
         doc: Document = Document.find_by_doc_service_id(doc_json.get("documentServiceId"))
         assert doc
         doc_json = doc.json

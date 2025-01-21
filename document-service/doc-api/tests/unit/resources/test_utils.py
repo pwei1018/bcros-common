@@ -44,6 +44,7 @@ TEST_DOCUMENT = Document(
     consumer_filename="test.pdf",
     consumer_filing_date=model_utils.ts_from_iso_date_noon("2024-07-01"),
     description="Original",
+    consumer_reference_id = "800000"
 )
 TEST_TOKEN = {
     "username": "username_TEST1",
@@ -79,6 +80,7 @@ UPDATE_DOC = {
     "documentClass": "CORP",
     "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
     "description": "Updated description of the document.",
+    "consumerReferenceId": "800001"
 }
 REMOVE_DOC = {
     "removed": True
@@ -97,7 +99,8 @@ TEST_DOC_REC_MODERN = {
     "consumerIdentifier": "108924",
     "documentType": "TRAN",
     "documentClass": "MHR",
-    "author": "John Jones"
+    "author": "John Jones",
+    "consumerReferenceId": "900000",
 }
 TEST_DOC_REC_UPDATE = {
     "accountId": "123456",
@@ -105,7 +108,8 @@ TEST_DOC_REC_UPDATE = {
     "consumerIdentifier": "108925",
     "documentType": "MHR_MISC",
     "documentClass": "MHR",
-    "author": "JAMES Jones"
+    "author": "JAMES Jones",
+    "consumerReferenceId": "900001",
 }
 TEST_DOCUMENT_DELETE = Document(
     id=200000001,
@@ -120,12 +124,12 @@ TEST_DOCUMENT_DELETE = Document(
     description="Original",
 )
 
-# testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff})
+# testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff} , {ref_id})
 TEST_DATA_REQUEST_INFO = [
-    (RequestTypes.ADD.value, "/CORP/CORP_MISC", DocumentTypes.CORP_MISC.value, StorageDocTypes.BUSINESS.value, True),
-    (RequestTypes.GET.value, "/MHR_MISC", DocumentTypes.MHR_MISC.value, StorageDocTypes.MHR.value, False),
-    (RequestTypes.REPLACE.value, "/NR_MISC", DocumentTypes.NR_MISC.value, StorageDocTypes.NR.value, True),
-    (RequestTypes.UPDATE.value, "/PPR_MISC", DocumentTypes.PPR_MISC.value, StorageDocTypes.PPR.value, False),
+    (RequestTypes.ADD.value, "/CORP/CORP_MISC", DocumentTypes.CORP_MISC.value, StorageDocTypes.BUSINESS.value, True, "UT0001"),
+    (RequestTypes.GET.value, "/MHR_MISC", DocumentTypes.MHR_MISC.value, StorageDocTypes.MHR.value, False, None),
+    (RequestTypes.REPLACE.value, "/NR_MISC", DocumentTypes.NR_MISC.value, StorageDocTypes.NR.value, True, None),
+    (RequestTypes.UPDATE.value, "/PPR_MISC", DocumentTypes.PPR_MISC.value, StorageDocTypes.PPR.value, False, "UT0002"),
 ]
 # testdata pattern is ({doc_ts}, {doc_type}, {doc_service_id}, {content_type}, {doc_storage_type})
 TEST_DATA_SAVE_STORAGE = [
@@ -205,6 +209,8 @@ def test_save_callback_data(session, request_data, update):
     assert not result.get("consumerFilename")
     assert not result.get("documentURL")
     assert not result.get("scanningInformation")
+    if update:
+        assert result.get("consumerReferenceId") == request_data.get("consumerReferenceId")
 
 
 @pytest.mark.parametrize("document,token,filename", TEST_REPLACE_DATA)
@@ -332,6 +338,7 @@ def test_save_update(session, document, token, doc_class, scan_info,  update_sca
             assert scan_json.get("pageCount") == update_scan_info.get("pageCount")
     else:
         assert not result.get("scanningInformation")
+    assert result.get("consumerReferenceId") == request_data.get("consumerReferenceId")
 
 
 @pytest.mark.parametrize("document,token,scan_info", TEST_REMOVE_DATA)
@@ -404,8 +411,8 @@ def test_build_doc_request(session, info, user, doc_id, account_id):
     assert doc_request.request_data
 
 
-@pytest.mark.parametrize("req_type,req_path,doc_type,doc_storage_type,staff", TEST_DATA_REQUEST_INFO)
-def test_request_info(session, req_type, req_path, doc_type, doc_storage_type, staff):
+@pytest.mark.parametrize("req_type,req_path,doc_type,doc_storage_type,staff,ref_id", TEST_DATA_REQUEST_INFO)
+def test_request_info(session, req_type, req_path, doc_type, doc_storage_type, staff, ref_id):
     """Assert that building the base request info works as expected."""
     info: RequestInfo = RequestInfo(req_type, req_path, doc_type, doc_storage_type)
     assert info.request_type == req_type
@@ -413,6 +420,7 @@ def test_request_info(session, req_type, req_path, doc_type, doc_storage_type, s
     assert info.document_type == doc_type
     assert info.document_storage_type == doc_storage_type
     info.staff = staff
+    info.consumer_reference_id = ref_id
     info_json = info.json
     assert info_json.get("staff") == staff
     assert info_json.get("documentType") == doc_type
@@ -423,6 +431,9 @@ def test_request_info(session, req_type, req_path, doc_type, doc_storage_type, s
     assert "consumerFilename" in info_json
     assert "consumerFilingDate" in info_json
     assert "consumerIdentifier" in info_json
+    assert "consumerReferenceId" in info_json
+    if ref_id:
+        assert info_json.get("consumerReferenceId") == ref_id
 
 
 @pytest.mark.parametrize("doc_ts,doc_type,doc_service_id,content_type,doc_storage_type", TEST_DATA_SAVE_STORAGE)

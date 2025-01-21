@@ -51,6 +51,7 @@ class Document(db.Model):
     doc_storage_url = db.mapped_column("doc_storage_url", db.String(1000), nullable=True)
     description = db.mapped_column("description", db.String(4000), nullable=True)
     author = db.mapped_column("author", db.String(256), nullable=True)
+    consumer_reference_id = db.mapped_column("consumer_reference_id", db.String(50), nullable=True)
 
     # parent keys
     document_type = db.mapped_column(
@@ -89,6 +90,7 @@ class Document(db.Model):
             "documentClass": self.document_class if self.document_class else "",
             "documentURL": self.doc_storage_url if self.doc_storage_url else "",
             "author": self.author if self.author else "",
+            "consumerReferenceId": self.consumer_reference_id if self.consumer_reference_id else "",
         }
         if self.description:
             document["description"] = self.description
@@ -221,6 +223,8 @@ class Document(db.Model):
             self.document_class = request_data.get("documentClass")
         if request_data.get("author"):
             self.author = request_data.get("author")
+        if request_data.get("consumerReferenceId"):
+            self.consumer_reference_id = request_data.get("consumerReferenceId")
 
     @staticmethod
     def create_from_json(doc_json: dict, doc_type: str):
@@ -241,5 +245,7 @@ class Document(db.Model):
             doc.description = doc_json.get("description")
         if doc_json.get("author"):
             doc.author = doc_json.get("author")
+        if doc_json.get("consumerReferenceId"):
+            doc.consumer_reference_id = doc_json.get("consumerReferenceId")
         doc.get_generated_values()
         return doc

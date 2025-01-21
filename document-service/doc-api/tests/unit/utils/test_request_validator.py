@@ -26,7 +26,8 @@ from doc_api.utils.logging import logger
 
 # from registry_schemas import utils as schema_utils
 
-
+REF_ID1 = "01234567890123456789012345678901234567890123456789"
+REF_ID2 = "01234567890123456789012345678901234567890123456789X"
 TEST_SCAN1 = {
     "scanDateTime": "2024-07-01",
     "accessionNumber": "AN-0001",
@@ -72,7 +73,7 @@ TEST_DATA_SCANNING = [
     ),
     ("Invalid new exists", False, TEST_SCAN1, True, "UT000001", DocumentClasses.CORP, validator.INVALID_SCAN_EXISTS),
 ]
-# test data pattern is ({description}, {valid}, {req_type}, {doc_type}, {content_type}, {doc_class}, {message_content})
+# test data pattern is ({description}, {valid}, {req_type}, {doc_type}, {content_type}, {doc_class}, {ref_id}, {message_content})
 TEST_DATA_ADD = [
     (
         "Valid",
@@ -81,6 +82,7 @@ TEST_DATA_ADD = [
         DocumentTypes.CORP_MISC,
         model_utils.CONTENT_TYPE_PDF,
         DocumentClasses.CORP,
+        REF_ID1,
         None,
     ),
     (
@@ -90,6 +92,7 @@ TEST_DATA_ADD = [
         None,
         model_utils.CONTENT_TYPE_PDF,
         DocumentClasses.CORP,
+        None,
         validator.MISSING_DOC_TYPE,
     ),
     (
@@ -99,6 +102,7 @@ TEST_DATA_ADD = [
         "JUNK",
         model_utils.CONTENT_TYPE_PDF,
         DocumentClasses.CORP,
+        None,
         validator.INVALID_DOC_TYPE,
     ),
     (
@@ -108,6 +112,7 @@ TEST_DATA_ADD = [
         DocumentTypes.CORP_MISC,
         model_utils.CONTENT_TYPE_PDF,
         "JUNK",
+        None,
         validator.INVALID_DOC_CLASS,
     ),
     (
@@ -117,6 +122,7 @@ TEST_DATA_ADD = [
         DocumentTypes.CORP_MISC,
         None,
         DocumentClasses.CORP,
+        None,
         validator.MISSING_CONTENT_TYPE,
     ),
     (
@@ -126,6 +132,7 @@ TEST_DATA_ADD = [
         DocumentTypes.CORP_MISC,
         "XXXXX",
         DocumentClasses.CORP,
+        None,
         validator.INVALID_CONTENT_TYPE,
     ),
     (
@@ -135,9 +142,20 @@ TEST_DATA_ADD = [
         DocumentTypes.CORP_MISC,
         model_utils.CONTENT_TYPE_PDF,
         DocumentClasses.FIRM,
+        None,
         validator.INVALID_DOC_CLASS_TYPE,
     ),
-    ("Valid no class", True, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, None, None),
+    (
+        "Invalid consumer reference id",
+        False,
+        RequestTypes.ADD,
+        DocumentTypes.CORP_MISC,
+        model_utils.CONTENT_TYPE_PDF,
+        DocumentClasses.CORP,
+        REF_ID2,
+        validator.INVALID_REFERENCE_ID,
+    ),
+    ("Valid no class", True, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, None, None, None),
 ]
 # test data pattern is ({description}, {valid}, {filing_date}, {message_content})
 TEST_DATA_ADD_DATES = [
@@ -186,16 +204,17 @@ TEST_DATA_SEARCH_DATES = [
     ("Invalid start date", False, "January 12, 2022", None, validator.INVALID_START_DATE),
     ("Invalid end date", False, None, "January 12, 2022", validator.INVALID_END_DATE),
 ]
-# test data pattern is ({description},{valid},{doc_id},{cons_id},{filename},{filing_date},{desc},{message_content})
+# test data pattern is ({description},{valid},{doc_id},{cons_id},{filename},{filing_date},{desc},{ref_id},{message_content})
 TEST_DATA_PATCH = [
-    ("Valid doc id", True, "89999999", None, None, None, None, None),
-    ("Valid removed", True, None, None, None, None, None, None),
-    ("Valid consumer id", True, None, "BC0700000", None, None, None, None),
-    ("Valid filename", True, None, None, "change_address.pdf", None, None, None),
-    ("Valid filing date", True, None, None, None, "2024-07-31", None, None),
-    ("Valid description", True, None, None, None, None, "Important description", None),
-    ("Invalid no change", False, None, None, None, None, None, validator.MISSING_PATCH_PARAMS),
-    ("Invalid filing date", False, None, None, None, "January 12, 2022", None, validator.INVALID_FILING_DATE),
+    ("Valid doc id", True, "89999999", None, None, None, None, REF_ID1, None),
+    ("Valid removed", True, None, None, None, None, None, None, None),
+    ("Valid consumer id", True, None, "BC0700000", None, None, None, None, None),
+    ("Valid filename", True, None, None, "change_address.pdf", None, None, None, None),
+    ("Valid filing date", True, None, None, None, "2024-07-31", None, None, None),
+    ("Valid description", True, None, None, None, None, "Important description", None, None),
+    ("Invalid no change", False, None, None, None, None, None, None, validator.MISSING_PATCH_PARAMS),
+    ("Invalid filing date", False, None, None, None, "January 12, 2022", None, None, validator.INVALID_FILING_DATE),
+    ("Invalid ref id", False, None, None, None, None, None, REF_ID2, validator.INVALID_REFERENCE_ID),
 ]
 # test data pattern is ({description}, {valid}, {payload}, {doc_type}, {content_type}, {doc_class}, {message_content})
 TEST_DATA_REPLACE = [
@@ -314,8 +333,8 @@ def test_validate_get(session, desc, valid, doc_class, service_id, doc_id, cons_
             assert error_msg.find(err_msg) != -1
 
 
-@pytest.mark.parametrize("desc,valid,req_type,doc_type,content_type,doc_class,message_content", TEST_DATA_ADD)
-def test_validate_add(session, desc, valid, req_type, doc_type, content_type, doc_class, message_content):
+@pytest.mark.parametrize("desc,valid,req_type,doc_type,content_type,doc_class,ref_id,message_content", TEST_DATA_ADD)
+def test_validate_add(session, desc, valid, req_type, doc_type, content_type, doc_class, ref_id, message_content):
     """Assert that new add request validation works as expected."""
     # setup
     info: RequestInfo = RequestInfo(req_type, "NA", doc_type, "NA")
@@ -323,6 +342,8 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
     info.account_id = "NA"
     if doc_class:
         info.document_class = doc_class
+    if ref_id:
+        info.consumer_reference_id = ref_id
     error_msg = validator.validate_request(info)
     if doc_type and not doc_class and not message_content:
         assert info.document_class
@@ -345,8 +366,8 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
             assert error_msg.find(err_msg) != -1
 
 
-@pytest.mark.parametrize("desc,valid,doc_id,cons_id,filename,filing_date,description,message_content", TEST_DATA_PATCH)
-def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_date, description, message_content):
+@pytest.mark.parametrize("desc,valid,doc_id,cons_id,filename,filing_date,description,ref_id,message_content", TEST_DATA_PATCH)
+def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_date, description, ref_id, message_content):
     """Assert that patch request validation works as expected."""
     # setup
     info: RequestInfo = RequestInfo(RequestTypes.UPDATE, "NA", DocumentTypes.CORP_MISC, "NA")
@@ -365,6 +386,8 @@ def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_
         info.description = description
     if desc == "Valid removed":
         info.request_data = TEST_REMOVE
+    if ref_id:
+        info.consumer_reference_id = ref_id
     error_msg = validator.validate_request(info)
     if valid:
         assert error_msg == ""

@@ -58,6 +58,7 @@ PARAM_CONSUMER_DOC_ID = "consumerDocumentId"
 PARAM_CONSUMER_FILENAME = "consumerFilename"
 PARAM_CONSUMER_FILEDATE = "consumerFilingDate"
 PARAM_CONSUMER_IDENTIFIER = "consumerIdentifier"
+PARAM_CONSUMER_REFERENCE_ID = "consumerReferenceId"
 PARAM_DESCRIPTION = "description"
 PARAM_DOCUMENT_TYPE = "documentType"
 PARAM_DOCUMENT_CLASS = "documentClass"
@@ -241,6 +242,7 @@ def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> Re
     info.consumer_filename = req.args.get(PARAM_CONSUMER_FILENAME)
     info.consumer_filedate = req.args.get(PARAM_CONSUMER_FILEDATE)
     info.consumer_identifier = req.args.get(PARAM_CONSUMER_IDENTIFIER)
+    info.consumer_reference_id = req.args.get(PARAM_CONSUMER_REFERENCE_ID)
     info.query_start_date = req.args.get(PARAM_QUERY_START_DATE)
     info.query_end_date = req.args.get(PARAM_QUERY_END_DATE)
     info.description = req.args.get(PARAM_DESCRIPTION)
@@ -272,6 +274,7 @@ def update_request_info(
         if not info.consumer_filedate and request_json.get("consumerFilingDateTime"):
             info.consumer_filedate = request_json.get("consumerFilingDateTime")
         info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
+        info.consumer_reference_id = request_json.get(PARAM_CONSUMER_REFERENCE_ID)
         info.description = request_json.get(PARAM_DESCRIPTION)
         info.request_data = request_json
     info.staff = staff
@@ -571,6 +574,7 @@ def get_callback_request_info(request_json: dict, info: RequestInfo) -> RequestI
         info.consumer_doc_id = request_json.get(PARAM_CONSUMER_DOC_ID)
         info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
         info.consumer_filedate = request_json.get(PARAM_CONSUMER_FILEDATE)
+        info.consumer_reference_id = request_json.get(PARAM_CONSUMER_REFERENCE_ID)
         info.has_payload = False
         info.staff = False
         info.document_storage_type = get_doc_storage_type(info.document_class)
