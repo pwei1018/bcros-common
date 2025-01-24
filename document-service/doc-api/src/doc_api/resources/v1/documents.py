@@ -25,6 +25,7 @@ from doc_api.resources.request_info import RequestInfo
 from doc_api.services.authz import is_staff
 from doc_api.utils.auth import jwt
 from doc_api.utils.logging import logger
+from doc_api.utils.request_validator import checksum_valid
 
 POST_REQUEST_PATH = "/documents/{doc_class}/{doc_type}"
 CHANGE_REQUEST_PATH = "/documents/{doc_service_id}"
@@ -194,12 +195,17 @@ def verify_document_id(consumer_doc_id: str):
         documents = Document.find_by_document_id(consumer_doc_id)
         if not documents:
             logger.info(f"No documents found for document consumer id={consumer_doc_id}.")
+            if not checksum_valid(consumer_doc_id):
+                return resource_utils.bad_request_response(f"Document ID check digit failed for {consumer_doc_id}.")
             return resource_utils.not_found_error_response("GET documents by document ID", consumer_doc_id)
         response_json = []
         for document in documents:
             doc_json = document.json
             if doc_json.get("documentURL"):
+                doc_json["documentExists"] = True
                 del doc_json["documentURL"]
+            else:
+                doc_json["documentExists"] = False
             response_json.append(doc_json)
         return jsonify(response_json), HTTPStatus.OK
     except DatabaseException as db_exception:

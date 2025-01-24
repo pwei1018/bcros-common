@@ -159,3 +159,4 @@ def test_get_docs_by_dates(session, doc_class, start_offset, doc_type, cons_id, 
             assert result.get("documentClass")
             assert "documentURL" not in result
             assert 'description' in result
+            assert 'documentExists' in result

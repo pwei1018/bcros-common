@@ -296,3 +296,37 @@ def validate_search_dates(info: RequestInfo) -> str:
     if end_date and start_date and end_date < start_date:
         error_msg += INVALID_START_END_DATE.format(end_date=info.query_end_date, start_date=info.query_start_date)
     return error_msg
+
+
+def checksum_valid(doc_id: str) -> bool:
+    """Validate the document id with a checksum algorithm. Skip if the document ID length is not 8."""
+    if not doc_id or not doc_id.isnumeric():
+        return False
+    if len(doc_id) != 8:
+        return True
+    dig1: int = int(doc_id[0:1])
+    dig2: int = int(doc_id[1:2]) * 2
+    dig3: int = int(doc_id[2:3])
+    dig4: int = int(doc_id[3:4]) * 2
+    dig5: int = int(doc_id[4:5])
+    dig6: int = int(doc_id[5:6]) * 2
+    dig7: int = int(doc_id[6:7])
+    check_digit: int = int(doc_id[7:])
+    dig_sum = dig1 + dig3 + dig5 + dig7
+    if dig2 > 9:
+        dig_sum += 1 + (dig2 % 10)
+    else:
+        dig_sum += dig2
+    if dig4 > 9:
+        dig_sum += 1 + (dig4 % 10)
+    else:
+        dig_sum += dig4
+    if dig6 > 9:
+        dig_sum += 1 + (dig6 % 10)
+    else:
+        dig_sum += dig6
+    mod_sum = dig_sum % 10
+    logger.debug(f"sum={dig_sum}, checkdigit= {check_digit}, mod_sum={mod_sum}")
+    if mod_sum == 0:
+        return mod_sum == check_digit
+    return (10 - mod_sum) == check_digit

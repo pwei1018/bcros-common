@@ -29,7 +29,7 @@ QUERY_CONSUMER_ID_CLAUSE = " and d.consumer_identifier = '{consumer_id}'"
 QUERY_DEFAULT_ORDER_BY = " order by d.consumer_document_id"
 QUERY_DATES_DEFAULT = """
 select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_identifier, d.consumer_filename,
-       d.consumer_filing_date, d.document_type, dt.document_type_desc, dc.document_class,
+       d.consumer_filing_date, d.document_type, dt.document_type_desc, dc.document_class, d.doc_storage_url,
        dc.document_class_desc, d.description
   from documents d, document_types dt, document_classes dc
  where d.document_type = dt.document_type
@@ -41,7 +41,7 @@ select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_ident
 SEARCH_ANY_BASE = """
 select d2.document_service_id, d2.add_ts, d2.consumer_document_id, d2.consumer_identifier, d2.consumer_filename,
        d2.consumer_filing_date, d2.document_type, dt.document_type_desc, d2.document_class, dc.document_class_desc,
-       d2.description
+       d2.description, d2.doc_storage_url
   from documents d2, document_types dt, document_classes dc
  where d2.document_type = dt.document_type
    and d2.document_class = dc.document_class and dc.document_class != 'DELETED'
@@ -110,6 +110,10 @@ def build_result_json(row, merge_doc_id: bool = False) -> dict:
         result_json["consumerFilename"] = str(row[4]) if row[4] else ""
     if row[5]:
         result_json["consumerFilingDateTime"] = format_ts(row[5])
+    if row[11]:
+        result_json["documentExists"] = True
+    else:
+        result_json["documentExists"] = False
     return result_json
 
 
@@ -227,9 +231,14 @@ def get_docs_by_date_range(doc_class: str, start_date: str, end_date: str, doc_t
                 "documentType": str(row[6]),
                 "documentTypeDescription": str(row[7]),
                 "documentClass": str(row[8]),
+                "description": str(row[11]) if row[11] else "",
             }
             if row[5]:
                 result_json["consumerFilingDateTime"] = format_ts(row[5])
+            if row[9]:
+                result_json["documentExists"] = True
+            else:
+                result_json["documentExists"] = False
             results.append(result_json)
     if results:
         logger.info(f"get_docs_by_date_range returning {len(results)} results.")

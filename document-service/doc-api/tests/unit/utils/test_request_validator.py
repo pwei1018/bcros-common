@@ -47,6 +47,9 @@ TEST_SCAN4 = {"pageCount": 1}
 TEST_REMOVE = {
     "removed": True
 }
+DOC_ID_VALID_CHECKSUM = '63166035'
+DOC_ID_INVALID_CHECKSUM = '63166034'
+
 # test data pattern is ({description}, {valid}, {payload}, {new}, {cons_doc_id}, {doc_class}, {message_content})
 TEST_DATA_SCANNING = [
     ("Valid new", True, TEST_SCAN1, True, "UT000001", DocumentClasses.CORP, None),
@@ -246,6 +249,12 @@ TEST_DATA_REPLACE = [
         DocumentClasses.FIRM,
         validator.MISSING_PAYLOAD,
     ),
+]
+# test data pattern is ({description}, {valid}, {doc_id})
+TEST_DATA_DOC_ID_CHECKSUM = [
+    ("Valid doc id", True, DOC_ID_VALID_CHECKSUM),
+    ("Invalid doc id", False, DOC_ID_INVALID_CHECKSUM),
+    ("Valid doc id skip", True, "0100000204")
 ]
 
 
@@ -453,3 +462,10 @@ def test_validate_scanning(session, desc, valid, payload, is_new, cons_doc_id, d
             elif is_new and desc == "Invalid new exists":
                 err_msg = validator.INVALID_SCAN_EXISTS.format(doc_class=doc_class, cons_doc_id=cons_doc_id)
             assert error_msg.find(err_msg) != -1
+
+
+@pytest.mark.parametrize("desc,valid,doc_id", TEST_DATA_DOC_ID_CHECKSUM)
+def test_doc_id_checksum(session, desc, valid, doc_id):
+    """Assert that the check digit algorithm doc id validation works as expected."""
+    result = validator.checksum_valid(doc_id)
+    assert valid == result

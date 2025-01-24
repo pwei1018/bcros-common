@@ -60,6 +60,8 @@ PATCH_PAYLOAD = {
 PATCH_REMOVE_PAYLOAD = {
     "removed": True
 }
+DOC_ID_VALID_CHECKSUM = '63166035'
+DOC_ID_INVALID_CHECKSUM = '63166034'
 
 
 # testdata pattern is ({description}, {content_type}, {roles}, {account}, {doc_class}, {doc_type}, {status}, {ref_id})
@@ -88,9 +90,10 @@ TEST_PUT_DATA = [
 ]
 # testdata pattern is ({description}, {roles}, {account}, {doc_id}, {status})
 TEST_DOC_ID_DATA = [
-    ("Staff missing account", STAFF_ROLES, None, "INVALID", HTTPStatus.BAD_REQUEST),
-    ("Invalid role", INVALID_ROLES, "UT1234", "INVALID", HTTPStatus.UNAUTHORIZED),
-    ("Not found doc id", STAFF_ROLES, "UT1234", "UT-99990001", HTTPStatus.NOT_FOUND),
+    ("Staff missing account", STAFF_ROLES, None, DOC_ID_VALID_CHECKSUM, HTTPStatus.BAD_REQUEST),
+    ("Invalid role", INVALID_ROLES, "UT1234", DOC_ID_VALID_CHECKSUM, HTTPStatus.UNAUTHORIZED),
+    ("Valid not found doc id", STAFF_ROLES, "UT1234", DOC_ID_VALID_CHECKSUM, HTTPStatus.NOT_FOUND),
+    ("Invalid not found doc id checksum", STAFF_ROLES, "UT1234", DOC_ID_INVALID_CHECKSUM, HTTPStatus.BAD_REQUEST),
     ("Doc ID exists", STAFF_ROLES, "UT1234", "UT999999", HTTPStatus.OK),
 ]
 # testdata pattern is ({description}, {content_type}, {roles}, {account}, {doc_class}, {doc_type}, {status})
