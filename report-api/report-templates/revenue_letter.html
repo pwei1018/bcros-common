@@ -352,6 +352,7 @@
                             <th>Registry</th>
                             <th>Transaction Counts</th>
                             <th>Total Amount</th>
+                            <th>Total Disbursements</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -359,7 +360,8 @@
                         <tr>
                             <td>{{ row.registry }}</td>
                             <td>{{ row.transCounts }}</td>
-                            <td>{{ row.symbol }} {{ row.amount }}</td>
+                            <td>{{ row.totalRevenue }}</td>
+                            <td>{{ row.totalDisbursements }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -369,7 +371,7 @@
                 </svg>
             </div>
             <div class="additional-info">
-                <p>Attached is the Monthly BC Registries and Online Services Revenue Statistics Report(s) for the month of <strong>{{ enterMonth }}</strong>. The report details the count of the business transactions and statutory fees.</p>
+                <p>Attached is the Monthly Revenue Report from BC Registries and Online Services for the month of <strong>{{ enterMonth }}</strong>. The report details the count of the business transactions and statutory fees. If the disbursements are zero, check with SBC Finance to confirm if funds are being transferred manually to your GL.</p> 
                 <p><span class="note">Note:</span> <span class="non-email-text">you will still continue to receive your revenue reports and letters from BC Online for those transactions. If you have any questions please email</span> <a class="email-text" href="mailto:BCROSREV@gov.bc.ca">BCROSREV@gov.bc.ca</a> <span class="non-email-text">or</span> <a class="email-text" href="mailto:BCOLdirect@gov.bc.ca">BCOLdirect@gov.bc.ca</a>.</p>
                 <p class="issued-on">Issued on {{ date }}</p>
                 <p class="officer-info">
