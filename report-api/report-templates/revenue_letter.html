@@ -351,17 +351,21 @@
                         <tr>
                             <th>Registry</th>
                             <th>Transaction Counts</th>
-                            <th>Total Amount</th>
-                            <th>Total Disbursements</th>
+                            <th>Total Payment</th>
+                            <th>Total Refund</th>
+                            <th>Total Disbursement</th>
+                            <th>Total Disbursement Reversal</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in tableRows %}
                         <tr>
                             <td>{{ row.registry }}</td>
-                            <td>{{ row.transCounts }}</td>
-                            <td>{{ row.totalRevenue }}</td>
-                            <td>{{ row.totalDisbursements }}</td>
+                            <td>{{ row.transactionCounts }}</td>
+                            <td>{{ row.totalPayment }}</td>
+                            <td>{{ row.totalRefund }}</td>
+                            <td>{{ row.totalDisbursement }}</td>
+                            <td>{{ row.totalDisbursementReversal }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
