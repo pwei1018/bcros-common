@@ -385,39 +385,42 @@
   </style>
 </head>
 <body>
-{% set payment_methods = ['EFT', 'PAD', 'CC', 'DRAWDOWN', 'INTERNAL', 'DIRECT_PAY', 'ONLINE_BANKING', 'EJV'] %}
-{% set payment_method_index = namespace(value=-1) %}
-{% for payment_method in payment_methods %}
-  {% if payment_method in invoices|map(attribute='payment_method')|list %}
+  {% set payment_methods = ['EFT', 'PAD', 'CC', 'DRAWDOWN', 'INTERNAL', 'DIRECT_PAY', 'ONLINE_BANKING', 'EJV'] %}
+  {% set payment_method_index = namespace(value=-1) %}
+
+  {% for payment_method in payment_methods %}
+    {% if payment_method in invoices|map(attribute='payment_method')|list %}
+      <div class="page-break-before">
+        {% set payment_method_index.value = payment_method_index.value + 1 %}
+        
+        {% if payment_method == 'INTERNAL' and invoices|selectattr('payment_method', 'equalto', 'INTERNAL')|selectattr('routing_slip', 'undefined')|list %}
+          {% set is_staff_payment = 'true' %}
+        {% endif %}
+        {% include 'report-templates/statement_header.html' with context %}
+      </div>
+      {% include 'report-templates/statement_details.html' with context %}
+      {% include 'report-templates/statement_transactions.html' with context %}
+    {% endif %}
+  {% endfor %}
+  {% if not invoices %}
     <div class="page-break-before">
-      {% set payment_method_index.value = payment_method_index.value + 1 %}
-      {% if payment_method == 'INTERNAL' and invoices|selectattr('payment_method', 'equalto', 'INTERNAL')|selectattr('routing_slip', 'undefined')|list %}
-        {% set is_staff_payment = 'true' %}
-      {% endif %}
-      {% include 'report-templates/statement_header.html' with context %}
+      {% include 'report-templates/statement_header.html' %}
     </div>
-    {% include 'report-templates/statement_details.html' with context %}
-    {% include 'report-templates/statement_transactions.html' with context %}
+    {% include 'report-templates/statement_details.html' %}
+    {% include 'report-templates/statement_transactions.html' %}
   {% endif %}
-{% endfor %}
-{% if not invoices %}
-  <div class="page-break-before">
-    {% include 'report-templates/statement_header.html' %}
-  </div>
-  {% include 'report-templates/statement_details.html' %}
-  {% include 'report-templates/statement_transactions.html' %}
-{% endif %}
 
   <!-- EFT Instructions -->
   {% if 'EFT' in invoices|map(attribute='payment_method')|list %}
-  {% set payment_method = 'EFT' %}
-  {% set is_payment_instructions = true %}
-  <div class="inner-wrap page-break-before">
-    {% include 'report-templates/statement_header.html' %}
-    <h2>Payment Instructions</h2>
-  </div>
-  {% include 'report-templates/eft/eft_instructions_details.html' %}
-  {% include 'report-templates/eft/eft_instructions_charges.html' %}
+    {% set payment_method = 'EFT' %}
+    {% set is_payment_instructions = true %}
+
+    <div class="inner-wrap page-break-before">
+      {% include 'report-templates/statement_header.html' %}
+      <h2>Payment Instructions</h2>
+    </div>
+    {% include 'report-templates/eft/eft_instructions_details.html' %}
+    {% include 'report-templates/eft/eft_instructions_charges.html' %}
   {% endif %}
 </body>
 </html>

@@ -26,34 +26,56 @@
         <th class="two-line-head" style="width: 70px;">Service Fee</th>
         <th  style="width: 40px;">Total</th>
         </thead>
-        {% set totals = namespace(total=0, fees=0) %}
+        {% set totals = namespace(total=0, fees=0, due=0) %}
         {% for invoice in invoices if invoice.payment_method == payment_method %}
-        <tr>
-            <!-- Product Name -->
-            <td class="product-purchased">
-                {% for lineItemProduct in invoice.line_items %}
-                <div class="font-bold">{{'(Cancelled) ' if (invoice.status_code == 'CANCELLED') else ''}}{{lineItemProduct.description}}</div>
-                {% endfor %}
-                {% if invoice.details and invoice.details|length > 0 %}
-                <div class="transaction-details">
-                    {% for detail in invoice.details %}
-                    <div>{{detail.label}} {{detail.value}}</div>
-                    {% endfor %}
-                </div>
+            {% set totals.due = totals.due + invoice.total %}
+            {% if payment_method != 'EFT' %}
+                {% set totals.due = totals.due - invoice.paid %}
+                {% if invoice.paid == 0 and invoice.refund > 0 %}
+                    {% set totals.due = totals.due - invoice.refund %}
                 {% endif %}
-            </td>
-            <!-- Date -->
-            <td>{{invoice.created_on | format_datetime('mmm dd,yyyy')}}</td>
-            <!-- Fee -->
-            <td>${{"%.2f"|format((invoice.total - invoice.service_fees)) if (invoice.service_fees and invoice.total) else '0.00'}}</td>
-            <!-- GST -->
-            <td>${{"%.2f"|format(invoice.gst) if invoice.gst else '0.00'}}</td>
-            <!-- Service Fee -->
-            <td>${{"%.2f"|format(invoice.service_fees) if invoice.service_fees else '0.00'}}</td>
-            <!-- Grand Total -->
-            <td>${{"%.2f"|format(invoice.total) if invoice.total else '0.00'}}</td>
-            {% set totals.total = totals.total + invoice.total %}
-        </tr>
+            {% endif %}
+            
+            {% if payment_method == 'EFT' %}
+                {% if invoice.payment_date | format_datetime('unix') <= statement.to_date | format_datetime('unix') %}
+                    {% set totals.due = totals.due - invoice.paid %}
+                {% endif %}
+
+                {% if 
+                    invoice.paid == 0
+                    and invoice.refund > 0
+                    and invoice.refund_date
+                    and invoice.refund_date | format_datetime('unix') <= statement.to_date | format_datetime('unix')
+                %}
+                    {% set totals.due = totals.due - invoice.refund %}
+                {% endif %}
+            {% endif %}
+            <tr>
+                <!-- Product Name -->
+                <td class="product-purchased">
+                    {% for lineItemProduct in invoice.line_items %}
+                    <div class="font-bold">{{'(Cancelled) ' if (invoice.status_code == 'CANCELLED') else ''}}{{lineItemProduct.description}}</div>
+                    {% endfor %}
+                    {% if invoice.details and invoice.details|length > 0 %}
+                    <div class="transaction-details">
+                        {% for detail in invoice.details %}
+                        <div>{{detail.label}} {{detail.value}}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </td>
+                <!-- Date -->
+                <td>{{invoice.created_on | format_datetime('mmm dd,yyyy')}}</td>
+                <!-- Fee -->
+                <td>${{"%.2f"|format((invoice.total - invoice.service_fees)) if (invoice.service_fees and invoice.total) else '0.00'}}</td>
+                <!-- GST -->
+                <td>${{"%.2f"|format(invoice.gst) if invoice.gst else '0.00'}}</td>
+                <!-- Service Fee -->
+                <td>${{"%.2f"|format(invoice.service_fees) if invoice.service_fees else '0.00'}}</td>
+                <!-- Grand Total -->
+                <td>${{"%.2f"|format(invoice.total) if invoice.total else '0.00'}}</td>
+                {% set totals.total = totals.total + invoice.total %}
+            </tr>
         {% endfor %}
     </table>
     {% endif %}
@@ -149,7 +171,7 @@
                 <td colspan="2">
                     <div class="total-elements" style="border-bottom: none;">
                         Total Amount Due:
-                        <span class="total-elements-price">${{"%.2f"|format(total.due) if total.due else '0.00'}}</span>
+                        <span class="total-elements-price">${{"%.2f"|format(totals.due) if totals.due else '0.00'}}</span>
                     </div>
                 </td>
             </tr>

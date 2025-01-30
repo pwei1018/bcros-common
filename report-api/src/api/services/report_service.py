@@ -37,7 +37,10 @@ def format_datetime(value, format='short'):  # pylint: disable=redefined-builtin
     elif format == 'mmm dd,yyyy':
         dt_format = '%B %e, %Y'
     elif format == 'detail':
-        dt_format = '%B %d, %Y %I:%M %p Pacific Time'
+        dt_format = '%B %d, %Y at %I:%M %p Pacific Time'
+    elif format == 'unix':
+        return int(parser.parse(value).timestamp())
+
     return parser.parse(value).strftime(dt_format)
 
 
