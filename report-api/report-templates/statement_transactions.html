@@ -37,7 +37,12 @@
             {% endif %}
             
             {% if payment_method == 'EFT' %}
-                {% if invoice.payment_date | format_datetime('unix') <= statement.to_date | format_datetime('unix') %}
+                {% if 
+                    invoice.payment_date
+                    and statement.to_date
+                    and (invoice.payment_date | format_datetime('unix')
+                    <= statement.to_date | format_datetime('unix'))
+                %}
                     {% set totals.due = totals.due - invoice.paid %}
                 {% endif %}
 
