@@ -150,7 +150,7 @@
         }
 
         .table th {
-            width: 16.66%; /* Distribute columns evenly */
+            width: 25%; /* Distribute columns evenly */
             color: var(--text-color, #313132);
             font-family: 'BCSans-Bold', sans-serif;
             font-size: 10px;
@@ -352,9 +352,7 @@
                             <th>Registry</th>
                             <th>Transaction Counts</th>
                             <th>Total Payment</th>
-                            <th>Total Refund</th>
                             <th>Total Disbursement</th>
-                            <th>Total Disbursement Reversal</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -363,9 +361,7 @@
                             <td>{{ row.registry }}</td>
                             <td>{{ row.transactionCounts }}</td>
                             <td>{{ row.totalPayment }}</td>
-                            <td>{{ row.totalRefund }}</td>
                             <td>{{ row.totalDisbursement }}</td>
-                            <td>{{ row.totalDisbursementReversal }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
