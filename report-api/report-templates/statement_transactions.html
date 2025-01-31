@@ -1,3 +1,4 @@
+{% set totals = namespace(total=0, fees=0, due=0) %}
 <div>
     <table>
         <tr>
@@ -26,7 +27,6 @@
         <th class="two-line-head" style="width: 70px;">Service Fee</th>
         <th  style="width: 40px;">Total</th>
         </thead>
-        {% set totals = namespace(total=0, fees=0, due=0) %}
         {% for invoice in invoices if invoice.payment_method == payment_method %}
             {% set totals.due = totals.due + invoice.total %}
             {% if payment_method != 'EFT' %}
@@ -172,6 +172,7 @@
                     </div>
                 </td>
             </tr>
+            {% if payment_method == 'DIRECT_PAY' or payment_method == 'CC' or payment_method == 'EFT' or payment_method == 'ONLINE_BANKING' %}
             <tr>
                 <td colspan="2">
                     <div class="total-elements" style="border-bottom: none;">
@@ -180,6 +181,7 @@
                     </div>
                 </td>
             </tr>
+            {% endif %}
         {% endif %}
         {% if total.statutoryFees %}
         <tfoot>
