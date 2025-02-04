@@ -9,7 +9,7 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
+# See the License for the specific language governing permissions andcurrent_app.
 # limitations under the License.
 """Worker resource to handle incoming queue pushes from gcp."""
 
@@ -20,15 +20,13 @@ from notify_api.models import Notification, NotificationHistory, NotificationSen
 from notify_api.services.gcp_queue import queue
 from structured_logging import StructuredLogging
 
-from notify_delivery.services.gcp_queue.gcp_auth import ensure_authorized_queue_user
-from notify_delivery.services.providers.email_smtp import EmailSMTP
+from notify_delivery.services.providers.gc_notify_housing import GCNotifyHousing
 
-bp = Blueprint("smtp", __name__)
+bp = Blueprint("gcnotify-housing", __name__)
 logger = StructuredLogging.get_logger()
 
 
 @bp.route("/", methods=("POST",))
-@ensure_authorized_queue_user
 def worker():
     """Worker to handle incoming queue pushes."""
     if not request.data:
@@ -41,7 +39,7 @@ def worker():
 
     try:
         logger.info(f"Event Message Received: {ce}")
-        if ce.type == "bc.registry.notify.smtp":
+        if ce.type == "bc.registry.notify.gc_notify_housing":
             process_message(ce.data)
         else:
             logger.error("Invalid queue message type")
@@ -55,8 +53,7 @@ def worker():
 
 
 def process_message(data: dict) -> NotificationHistory | Notification:
-    """Delivery message through SMTP service."""
-
+    """Delivery message through GC Notify service."""
     history: NotificationHistory = None
 
     notification_id = data["notificationId"]
@@ -65,8 +62,9 @@ def process_message(data: dict) -> NotificationHistory | Notification:
     if notification is None:
         raise ValueError(f"Unknown notification for notificationId {notification_id}")
 
-    smtp_provider = EmailSMTP(notification)
-    responses: NotificationSendResponses = smtp_provider.send()
+    gc_notify_housing_provider = GCNotifyHousing(notification)
+
+    responses: NotificationSendResponses = gc_notify_housing_provider.send()
 
     if responses:
         notification.status_code = Notification.NotificationStatus.SENT

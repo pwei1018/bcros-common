@@ -18,10 +18,9 @@ The service worker for applying payments, receipts and account balance to paymen
 
 from __future__ import annotations
 
-import os
-
 from flask import Flask
 from flask_migrate import Migrate
+from google.cloud.sql.connector import Connector
 from notify_api.models import db
 from structured_logging import StructuredLogging
 
@@ -38,13 +37,23 @@ def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
     app = Flask(__name__)
     app.config.from_object(config[service_environment])
 
-    db.init_app(app)
+    if app.config.get("DB_INSTANCE_CONNECTION_NAME"):
+        connector = Connector(refresh_strategy="lazy")
 
-    # Have to setup another database in OpenShift platform
-    if app.config.get("DEPLOYMENT_PLATFORM") == "OCP":
-        logger.info("Running migration upgrade.")
-        Migrate(app, db)
-        logger.info("Finished migration upgrade.")
+        connection = connector.connect(
+            app.config["DB_INSTANCE_CONNECTION_NAME"],
+            "pg8000",
+            ip_type=app.config["DB_IIP_TYPE"],
+            db=app.config["DB_NAME"],
+            user=app.config["DB_USER"],
+            enable_iam_auth=True,
+        )
+
+        # configure Flask-SQLAlchemy to use Python Connector
+        app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+pg8000://"
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": lambda: connection}
+
+    db.init_app(app)
 
     queue.init_app(app)
 

@@ -36,13 +36,16 @@ class GCNotify:
         self.api_key = current_app.config.get("GC_NOTIFY_API_KEY")
         self.gc_notify_url = current_app.config.get("GC_NOTIFY_API_URL")
         self.gc_notify_template_id = current_app.config.get("GC_NOTIFY_TEMPLATE_ID")
-        self.gc_notify_sms_template_id = current_app.config.get("GC_NOTIFY_SMS_TEMPLATE_ID")
-        self.gc_notify_email_reply_to_id = current_app.config.get("GC_NOTIFY_EMAIL_REPLY_TO_ID")
+        self.gc_notify_email_reply_to_id = current_app.config.get(
+            "GC_NOTIFY_EMAIL_REPLY_TO_ID"
+        )
         self.notification = notification
 
     def send(self) -> NotificationSendResponses:
         """Send email through GC Notify."""
-        client = NotificationsAPIClient(api_key=self.api_key, base_url=self.gc_notify_url)
+        client = NotificationsAPIClient(
+            api_key=self.api_key, base_url=self.gc_notify_url
+        )
 
         email_content = {
             "email_subject": self.notification.content[0].subject,
@@ -58,7 +61,9 @@ class GCNotify:
                         "filename": attachment.file_name,
                         "sending_method": "attach",
                     }
-                    for idx, attachment in enumerate(self.notification.content[0].attachments)
+                    for idx, attachment in enumerate(
+                        self.notification.content[0].attachments
+                    )
                 }
             )
 
@@ -72,7 +77,11 @@ class GCNotify:
                     personalisation=email_content,
                     email_reply_to_id=self.gc_notify_email_reply_to_id,
                 )
-                response_list.append(NotificationSendResponse(response_id=response["id"], recipient=recipient))
+                response_list.append(
+                    NotificationSendResponse(
+                        response_id=response["id"], recipient=recipient
+                    )
+                )
             except (HTTPError, Exception) as e:
                 logger.error(f"Error sending email to {recipient}: {e}")
 

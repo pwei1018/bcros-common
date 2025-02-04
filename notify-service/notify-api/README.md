@@ -7,7 +7,7 @@ BC Registries Notify API
 
 ## Technology Stack Used
 * Python, Flask
-* Postgres -  SQLAlchemy, psycopg2-binary & alembic
+* Postgres -  SQLAlchemy, pg8000 & alembic
 
 ## Third-Party Products/Libraries used and the the License they are covert by
 
@@ -25,25 +25,23 @@ GitHub Pages (https://guides.github.com/features/pages/) are a neat way to docum
 Copy '.env.sample' to '.env' and replace the values
 
 ### Development Setup
-Run `poetry install`
 Run `poetry shell`
+Run `poetry install`
 
 ### Bump version
 Run `poetry version (patch, minor, major, prepatch, preminor, premajor, prerelease)`
 
-### Running the db migration
-Run `poetry run flask db migrate -m "xxx"`
+### Running the db migration - add new version/upgrade/downgrade
+export DEPLOYMENT_ENV=migration
+Run `poetry run flask db revision -m "xxx"`
 Run `poetry run flask db upgrade`
 Run `poetry run flask db downgrade`
 
-### Running the Notify-API
+### Running the Notify-API locally
 Run `poetry run flask run`
 
 ### Running Linting
-Run `poetry run isort . --check`
-Run `poetry run black . --check`
-Run `poetry run pylint src`
-Run `poetry run flake8 src`
+Run `poetry run ruff check`
 
 ### Running Unit Tests
 - For all tests run `poetry run pytest -v -s`
