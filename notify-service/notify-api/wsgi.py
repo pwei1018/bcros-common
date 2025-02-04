@@ -15,9 +15,11 @@
 
 import os
 
-from notify_api import create_app
+from business_notify_apiar_api import create_app, db  # First-party import
+from flask_migrate import Migrate  # Third-party import
 
 app = create_app()  # pylint: disable=invalid-name
+migrate = Migrate(app, db)
 
 if __name__ == "__main__":
     server_port = os.environ.get("PORT", "5000")

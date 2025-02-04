@@ -15,14 +15,18 @@
 
 import uuid
 import warnings
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 from flask import current_app
 from simple_cloudevent import SimpleCloudEvent
 from structured_logging import StructuredLogging
 
-from notify_api.models import Notification, NotificationHistory, NotificationRequest, SafeList
+from notify_api.models import (
+    Notification,
+    NotificationRequest,
+    SafeList,
+)
 from notify_api.services.gcp_queue import GcpQueue, queue
 
 logger = StructuredLogging.get_logger()
@@ -36,11 +40,11 @@ class NotifyService:
         """Return a Notification service instance."""
 
     @classmethod
-    def get_provider(cls, notify_type: str, content_body: str) -> str:
+    def get_provider(cls, request_by: str, content_body: str) -> str:
         """Get the notify service provider."""
-        if notify_type == Notification.NotificationType.TEXT:
-            # Send TEXT through GC Notify
-            return Notification.NotificationProvider.GC_NOTIFY
+        if request_by.upper() == "STRR":
+            # Send text through GC Notify Housing service
+            return Notification.NotificationProvider.GC_NOTIFY_HOUSING
 
         # Send email through GC Notify if email body is not html
         if not bool(BeautifulSoup(content_body, "html.parser").find()):
@@ -50,9 +54,12 @@ class NotifyService:
 
     def queue_publish(self, notification_request: NotificationRequest) -> Notification:
         """Send the notification."""
-        provider: str = self.get_provider(notification_request.notify_type, notification_request.content.body)
+        provider: str = self.get_provider(
+            notification_request.request_by,
+            notification_request.content.body,
+        )
 
-        # Email must set in safe list of Dev and Test environment
+        # Email must be set in safe list of Dev and Test environment
         if current_app.config.get("DEVELOPMENT"):
             recipients = [
                 r.strip()
@@ -65,85 +72,61 @@ class NotifyService:
 
             notification_request.recipients = ",".join(recipients) if recipients else None
 
+        if not notification_request.recipients:
+            return Notification(
+                recipients=None,
+                status_code=Notification.NotificationStatus.FAILURE,
+            )
+
         notification_data = {
             "notificationId": None,
             "notificationProvider": provider,
             "notificationRequest": notification_request.model_dump_json(),
         }
 
-        if notification_request.recipients:
-            if provider == Notification.NotificationProvider.SMTP:
-                # SMTP service handle by OpenShift;
-                try:
-                    notification: Notification = Notification.create_notification(notification_request)
-                    notification_data["notificationId"] = notification.id
+        delivery_topic = current_app.config.get("DELIVERY_GCNOTIFY_TOPIC")
 
-                    delivery_topic = current_app.config.get("NOTIFY_DELIVERY_SMTP_TOPIC")
-                    cloud_event = SimpleCloudEvent(
-                        id=str(uuid.uuid4()),
-                        source="notify-api",
-                        subject=None,
-                        time=datetime.now(tz=UTC).isoformat(),
-                        type=f"bc.registry.notify.{provider}",
-                        data=notification_data,
-                    )
+        if notification.provider_code == Notification.NotificationProvider.SMTP:
+            delivery_topic = current_app.config.get("DELIVERY_SMTP_TOPIC")
+        elif notification.provider_code == Notification.NotificationProvider.GC_NOTIFY_HOUSING:
+            delivery_topic = current_app.config.get("DELIVERY_GCNOTIFY_HOUSING_TOPIC")
 
-                    publish_future = queue.publish(delivery_topic, GcpQueue.to_queue_message(cloud_event))
-                    logger.info(
-                        f"Queued {notification_request.recipients} {notification_request.content.subject} {publish_future}"
-                    )
+        for recipient in notification_request.recipients.split(","):
+            try:
+                notification: Notification = Notification.create_notification(notification_request, recipient.strip())
+                notification_data["notificationId"] = notification.id
 
-                    notification.status_code = Notification.NotificationStatus.FORWARDED
-                    notification.provider_code = provider
-                    notification.sent_date = datetime.now(UTC)
-                    NotificationHistory.create_history(notification)
-                    notification.delete_notification()
-                except Exception as err:  # pylint: disable=broad-except
-                    logger.error(f"Error processing notification for {notification_request.recipients}: {err}")
-                    notification.status_code = Notification.NotificationStatus.FAILURE
-                    notification.provider_code = provider
-                    notification.sent_date = datetime.now(UTC)
-                    notification.update_notification()
-                    return Notification(
-                        recipients=notification_request.recipients, status_code=Notification.NotificationStatus.FAILURE
-                    )
-            else:
-                # GC Notify service handle by google cloud
-                for recipient in notification_request.recipients.split(","):
-                    try:
-                        notification: Notification = Notification.create_notification(
-                            notification_request, recipient.strip()
-                        )
-                        notification_data["notificationId"] = notification.id
+                cloud_event = SimpleCloudEvent(
+                    id=str(uuid.uuid4()),
+                    source="notify-api",
+                    subject=None,
+                    time=datetime.now(tz=UTC).isoformat(),
+                    type=f"bc.registry.notify.{provider}",
+                    data=notification_data,
+                )
 
-                        delivery_topic = current_app.config.get("NOTIFY_DELIVERY_GCNOTIFY_TOPIC")
-                        cloud_event = SimpleCloudEvent(
-                            id=str(uuid.uuid4()),
-                            source="notify-api",
-                            subject=None,
-                            time=datetime.now(tz=UTC).isoformat(),
-                            type=f"bc.registry.notify.{provider}",
-                            data=notification_data,
-                        )
+                publish_future = queue.publish(delivery_topic, GcpQueue.to_queue_message(cloud_event))
+                logger.info(f"Queued {recipient} {notification_request.content.subject} {publish_future}")
 
-                        publish_future = queue.publish(delivery_topic, GcpQueue.to_queue_message(cloud_event))
-                        logger.info(f"Queued {recipient} {notification_request.content.subject} {publish_future}")
+                notification.status_code = Notification.NotificationStatus.QUEUED
+                notification.provider_code = provider
+                notification.sent_date = datetime.now(UTC)
+                notification.update_notification()
 
-                        notification.status_code = Notification.NotificationStatus.QUEUED
-                        notification.provider_code = provider
-                        notification.sent_date = datetime.now(UTC)
-                        notification.update_notification()
-
-                    except Exception as err:  # pylint: disable=broad-except
-                        logger.error(f"Error processing notification for {recipient}: {err}")
-                        notification.status_code = Notification.NotificationStatus.FAILURE
-                        notification.provider_code = provider
-                        notification.sent_date = datetime.now(UTC)
-                        notification.update_notification()
-                        return Notification(recipients=recipient, status_code=Notification.NotificationStatus.FAILURE)
+            except Exception as err:  # pylint: disable=broad-except
+                logger.error(f"Error processing notification for {recipient}: {err}")
+                notification.status_code = Notification.NotificationStatus.FAILURE
+                notification.provider_code = provider
+                notification.sent_date = datetime.now(UTC)
+                notification.update_notification()
+                return Notification(
+                    recipients=recipient,
+                    status_code=Notification.NotificationStatus.FAILURE,
+                )
 
         return Notification(
-            recipients=notification_request.recipients, status_code=Notification.NotificationStatus.QUEUED
+            recipients=notification_request.recipients,
+            status_code=Notification.NotificationStatus.QUEUED,
         )
 
     def queue_republish(self):
@@ -151,7 +134,13 @@ class NotifyService:
         notifications = Notification.find_resend_notifications()
 
         for notification in notifications:
-            deliery_topic = current_app.config.get("NOTIFY_DELIVERY_GCNOTIFY_TOPIC")
+            delivery_topic = current_app.config.get("DELIVERY_GCNOTIFY_TOPIC")
+
+            if notification.provider_code == Notification.NotificationProvider.SMTP:
+                delivery_topic = current_app.config.get("DELIVERY_SMTP_TOPIC")
+            elif notification.provider_code == Notification.NotificationProvider.GC_NOTIFY_HOUSING:
+                delivery_topic = current_app.config.get("DELIVERY_GCNOTIFY_HOUSING_TOPIC")
+
             data = {
                 "notificationId": notification.id,
             }
@@ -165,7 +154,7 @@ class NotifyService:
                 data=data,
             )
 
-            publish_future = queue.publish(deliery_topic, GcpQueue.to_queue_message(cloud_event))
+            publish_future = queue.publish(delivery_topic, GcpQueue.to_queue_message(cloud_event))
             logger.info(f"resend {notification.recipients} {publish_future}")
 
             notification.status_code = Notification.NotificationStatus.QUEUED

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Worker resource to handle incoming queue pushes from gcp."""
 
-import sys
 from http import HTTPStatus
 
 from flask import Blueprint, request
@@ -64,6 +63,7 @@ def process_message(data: dict) -> NotificationHistory | Notification:
         raise ValueError(f"Unknown notification for notificationId {notification_id}")
 
     gc_notify_provider = GCNotify(notification)
+
     responses: NotificationSendResponses = gc_notify_provider.send()
 
     if responses:

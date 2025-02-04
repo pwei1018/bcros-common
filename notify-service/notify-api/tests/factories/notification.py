@@ -114,12 +114,12 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
         }
 
         REQUEST_PROVIDER_3: ClassVar[dict] = {
-            "provider": Notification.NotificationProvider.GC_NOTIFY,
+            "provider": Notification.NotificationProvider.GC_NOTIFY_HOUSING,
             "data": {
-                "recipients": "+12508888888",
-                "requestBy": faker.user_name(),
+                "recipients": "abc@gmail.com",
+                "requestBy": "STRR",
                 "requestDate": faker.date_time(),
-                "notifyType": "TEXT",
+                "notifyType": "EMAIL",
                 "content": ContentFactory.RequestProviderData.CONTENT_REQUEST_PROVIDER_1,
             },
         }
