@@ -35,19 +35,21 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # POSTGRESQL
-    DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
-    DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
-    DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
-    DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
-    DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
-    if DB_UNIX_SOCKET := os.getenv("NOTIFY_DATABASE_UNIX_SOCKET", None):
-        SQLALCHEMY_DATABASE_URI = (
-            f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?unix_sock={DB_UNIX_SOCKET}/.s.PGSQL.5432"
-        )
+    if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
+        DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
+        DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
     else:
+        DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
+        DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
+        DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
+        DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
+        DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
+
         SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
     if DEPLOYMENT_PLATFORM == "OCP":
+        DB_IP_TYPE = "public"
+
         # Email SMTP
         MAIL_SERVER = os.getenv("MAIL_SERVER", "")
         MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
@@ -58,6 +60,8 @@ class Config:
         MAIL_FROM_ID = os.getenv("MAIL_FROM_ID", "")
         MAIL_DEBUG = os.getenv("MAIL_DEBUG", "False")
     else:
+        DB_IP_TYPE = "private"
+
         # GC Notify
         GC_NOTIFY_ENABLE = os.getenv("GC_NOTIFY_ENABLE", "True")
         GC_NOTIFY_API_URL = os.getenv("GC_NOTIFY_API_URL", "")
@@ -73,6 +77,7 @@ class Config:
     VERIFY_PUBSUB_EMAIL = os.getenv("VERIFY_PUBSUB_EMAIL", None)
     VERIFY_PUBSUB_VIA_JWT = os.getenv("VERIFY_PUBSUB_VIA_JWT", "true").lower() == "true"
     NOTIFY_SUB_AUDIENCE = os.getenv("NOTIFY_SUB_AUDIENCE", None)
+    NOTIFY_HOUSING_SUB_AUDIENCE = os.getenv("NOTIFY_HOUSING_SUB_AUDIENCE", None)
 
 
 class ProductionConfig(Config):  # pylint: disable=too-few-public-methods

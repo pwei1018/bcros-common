@@ -16,9 +16,10 @@
 This module is the API for the BC Registries Notify application.
 """
 
+import os
+
 from flask import Flask
 from flask_cors import CORS
-from flask_migrate import Migrate, upgrade
 from structured_logging import StructuredLogging
 
 from notify_api import models
@@ -40,9 +41,30 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT, **kwargs):
     app.url_map.strict_slashes = False
 
     CORS(app, resources="*")
+
+    if app.config.get("DB_INSTANCE_CONNECTION_NAME"):
+        from google.cloud.sql.connector import Connector
+
+        connector = Connector(refresh_strategy="lazy")
+
+        connection = connector.connect(
+            app.config["DB_INSTANCE_CONNECTION_NAME"],
+            "pg8000",
+            ip_type="private",
+            db=app.config["DB_NAME"],
+            user=app.config["DB_USER"],
+            enable_iam_auth=True,
+        )
+
+        # configure Flask-SQLAlchemy to use Python Connector
+        app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+pg8000://"
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": lambda: connection}
+
     db.init_app(app)
 
     if run_mode == "migration":
+        from flask_migrate import Migrate, upgrade
+
         Migrate(app, db)
         logger.info("Running migration upgrade.")
         with app.app_context():
