@@ -20,7 +20,6 @@ import os
 
 from flask import Flask
 from flask_cors import CORS
-from google.cloud.sql.connector import Connector
 from structured_logging import StructuredLogging
 
 from notify_api import models
@@ -34,8 +33,6 @@ from notify_api.utils.auth import jwt
 
 logger = StructuredLogging.get_logger()
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./c4hnrd-dev-d8e2a3f7bd86.json"
-
 
 def create_app(run_mode=APP_RUNNING_ENVIRONMENT, **kwargs):
     """Return a configured Flask App using the Factory method."""
@@ -46,6 +43,8 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT, **kwargs):
     CORS(app, resources="*")
 
     if app.config.get("DB_INSTANCE_CONNECTION_NAME"):
+        from google.cloud.sql.connector import Connector
+
         connector = Connector(refresh_strategy="lazy")
 
         connection = connector.connect(

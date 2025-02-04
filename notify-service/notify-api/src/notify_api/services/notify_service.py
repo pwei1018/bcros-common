@@ -43,7 +43,7 @@ class NotifyService:
     def get_provider(cls, request_by: str, content_body: str) -> str:
         """Get the notify service provider."""
         if request_by.upper() == "STRR":
-            # Send text through GC Notify Housing service
+            # Send email through GC Notify Housing service
             return Notification.NotificationProvider.HOUSING
 
         # Send email through GC Notify if email body is not html

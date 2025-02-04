@@ -19,8 +19,6 @@ The service worker for applying payments, receipts and account balance to paymen
 from __future__ import annotations
 
 from flask import Flask
-from flask_migrate import Migrate
-from google.cloud.sql.connector import Connector
 from notify_api.models import db
 from structured_logging import StructuredLogging
 
@@ -38,6 +36,8 @@ def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
     app.config.from_object(config[service_environment])
 
     if app.config.get("DB_INSTANCE_CONNECTION_NAME"):
+        from google.cloud.sql.connector import Connector
+
         connector = Connector(refresh_strategy="lazy")
 
         connection = connector.connect(
