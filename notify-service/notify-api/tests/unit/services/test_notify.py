@@ -22,7 +22,7 @@ def test_get_provider(session):  # pylint: disable=unused-argument
     for notification_data in list(NotificationFactory.RequestProviderData):
         service = NotifyService()
         result = service.get_provider(
-            notification_data["data"]["notifyType"], notification_data["data"]["content"]["body"]
+            notification_data["data"]["requestBy"], notification_data["data"]["content"]["body"]
         )
         assert result is not None
         assert result == notification_data["provider"]

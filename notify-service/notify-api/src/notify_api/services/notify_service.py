@@ -46,11 +46,11 @@ class NotifyService:
             # Send email through GC Notify Housing service
             return Notification.NotificationProvider.HOUSING
 
-        # Send email through GC Notify if email body is not html
-        if not bool(BeautifulSoup(content_body, "html.parser").find()):
-            return Notification.NotificationProvider.GC_NOTIFY
+        # Send email through SMTP if email body contains html
+        if bool(BeautifulSoup(content_body, "html.parser").find()):
+            return Notification.NotificationProvider.SMTP
 
-        return Notification.NotificationProvider.SMTP
+        return Notification.NotificationProvider.GC_NOTIFY
 
     def queue_publish(self, notification_request: NotificationRequest) -> Notification:
         """Send the notification."""
