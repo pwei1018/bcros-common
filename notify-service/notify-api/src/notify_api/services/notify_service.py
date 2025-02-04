@@ -44,7 +44,7 @@ class NotifyService:
         """Get the notify service provider."""
         if request_by.upper() == "STRR":
             # Send text through GC Notify Housing service
-            return Notification.NotificationProvider.GC_NOTIFY_HOUSING
+            return Notification.NotificationProvider.HOUSING
 
         # Send email through GC Notify if email body is not html
         if not bool(BeautifulSoup(content_body, "html.parser").find()):
@@ -88,7 +88,7 @@ class NotifyService:
 
         if notification.provider_code == Notification.NotificationProvider.SMTP:
             delivery_topic = current_app.config.get("DELIVERY_SMTP_TOPIC")
-        elif notification.provider_code == Notification.NotificationProvider.GC_NOTIFY_HOUSING:
+        elif notification.provider_code == Notification.NotificationProvider.HOUSING:
             delivery_topic = current_app.config.get("DELIVERY_GCNOTIFY_HOUSING_TOPIC")
 
         for recipient in notification_request.recipients.split(","):
@@ -138,7 +138,7 @@ class NotifyService:
 
             if notification.provider_code == Notification.NotificationProvider.SMTP:
                 delivery_topic = current_app.config.get("DELIVERY_SMTP_TOPIC")
-            elif notification.provider_code == Notification.NotificationProvider.GC_NOTIFY_HOUSING:
+            elif notification.provider_code == Notification.NotificationProvider.HOUSING:
                 delivery_topic = current_app.config.get("DELIVERY_GCNOTIFY_HOUSING_TOPIC")
 
             data = {

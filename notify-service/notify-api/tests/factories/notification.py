@@ -114,7 +114,7 @@ class NotificationFactory:  # pylint: disable=too-few-public-methods
         }
 
         REQUEST_PROVIDER_3: ClassVar[dict] = {
-            "provider": Notification.NotificationProvider.GC_NOTIFY_HOUSING,
+            "provider": Notification.NotificationProvider.HOUSING,
             "data": {
                 "recipients": "abc@gmail.com",
                 "requestBy": "STRR",
