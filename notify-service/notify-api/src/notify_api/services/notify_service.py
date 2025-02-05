@@ -86,9 +86,9 @@ class NotifyService:
 
         delivery_topic = current_app.config.get("DELIVERY_GCNOTIFY_TOPIC")
 
-        if notification.provider_code == Notification.NotificationProvider.SMTP:
+        if provider == Notification.NotificationProvider.SMTP:
             delivery_topic = current_app.config.get("DELIVERY_SMTP_TOPIC")
-        elif notification.provider_code == Notification.NotificationProvider.HOUSING:
+        elif provider == Notification.NotificationProvider.HOUSING:
             delivery_topic = current_app.config.get("DELIVERY_GCNOTIFY_HOUSING_TOPIC")
 
         for recipient in notification_request.recipients.split(","):
