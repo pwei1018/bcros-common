@@ -50,7 +50,7 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT, **kwargs):
         connection = connector.connect(
             app.config["DB_INSTANCE_CONNECTION_NAME"],
             "pg8000",
-            ip_type="private",
+            ip_type="public",
             db=app.config["DB_NAME"],
             user=app.config["DB_USER"],
             enable_iam_auth=True,
