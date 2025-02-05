@@ -9,7 +9,7 @@
                         <div><span class="font-bold">Total Amount Paid:</span> <span class="font-bold">${{ "{:,.2f}".format(total_paid)}}</span></div>
                     {% endif %}
                     {% if statement.is_interim_statement and payment_method_index.value == 0 %}
-                        <div><span class="font-bold">Total Amount Owing:</span> <span class="font-bold">${{ "{:,.2f}".format(total.due) if total.due else '0.00' }}</span></div>
+                        <div><span class="font-bold">Total Amount Owing:</span> <span class="font-bold">${{ "{:,.2f}".format(statement.amount_owing) if statement.amount_owing else '0.00' }}</span></div>
                         <div><span class="font-bold">Payment Received Date:</span>
                             {%  if statementSummary.latestStatementPaymentDate %}
                                 {{statementSummary.latestStatementPaymentDate | format_datetime('detail')}}
