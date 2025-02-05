@@ -18,7 +18,10 @@ The service worker for applying payments, receipts and account balance to paymen
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from flask import Flask
+from google.cloud.sql.connector import Connector
 from notify_api.models import db
 from structured_logging import StructuredLogging
 
@@ -30,27 +33,50 @@ from notify_delivery.services.gcp_queue import queue
 logger = StructuredLogging.get_logger()
 
 
-def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
+@dataclass
+class DBConfig:
+    """Database configuration settings."""
+
+    instance_name: str
+    database: str
+    user: str
+    ip_type: str
+
+
+def getconn(connector: Connector, db_config: DBConfig) -> object:
+    """Create a database connection.
+
+    Args:
+        connector (Connector): The Google Cloud SQL connector instance.
+        db_config (DBConfig): The database configuration.
+
+    Returns:
+        object: A connection object to the database.
+    """
+    return connector.connect(
+        instance_connection_string=db_config.instance_name,
+        db=db_config.database,
+        user=db_config.user,
+        ip_type=db_config.ip_type,
+        driver="pg8000",
+        enable_iam_auth=True,
+    )
+
+
+def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
     """Return a configured Flask App using the Factory method."""
     app = Flask(__name__)
-    app.config.from_object(config[service_environment])
+    app.config.from_object(config[run_mode])
 
-    if app.config.get("DB_INSTANCE_CONNECTION_NAME"):
-        from google.cloud.sql.connector import Connector
-
+    if app.config["DB_INSTANCE_CONNECTION_NAME"]:
         connector = Connector(refresh_strategy="lazy")
-
-        connection = connector.connect(
-            app.config["DB_INSTANCE_CONNECTION_NAME"],
-            "pg8000",
-            db=app.config["DB_NAME"],
+        db_config = DBConfig(
+            instance_name=app.config["DB_INSTANCE_CONNECTION_NAME"],
+            database=app.config["DB_NAME"],
             user=app.config["DB_USER"],
-            enable_iam_auth=True,
+            ip_type=app.config["DB_IP_TYPE"],
         )
-
-        # configure Flask-SQLAlchemy to use Python Connector
-        app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+pg8000://"
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": lambda: connection}
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": lambda: getconn(connector, db_config)}
 
     db.init_app(app)
 
