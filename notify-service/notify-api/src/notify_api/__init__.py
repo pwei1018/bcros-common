@@ -55,7 +55,7 @@ def getconn(db_config: DBConfig) -> object:
     Returns:
         object: A connection object to the database.
     """
-    with Connector() as connector:
+    with Connector(refresh_strategy="lazy") as connector:
         conn = connector.connect(
             instance_connection_string=db_config.instance_name,
             db=db_config.database,
