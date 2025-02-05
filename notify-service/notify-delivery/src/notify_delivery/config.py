@@ -38,13 +38,13 @@ class Config:
     if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
         DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
         DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
+        SQLALCHEMY_DATABASE_URI = "postgresql+pg8000://"
     else:
         DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
         DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
         DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
         DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
         DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
-
         SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
     if DEPLOYMENT_PLATFORM == "OCP":
@@ -69,6 +69,9 @@ class Config:
         GC_NOTIFY_TEMPLATE_ID = os.getenv("GC_NOTIFY_TEMPLATE_ID", "")
         GC_NOTIFY_SMS_TEMPLATE_ID = os.getenv("GC_NOTIFY_SMS_TEMPLATE_ID", "")
         GC_NOTIFY_EMAIL_REPLY_TO_ID = os.getenv("GC_NOTIFY_EMAIL_REPLY_TO_ID", "")
+        GC_NOTIFY_HOUSING_API_KEY = os.getenv("GC_NOTIFY_HOUSING_API_KEY", "")
+        GC_NOTIFY_HOUSING_TEMPLATE_ID = os.getenv("GC_NOTIFY_HOUSING_TEMPLATE_ID", "")
+        GC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID = os.getenv("GC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID", "")
 
     # GCP PubSub
     GCP_AUTH_KEY = os.getenv("GCP_AUTH_KEY", "")
