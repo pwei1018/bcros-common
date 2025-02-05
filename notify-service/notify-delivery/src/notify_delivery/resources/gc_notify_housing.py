@@ -39,7 +39,7 @@ def worker():
 
     try:
         logger.info(f"Event Message Received: {ce}")
-        if ce.type == "bc.registry.notify.gc_notify_housing":
+        if ce.type == "bc.registry.notify.housing":
             process_message(ce.data)
         else:
             logger.error("Invalid queue message type")
