@@ -15,6 +15,8 @@
 
 import os
 
+from notify_api import create_app
+
 app = create_app()  # pylint: disable=invalid-name
 
 if __name__ == "__main__":
