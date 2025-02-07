@@ -8,14 +8,15 @@ import { throttle } from 'lodash'
 const {
   getDocumentDescription,
   getDocumentTypesByClass,
-  findCategoryByPrefix
+  findCategoryByPrefix,
+  getClassDescription
 } = useDocuments()
 
 const {
   searchDocumentRecords,
   getNextDocumentsPage,
   clearFilter,
-} = useDocumentSearch() 
+} = useDocumentSearch()
 
 const {
   documentSearchResults,
@@ -297,7 +298,7 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
             {{ row.consumerIdentifier }}
           </div>
           <div class="italic text-xs text-bcGovGray-700">
-            {{ getDocumentTypesByClass(row.documentClass)[0].description }}
+            {{ getClassDescription(row.documentClass) }}
           </div>
         </template>
         <!-- Document class -->

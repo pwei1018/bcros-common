@@ -13,6 +13,8 @@ export const documentTypes: Array<DocumentClassIF> = [
     description: 'Cooperatives',
     prefixes: ['CP', 'XCP'],
     documents: [
+      { type: 'CONT', description: 'Consent', productCode: 'business' },
+      { type: 'CORR', description: 'Correspondence', productCode: 'business' },
       { type: 'COOP_MISC', description: 'Correction Filing', productCode: 'business' },
       { type: 'COFI', description: 'Cooperatives Miscellaneous Documents', productCode: 'business' }
     ]
@@ -22,7 +24,24 @@ export const documentTypes: Array<DocumentClassIF> = [
     description: 'Corporations',
     prefixes: ['BC', 'C', 'QA', 'QB', 'QC', 'QD', 'QE'],
     documents: [
+      { type: 'APCO', description: 'Application to Correct the Registry', productCode: 'business' },
+      { type: 'CERT', description: 'Certificates', productCode: 'business' },
+      { type: 'CLW', description: 'Client Letters', productCode: 'business' },
+      { type: 'CNVS', description: 'Conversions', productCode: 'business' },
+      { type: 'CONT', description: 'Consent', productCode: 'business' },
+      { type: 'CORR', description: 'Correspondence', productCode: 'business' },
+      { type: 'COU', description: 'Court Order', productCode: 'business' },
+      { type: 'CRTO', description: 'Court Orders', productCode: 'business' },
       { type: 'CORP_MISC', description: 'Corporations Miscellaneous Documents', productCode: 'business' },
+      { type: 'DIRS', description: 'Directors', productCode: 'business' },
+      { type: 'LTR', description: 'Letter Templates', productCode: 'business' },
+      { type: 'MNOR', description: 'Minister\'s Order', productCode: 'business' },
+      { type: 'NATB', description: 'Nature of Business', productCode: 'business' },
+      { type: 'PLNA', description: 'Plan of Arrangements', productCode: 'business' },
+      { type: 'REGN', description: 'Registrar\'s Notation', productCode: 'business' },
+      { type: 'REGO', description: 'Registrar\'s Order', productCode: 'business' },
+      { type: 'SUPP', description: 'Supporting Documents', productCode: 'business' },
+      { type: 'SYSR', description: 'System is the record', productCode: 'business' },
       { type: 'FILE', description: 'COLIN Filing', productCode: 'business' },
       { type: 'DISD', description: 'Dissolution Delays', productCode: 'business' },
       { type: 'FRMA', description: 'Form 2\'s Address Change for Corps', productCode: 'business' },
@@ -33,12 +52,11 @@ export const documentTypes: Array<DocumentClassIF> = [
       { type: 'COFF', description: 'CORPS Filed Forms', productCode: 'business' },
       { type: 'COSD', description: 'CORPS Supporting Documentation', productCode: 'business' },
       { type: 'CNTA', description: 'Continuation in Authorization', productCode: 'business' },
-      { type: 'LPRG', description: 'LP and LLP Registration', productCode: 'business' },
       { type: 'AMLO', description: 'Amalgamation Out', productCode: 'business' },
       { type: 'ASNU', description: 'Assumed Name Undertaking', productCode: 'business' },
       { type: 'AMAL', description: 'Update Due to Amalgamation', productCode: 'business' },
       { type: 'ATTN', description: 'Attorney', productCode: 'business' },
-      { type: 'DISS', description: 'Dissolution Due to Death', productCode: 'business' }
+      { type: 'INV', description: 'Investigation', productCode: 'business' }
     ]
   },
   {
@@ -46,9 +64,12 @@ export const documentTypes: Array<DocumentClassIF> = [
     description: 'Firms',
     prefixes: ['FM', 'GP', 'SP', 'MF'],
     documents: [
+      { type: 'CONT', description: 'Consent', productCode: 'business' },
+      { type: 'CORR', description: 'Correspondence', productCode: 'business' },
       { type: 'FIRM_MISC', description: 'Firms miscellaneous documents', productCode: 'business' },
       { type: 'CNVF', description: 'Conversion of Firm', productCode: 'business' },
-      { type: 'COPN', description: 'Change of Proprietor\'s Name', productCode: 'business' }
+      { type: 'COPN', description: 'Change of Proprietor\'s Name', productCode: 'business' },
+      { type: 'DISS', description: 'Dissolution Due to Death', productCode: 'business' }
     ]
   },
   {
@@ -59,11 +80,11 @@ export const documentTypes: Array<DocumentClassIF> = [
       { type: 'ADDR', description: 'Address', productCode: 'business' },
       { type: 'ANNR', description: 'Annual Report', productCode: 'business' },
       { type: 'ATTN', description: 'Attorney', productCode: 'business' },
+      { type: 'CORR', description: 'Correspondence', productCode: 'business' },
       { type: 'FILE', description: 'COLIN Filing', productCode: 'business' },
       { type: 'CHNM', description: 'Change Of Name', productCode: 'business' },
       { type: 'CONT', description: 'Consent', productCode: 'business' },
       { type: 'CNVF', description: 'Conversion of Firm', productCode: 'business' },
-      { type: 'CORSP', description: 'Correspondence', productCode: 'business' },
       { type: 'LPRG', description: 'LP and LLP Registration', productCode: 'business' }
     ]
   },
@@ -72,6 +93,8 @@ export const documentTypes: Array<DocumentClassIF> = [
     description: 'Name Requests',
     prefixes: ['NR'],
     documents: [
+      { type: 'CONT', description: 'Consent', productCode: 'business' },
+      { type: 'CORR', description: 'Correspondence', productCode: 'business' },
       { type: 'NR_MISC', description: 'Name requests miscellaneous documents', productCode: 'nro' },
       { type: 'CONS', description: 'NR Consent Letter', productCode: 'nro' }
     ]
@@ -81,6 +104,25 @@ export const documentTypes: Array<DocumentClassIF> = [
     description: 'Societies',
     prefixes: ['S', 'XS', 'S-', 'XS-', 'S/', 'XS/'],
     documents: [
+      { type: 'AFDV', description: 'Affidavit Document', productCode: 'business' },
+      { type: 'APCO', description: 'Application to Correct the Registry', productCode: 'business' },
+      { type: 'BYLT', description: 'Bylaw Alterations', productCode: 'business' },
+      { type: 'BYLW', description: 'Bylaw', productCode: 'business' },
+      { type: 'CERT', description: 'Certificates', productCode: 'business' },
+      { type: 'CLW', description: 'Client Letters', productCode: 'business' },
+      { type: 'CNST', description: 'Constitution', productCode: 'business' },
+      { type: 'CNVS', description: 'Conversions', productCode: 'business' },
+      { type: 'CONT', description: 'Consent', productCode: 'business' },
+      { type: 'CRTO', description: 'Court Orders', productCode: 'business' },
+      { type: 'LTR', description: 'Letter Templates', productCode: 'business' },
+      { type: 'MNOR', description: 'Minister\'s Order', productCode: 'business' },
+      { type: 'OTP', description: 'OTP', productCode: 'business' },
+      { type: 'PLNA', description: 'Plan of Arrangements', productCode: 'business' },
+      { type: 'REGN', description: 'Registrar\'s Notation', productCode: 'business' },
+      { type: 'REGO', description: 'Registrar\'s Order', productCode: 'business' },
+      { type: 'RSLN', description: 'Resolution Document', productCode: 'business' },
+      { type: 'SUPP', description: 'Supporting Documents', productCode: 'business' },
+      { type: 'SYSR', description: 'System is the record', productCode: 'business' },
       { type: 'SOC_MISC', description: 'Societies miscellaneous documents', productCode: 'business' },
       { type: 'SOCF', description: 'Society Filing', productCode: 'business' },
       { type: 'CORC', description: 'Corrections', productCode: 'business' },
@@ -95,34 +137,11 @@ export const documentTypes: Array<DocumentClassIF> = [
     description: 'Other',
     prefixes: [],
     documents: [
-      { type: 'CERT', description: 'Certificates', productCode: 'business' },
-      { type: 'LTR', description: 'Letter Templates', productCode: 'business' },
-      { type: 'CLW', description: 'Client Letters', productCode: 'business' },
-      { type: 'BYLW', description: 'Bylaw', productCode: 'business' },
-      { type: 'CNST', description: 'Constitution', productCode: 'business' },
-      { type: 'CONT', description: 'Consent', productCode: 'business' },
-      { type: 'SYSR', description: 'System is the record', productCode: 'business' },
       { type: 'ADMN', description: 'Administration', productCode: 'business' },
-      { type: 'RSLN', description: 'Resolution Document', productCode: 'business' },
-      { type: 'AFDV', description: 'Affidavit Document', productCode: 'business' },
-      { type: 'SUPP', description: 'Supporting Documents', productCode: 'business' },
-      { type: 'MNOR', description: 'Minister\'s Order', productCode: 'business' },
       { type: 'FINM', description: 'Financial Management', productCode: 'business' },
-      { type: 'APCO', description: 'Application to Correct the Registry', productCode: 'business' },
       { type: 'RPTP', description: 'Report of Payments', productCode: 'business' },
-      { type: 'DAT', description: 'DAT or CAT', productCode: 'business' },
-      { type: 'BYLT', description: 'Bylaw Alterations', productCode: 'business' },
-      { type: 'CNVS', description: 'Conversions', productCode: 'business' },
-      { type: 'CRTO', description: 'Court Orders', productCode: 'business' },
-      { type: 'MEM', description: 'Membership', productCode: 'business' },
-      { type: 'PRE', description: 'Pre Image Documents', productCode: 'business' },
-      { type: 'REGO', description: 'Registrar\'s Order', productCode: 'business' },
-      { type: 'PLNA', description: 'Plan of Arrangements', productCode: 'business' },
-      { type: 'REGN', description: 'Registrar\'s Notation', productCode: 'business' },
       { type: 'FINC', description: 'Financial', productCode: 'business' },
-      { type: 'BCGT', description: 'BC Gazette', productCode: 'business' },
-      { type: 'CHNM', description: 'Change Of Name', productCode: 'business' },
-      { type: 'OTP', description: 'OTP', productCode: 'business' }
+      { type: 'BCGT', description: 'BC Gazette', productCode: 'business' }
     ]
   },
   {
@@ -130,6 +149,16 @@ export const documentTypes: Array<DocumentClassIF> = [
     description: 'Manufactured Home Registry',
     prefixes: ['MH'],
     documents: [
+      { type: 'AFDV', description: 'Affidavit Document', productCode: 'business' },
+      { type: 'CLW', description: 'Client Letters', productCode: 'business' },
+      { type: 'CONT', description: 'Consent', productCode: 'business' },
+      { type: 'CORR', description: 'Correspondence', productCode: 'business' },
+      { type: 'CORSP', description: 'Correspondence - MHR', productCode: 'business' },
+      { type: 'CRTO', description: 'Court Orders', productCode: 'business' },
+      { type: 'DAT', description: 'DAT or CAT', productCode: 'business' },
+      { type: 'MEAM', description: 'Certificate of Merger or Amalgamation', productCode: 'business' },
+      { type: 'MEM', description: 'Membership', productCode: 'business' },
+      { type: 'PRE', description: 'Pre Image Documents', productCode: 'business' },
       { type: 'MHR_MISC', description: 'MHR Miscellaneous Documents', productCode: 'mhr' },
       { type: 'FNCH', description: 'MH Supporting Documentation', productCode: 'mhr' },
       { type: 'MHSP', description: 'Finance Change Statements/Partial Discharges', productCode: 'mhr' },
@@ -186,7 +215,13 @@ export const documentTypes: Array<DocumentClassIF> = [
     description: 'Personal Property Registry',
     prefixes: ['PPR'],
     documents: [
+      { type: 'CONT', description: 'Consent', productCode: 'business' },
+      { type: 'CORR', description: 'Correspondence', productCode: 'business' },
+      { type: 'DAT', description: 'DAT or CAT', productCode: 'business' },
+      { type: 'MEM', description: 'Membership', productCode: 'business' },
+      { type: 'PRE', description: 'Pre Image Documents', productCode: 'business' },
       { type: 'PPR_MISC', description: 'PPR miscellaneous documents', productCode: 'ppr' },
+      { type: 'PPR', description: 'PPR (Register Discharges)', productCode: 'ppr' },
       { type: 'PPRS', description: 'PPR Search', productCode: 'ppr' },
       { type: 'PPRC', description: 'PPR Secure Party Codes', productCode: 'ppr' }
     ]
@@ -202,14 +237,14 @@ export const documentResultColumns: Array<TableColumnIF> = [
     {
       key: 'consumerDocumentId',
       label: 'Document ID',
-      tooltipText: `The Document ID, also known as the Barcode Number, 
-                is a unique identifier assigned to a document record.`,
+      tooltipText: `The Document ID, also known as the Barcode Number, is a unique identifier assigned to a document
+       record.`,
       sortable: true
     },
     {
       key: 'consumerIdentifier',
       label: 'Entity ID',
-      tooltipText: 'Maecenas sed diam eget risus varius blandit sit amet non magna.',
+      tooltipText: `The Entity ID is a unique identifier assigned to an entity, such as a business or society.`,
       sortable: true
     },
     {

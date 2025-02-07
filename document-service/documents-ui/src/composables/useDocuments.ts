@@ -67,7 +67,7 @@ export const useDocuments = () => {
    * @returns An array of document descriptions or an empty array if the category is not found
    */
   function getDocumentTypesByClass(documentClass: string = undefined): Array<DocumentDetailIF>|[]  {
-    const filteredDocumentTypes = documentClass 
+    const filteredDocumentTypes = documentClass
     ? documentTypes.find(doc => doc.class === documentClass)?.documents || []
     : documentTypes.reduce((docTypes: Array<DocumentDetailIF>, currentValue) => {
       currentValue.documents.forEach((docType) => {
@@ -79,6 +79,16 @@ export const useDocuments = () => {
     }, [])
 
     return filteredDocumentTypes.sort((a,b) => a.description.localeCompare(b.description))
+  }
+
+  /**
+   * Function to get the class description based on the class name.
+   * @param className - The class name to search for.
+   * @returns The description of the class if found, otherwise an empty string.
+   */
+  function getClassDescription(className: string): string {
+    const documentClass = documentTypes.find(docType => docType.class === className)
+    return documentClass ? documentClass.description : ''
   }
 
   /**
@@ -334,7 +344,7 @@ export const useDocuments = () => {
   const retrieveDocumentRecord = async (identifier: string) => {
     try {
       // Fetch Document Record
-      const { data, status } = await getDocumentRecord(identifier) 
+      const { data, status } = await getDocumentRecord(identifier)
       if(status.value === 'error') {
         navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
       }
@@ -373,6 +383,7 @@ export const useDocuments = () => {
     updatedDocumentList,
     findCategoryByPrefix,
     getDocumentTypesByClass,
+    getClassDescription,
     getDocumentDescription,
     downloadFileFromUrl,
     saveDocuments,
