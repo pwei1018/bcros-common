@@ -29,29 +29,25 @@
             {% endif %}
 
             <!-- Due -->
-            {% if not due.get(invoice.payment_method) and due.get(invoice.payment_method) != 0 %}
-                {% set due = due.update({invoice.payment_method:0}) %}
-            {% else %}
-                {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) + invoice.total}) %}
+            {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) + invoice.total}) %}
 
-                {% if payment_method != 'EFT' %}
-                    {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.paid}) %}
-                    {% if invoice.paid == 0 and invoice.refund > 0 %}
-                        {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.refund}) %}
-                    {% endif %}
+            {% if payment_method != 'EFT' %}
+                {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.paid}) %}
+                {% if invoice.paid == 0 and invoice.refund > 0 %}
+                    {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.refund}) %}
                 {% endif %}
-                
-                {% if payment_method == 'EFT' %}
-                        {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.paid}) %}
+            {% endif %}
+            
+            {% if payment_method == 'EFT' %}
+                {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.paid}) %}
 
-                    {% if 
-                        invoice.paid == 0
-                        and invoice.refund > 0
-                        and invoice.refund_date
-                        and invoice.refund_date | format_datetime('unix') <= statement.to_date | format_datetime('unix')
-                    %}
-                        {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.refund}) %}
-                    {% endif %}
+                {% if 
+                    invoice.paid == 0
+                    and invoice.refund > 0
+                    and invoice.refund_date
+                    and invoice.refund_date | format_datetime('unix') <= statement.to_date | format_datetime('unix')
+                %}
+                    {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.refund}) %}
                 {% endif %}
             {% endif %}
         {% endfor %}
@@ -156,7 +152,7 @@
                 <td colspan="2">
                     <div class="total-elements font-bold" style="border-bottom: none;">
                         Total Amount Owing:
-                        <span class="total-elements-price font-bold">${{ "{:,.2f}".format(statement.amount_owing) if statement.amount_owing else '0.00' }}</span>
+                        <span class="total-elements-price font-bold">${{ "{:,.2f}".format(due[payment_method]) if due[payment_method] else '0.00' }}</span>
                     </div>
                     {% if not statement.is_interim_statement %}
                         <div class="total-elements font-14"  style="border-bottom: none;">Payment Due Date: {{ statementSummary.dueDate | format_datetime('mmm dd,yyyy') }}</div>
