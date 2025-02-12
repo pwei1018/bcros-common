@@ -360,6 +360,46 @@ export async function getDocumentUrl(documentClass: string, docServiceId: string
 }
 
 /**
+ * Sends a GET request to retrieve a document url by its consumerDocumentId and filename.
+ *
+ * @param documentClass - The document class to be retrieved.
+ * @param consumerDocumentId - The unique identifier for the document to be retrieved.
+ * @param filename - The name of the file to be retrieved.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function getDocUrlByConsumerDocId(
+  documentClass: string,
+  consumerDocumentId: string,
+): Promise<ApiResponseOrError> {
+  const options = {
+    method: 'GET',
+    headers: { 'x-apikey': `${docApiKey}` }
+  }
+
+  // Construct query parameters
+  const queryParams = new URLSearchParams()
+  if (consumerDocumentId) queryParams.append('consumerDocumentId', consumerDocumentId)
+
+  // Build the full URL
+  const url = `${baseURL}/searches/${documentClass}?${queryParams.toString()}`
+
+  try {
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
+    return {
+      data: response.data,
+      status: response.status
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
+
+/**
  * Sends a GET request to retrieve a document record report by its consumerDocumentId.
  *
  * @param consumerDocumentId - The unique identifier for the document to be retrieved.

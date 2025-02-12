@@ -10,7 +10,7 @@ defineProps({
     required: false,
     default: ''
   },
-  docServiceId: {
+  docId: {
     type: String,
     required: false,
     default: ''
@@ -26,7 +26,7 @@ defineProps({
   <ULink
     inactive-class="text-primary"
     class="flex align-center"
-    @click="fetchUrlAndDownload(docClass, docServiceId)"
+    @click="fetchUrlAndDownload(docClass, null, docId, fileName)"
   >
       <UTooltip
         v-if="fileName.length > 20"

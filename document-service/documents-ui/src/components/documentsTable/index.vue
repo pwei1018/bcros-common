@@ -9,7 +9,8 @@ const {
   getDocumentDescription,
   getDocumentTypesByClass,
   findCategoryByPrefix,
-  getClassDescription
+  getClassDescription,
+  downloadAllDocuments
 } = useDocuments()
 
 const {
@@ -321,12 +322,16 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
             >
               <DocumentsTableDownloadLink
                 :doc-class="row.documentClass"
-                :doc-service-id="row.documentServiceId"
+                :doc-id="row.consumerDocumentId"
                 :file-name="file"
               />
             </span>
             <span class="my-2">
-              <ULink inactive-class="text-primary" class="flex align-center">
+              <ULink
+                inactive-class="text-primary"
+                class="flex align-center"
+                @click="downloadAllDocuments(row.documentClass, row.consumerDocumentId)"
+              >
                 <UIcon name="i-mdi-download" class="w-5 h-5 mr-1.5" />
                 {{ $t("documentSearch.table.downloadAll") }}
               </ULink>
@@ -336,7 +341,7 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
             <span class="block my-2">
               <DocumentsTableDownloadLink
                 :doc-class="row.documentClass"
-                :doc-service-id="row.documentServiceId"
+                :doc-id="row.consumerDocumentId"
                 :file-name="row.consumerFilenames[0]"
               />
             </span>

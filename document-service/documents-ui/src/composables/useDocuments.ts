@@ -5,7 +5,7 @@ import {
   updateDocumentRecord,
   createScanningRecord,
   updateScanningRecord,
-  getDocumentUrl
+  getDocumentUrl, getDocUrlByConsumerDocId
 } from '~/utils/documentRequests'
 import type { ApiResponseOrError } from '~/interfaces/request-interfaces'
 import type { DocumentDetailIF, DocumentInfoIF } from '~/interfaces/document-types-interface'
@@ -75,7 +75,7 @@ export const useDocuments = () => {
           docTypes.push(docType)
         }
       })
-      return docTypes;
+      return docTypes
     }, [])
 
     return filteredDocumentTypes.sort((a,b) => a.description.localeCompare(b.description))
@@ -155,12 +155,24 @@ export const useDocuments = () => {
    *
    * @param {string} documentClass - The class of the document to download.
    * @param {string} docServiceId - The document service ID of the document to download.
+   * @param {string} docId - The consumer document ID
+   * @param {string} docFileName - The consumer document file name
    */
-  const fetchUrlAndDownload = async (documentClass: string, docServiceId: string): Promise<void> => {
-    const { data } = await getDocumentUrl(documentClass, docServiceId)
+  const fetchUrlAndDownload = async (
+    documentClass: string,
+    docServiceId = '',
+    docId = '',
+    docFileName = ''
+  ): Promise<void> => {
+    const { data } = docServiceId
+      ? await getDocumentUrl(documentClass, docServiceId)
+      : await getDocUrlByConsumerDocId(documentClass, docId)
+    const file = data.value?.find((doc: DocumentRequestIF) => doc.consumerFilename === docFileName) || data.value[0]
+
+    // Create a new link element each time
     const link = document.createElement('a')
-    link.href = data.value[0].documentURL
-    link.download = data.value[0].consumerFilename
+    link.href = file.documentURL
+    link.download = file.consumerFilename
     link.target = '_blank' // This opens the link in a new browser tab
 
     // Append to the document and trigger the download
@@ -169,6 +181,38 @@ export const useDocuments = () => {
 
     // Remove the link after the download is triggered
     document.body.removeChild(link)
+  }
+
+  /**
+   * Downloads all documents associated with a given document class and document ID.
+   *
+   * @param {string} documentClass - The class of the documents to download.
+   * @param {string} [docId=''] - The consumer document ID.
+   */
+  const downloadAllDocuments = async (documentClass: string, docId = '') => {
+    const { data } = await getDocUrlByConsumerDocId(documentClass, docId)
+    const files = data.value
+    for (const file of files) {
+      if (!file.consumerFilename || !file.documentURL) continue
+
+      // Create a temporary anchor element
+      const link = document.createElement('a')
+      link.href = file.documentURL
+      link.download = file.consumerFilename
+      link.target = '_blank' // This opens the link in a new browser tab
+
+      // Append the anchor element to the document body
+      document.body.appendChild(link)
+
+      // Programmatically click the anchor element to trigger the download
+      link.click()
+
+      // Remove the anchor element from the document body
+      document.body.removeChild(link)
+
+      // Focus back on the current window
+      window.focus()
+    }
   }
 
   /** Computed validation flag to check for required document meta data **/
@@ -310,13 +354,13 @@ export const useDocuments = () => {
         // Iterate over the document list and handle requests sequentially
         if(updatedDocumentList.value.length > 0) {
           for (const document of updatedDocumentList.value) {
-            updateDocument(document)
+            await updateDocument(document)
           }
         } else {
-          updateDocument()
+          await updateDocument()
         }
       } catch (error) {
-        console.error('Request failed:', error);
+        console.error('Request failed:', error)
       } finally {
         isLoading.value = false  // Ensure loading is false regardless of success or error
       }
@@ -326,13 +370,13 @@ export const useDocuments = () => {
   /** Scroll to the first error element on the page */
   const scrollToFirstError = () => {
     // Find the first element with the class "placeholder:text-red-500"
-    const errorElement = document.querySelector('.placeholder\\:text-red-500');
+    const errorElement = document.querySelector('.placeholder\\:text-red-500')
 
     // If found, scroll to it
     if (errorElement) {
-      errorElement.scrollIntoView({ behavior: 'smooth' });
+      errorElement.scrollIntoView({ behavior: 'smooth' })
     } else {
-      console.warn('No error found.');
+      console.warn('No error found.')
     }
   }
 
@@ -350,7 +394,7 @@ export const useDocuments = () => {
       }
       if (data.value) {
         const consumerFilenames = []
-        data.value.forEach(record => (record.consumerFilename && consumerFilenames.push(record.consumerFilename)));
+        data.value.forEach(record => (record.consumerFilename && consumerFilenames.push(record.consumerFilename)))
         documentRecord.value = {
           ...data.value[0],
           consumerFilenames: consumerFilenames,
@@ -390,6 +434,7 @@ export const useDocuments = () => {
     updateDocuments,
     scrollToFirstError,
     retrieveDocumentRecord,
-    fetchUrlAndDownload
+    fetchUrlAndDownload,
+    downloadAllDocuments
   }
 }
