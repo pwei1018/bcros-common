@@ -156,6 +156,7 @@ def get_search_results(request_info: RequestInfo, filter_clause: str) -> int:
     """Build search results based on the request parameters."""
     results = []
     temp_results = {}
+
     doc_ids = []
     try:
         query_filter_doc_id = SEARCH_FILTER_BASE + filter_clause + build_page_clause(request_info)
@@ -166,12 +167,16 @@ def get_search_results(request_info: RequestInfo, filter_clause: str) -> int:
         if rows is not None:
             for row in rows:
                 result_json = build_result_json(row, True)
-                doc_id = result_json.get("consumerDocumentId")
-                if not temp_results or not temp_results.get(doc_id):
-                    temp_results[doc_id] = result_json
-                    doc_ids.append(doc_id)
-                elif result_json.get("consumerFilenames"):
-                    temp_results[doc_id]["consumerFilenames"].append(result_json["consumerFilenames"][0])
+                temp_key = result_json.get("consumerDocumentId") + "-" + result_json.get("documentClass")
+                if not temp_results or not temp_results.get(temp_key):
+                    temp_results[temp_key] = result_json
+                    doc_ids.append(temp_key)
+                elif result_json.get("consumerFilenames") and temp_results.get(temp_key):
+                    temp_results[temp_key]["consumerFilenames"].append(result_json["consumerFilenames"][0])
+                elif result_json.get("consumerFilename") and temp_results.get(temp_key):
+                    if not temp_results[temp_key].get("otherDocuments"):
+                        temp_results[temp_key]["otherDocuments"] = []
+                    temp_results[temp_key]["otherDocuments"].append(result_json)
         logger.info(f"get_search_results doc id length={len(doc_ids)}")
         for doc_id in doc_ids:
             results.append(temp_results.get(doc_id))
