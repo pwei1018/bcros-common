@@ -15,7 +15,7 @@
 
 import pytest
 
-from doc_api.models import Document
+from doc_api.models import ApplicationReport, Document
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentTypes
 from doc_api.utils.logging import logger
@@ -67,6 +67,24 @@ TEST_DATA_STORAGE_NAME = [
         "2024/12/01/soc_misc-UT01111.zip",
     ),
 ]
+# testdata pattern is ({event_ts}, {entity_id}, {event_id}, {report_type}, {name})
+TEST_DATA_REPORT_NAME = [
+    ("2024-09-01T19:00:00+00:00", "A0055555", 1234567, "FILING", "2024/09/01/A0055555-1234567-filing.pdf"),
+    ("2005-10-31T19:00:00+00:00", "BC755555", 234567, "certificate", "2005/10/31/BC755555-234567-certificate.pdf"),
+]
+
+
+@pytest.mark.parametrize("event_ts,entity_id,event_id,report_type,name", TEST_DATA_REPORT_NAME)
+def test_report_storage_name(session, event_ts, entity_id, event_id, report_type, name):
+    """Assert that building a report storage file name works as expected."""
+    report: ApplicationReport = ApplicationReport(
+        create_ts=model_utils.ts_from_iso_format(event_ts),
+        entity_id=entity_id,
+        event_id=event_id,
+        report_type=report_type
+    )
+    storage_name = model_utils.get_report_storage_name(report)
+    assert storage_name == name
 
 
 @pytest.mark.parametrize("doc_ts,doc_type,doc_service_id,content_type,name", TEST_DATA_STORAGE_NAME)

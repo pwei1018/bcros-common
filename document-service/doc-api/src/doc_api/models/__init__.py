@@ -13,6 +13,7 @@
 # limitations under the License.
 """This exports all of the models and schemas used by the application."""
 
+from .application_report import ApplicationReport
 from .db import db  # noqa: I001
 from .document import Document
 from .document_request import DocumentRequest
@@ -26,6 +27,7 @@ from .user import User
 
 __all__ = (
     "db",
+    "ApplicationReport",
     "Document",
     "DocumentClass",
     "DocumentType",

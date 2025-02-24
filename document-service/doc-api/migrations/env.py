@@ -9,6 +9,7 @@ from alembic_utils.replaceable_entity import register_entities
 
 from database.postgres_functions import (
     get_service_doc_id,
+    get_service_report_id,
     get_document_number
 )
 
@@ -52,7 +53,7 @@ target_db = current_app.extensions["migrate"].db
 # ... etc.
 
 # Registering db functions here
-register_entities([get_service_doc_id, get_document_number])
+register_entities([get_service_doc_id, get_service_report_id, get_document_number])
 
 
 def get_metadata():

@@ -23,6 +23,12 @@ from doc_api.models.type_tables import DocumentClasses, DocumentTypeClass, Docum
 from doc_api.resources.request_info import RequestInfo
 from doc_api.utils.logging import logger
 
+REPORT_TYPE_MIN: int = 3
+REPORT_TYPE_MAX: int = 30
+ENTITY_ID_MIN: int = 4
+ENTITY_ID_MAX: int = 20
+FILENAME_MIN: int = 5
+FILENAME_MAX: int = 1000
 VALIDATOR_ERROR = "Error performing new request extra validation. "
 INVALID_DOC_TYPE = "Request invalid: unrecognized document type {doc_type}. "
 MISSING_DOC_TYPE = "Request invalid: required request document type is missing. "
@@ -46,6 +52,11 @@ MISSING_SCAN_DOCUMENT_ID = "Request invalid: missing required consumerDocumentId
 INVALID_SCAN_EXISTS = "Request invalid: record already exists for class {doc_class} and ID {cons_doc_id}. "
 INVALID_PAGE_COUNT = "The scan document page count must be greater than 0. "
 INVALID_REFERENCE_ID = "The consumerReferenceId value cannot be greater than 50 characters in length. "
+INVALID_REPORT_TYPE = "Report type {report_type} is required and must be between 3 and 30 characters in length. "
+INVALID_ENTITY_ID = "Entity identifier {entity_id} is required and must be between 4 and 20 characters in length. "
+INVALID_EVENT_ID = "Event identifier {event_id} is invalid: it must be an integer > 0. "
+INVALID_FILENAME = "File name {filename} is invalid: it must be between 5 and 1000 characters in length. "
+INVALID_REPORT_UPDATE = "PATCH update report record payload no properties found to update (see the API spec). "
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -109,6 +120,33 @@ def validate_scanning(request_json: dict, is_new: bool = True) -> str:
         error_msg += validate_scandate(request_json)
     except Exception as validation_exception:  # noqa: B902; eat all errors
         logger.error("validate_scanning exception: " + str(validation_exception))
+        error_msg += VALIDATOR_ERROR
+    return error_msg
+
+
+def validate_report_request(request_json: dict, is_create: bool) -> str:
+    """Perform all extra data validation checks on a new report request not covered by schema validation."""
+    logger.info(f"Validating new report request for entity {request_json.get('entityIdentifier')}")
+    error_msg: str = ""
+    try:
+        error_msg = validate_report_filingdate(request_json)
+        report_type: str = request_json.get("reportType")
+        if not report_type and is_create:
+            error_msg += INVALID_REPORT_TYPE.format(report_type="(missing)")
+        elif report_type and (len(report_type) < REPORT_TYPE_MIN or len(report_type) > REPORT_TYPE_MAX):
+            error_msg += INVALID_REPORT_TYPE.format(report_type=report_type)
+        filename: str = request_json.get("name")
+        if filename and (len(filename) < FILENAME_MIN or len(filename) > FILENAME_MAX):
+            error_msg += INVALID_FILENAME.format(filename=filename)
+        if is_create:
+            entity_id: str = request_json.get("entityIdentifier")
+            if not entity_id or len(entity_id) < ENTITY_ID_MIN or len(entity_id) > ENTITY_ID_MAX:
+                error_msg += INVALID_ENTITY_ID.format(entity_id=entity_id)
+            error_msg += validate_report_event_id(request_json)
+        elif not report_type and not filename and not request_json.get("datePublished"):
+            error_msg += INVALID_REPORT_UPDATE
+    except Exception as validation_exception:  # noqa: B902; eat all errors
+        logger.error("validate_report_request exception: " + str(validation_exception))
         error_msg += VALIDATOR_ERROR
     return error_msg
 
@@ -256,6 +294,38 @@ def validate_filingdate(info: RequestInfo) -> str:
         error_msg = INVALID_FILING_DATE.format(param_date=info.consumer_filedate)
     except Exception:  # noqa: B902; eat all errors
         error_msg = INVALID_FILING_DATE.format(param_date=info.consumer_filedate)
+    return error_msg
+
+
+def validate_report_filingdate(request_json: dict) -> str:
+    """Check that the optional report event filing date is in a valid date format."""
+    error_msg: str = ""
+    if not request_json.get("datePublished"):
+        return error_msg
+    filing_date: str = request_json.get("datePublished")
+    try:
+        test_date = model_utils.ts_from_iso_format(filing_date)
+        if test_date:
+            return error_msg
+        error_msg = INVALID_FILING_DATE.format(param_date=filing_date)
+    except Exception:  # noqa: B902; eat all errors
+        error_msg = INVALID_FILING_DATE.format(param_date=filing_date)
+    return error_msg
+
+
+def validate_report_event_id(request_json: dict) -> str:
+    """Check that the report event id is a valid positive integer."""
+    error_msg: str = ""
+    request_id: str = request_json.get("requestEventIdentifier")
+    if not request_id:
+        return INVALID_EVENT_ID.format(event_id="(missing)")
+    try:
+        event_id: int = int(request_id)
+        if str(event_id) != request_id:
+            return INVALID_EVENT_ID.format(event_id=request_id)
+        request_json["eventIdentifier"] = event_id
+    except Exception:  # noqa: B902; eat all errors
+        error_msg = INVALID_EVENT_ID.format(event_id=request_id)
     return error_msg
 
 

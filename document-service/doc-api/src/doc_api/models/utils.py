@@ -56,6 +56,7 @@ TO_FILE_TYPE = {
 }
 DEFAULT_FILE_TYPE = "pdf"
 STORAGE_DOC_NAME = "{doc_type}-{doc_service_id}.{file_type}"
+STORAGE_REPORT_NAME = "{entity_id}-{event_id}-{report_type}.pdf"
 
 
 def now_ts():
@@ -137,6 +138,23 @@ def get_doc_storage_name(document, content_type: str) -> str:
         + "/"
         + STORAGE_DOC_NAME.format(
             doc_type=document.document_type.lower(), doc_service_id=document.document_service_id, file_type=ftype
+        )
+    )
+    return name
+
+
+def get_report_storage_name(report) -> str:
+    """Get a report storage name from the registration in the format YYYY/MM/DD/entity_id-event_id-report_type.pdf."""
+    name: str = ""
+    if report.filing_date:
+        name = report.filing_date.isoformat()[:10]
+    else:
+        name = report.create_ts.isoformat()[:10]
+    name = (
+        name.replace("-", "/")
+        + "/"
+        + STORAGE_REPORT_NAME.format(
+            entity_id=report.entity_id, event_id=report.event_id, report_type=report.report_type.lower()
         )
     )
     return name

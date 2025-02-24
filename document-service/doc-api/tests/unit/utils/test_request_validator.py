@@ -256,6 +256,81 @@ TEST_DATA_DOC_ID_CHECKSUM = [
     ("Invalid doc id", False, DOC_ID_INVALID_CHECKSUM),
     ("Valid doc id skip", True, "0100000204")
 ]
+# test data pattern is ({description}, {valid}, {entity_id}, {event_id}, {rtype}, {name}, {fdate}, {message_content})
+TEST_DATA_REPORT_CREATE = [
+    ("Valid", True, "123455", "1234234", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00", None),
+    ("Invalid entity id", False, "1", "1234234", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00",
+     validator.INVALID_ENTITY_ID.format(entity_id="1")),
+    ("Invalid event id", False, "12345", "junk", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00",
+     validator.INVALID_EVENT_ID.format(event_id="junk")),
+    ("Invalid report type", False, "12345", "12345", "F", "name.pdf", "2024-09-01T19:00:00+00:00",
+     validator.INVALID_REPORT_TYPE.format(report_type="F")),
+    ("Invalid name", False, "12345", "12345", "FILING", ".pdf", "2024-09-01T19:00:00+00:00",
+     validator.INVALID_FILENAME.format(filename=".pdf")),
+    ("Invalid date", False, "12345", "12345", "FILING", "name.pdf", "January 1, 2010",
+     validator.INVALID_FILING_DATE.format(param_date="January 1, 2010")),
+]
+# test data pattern is ({description}, {valid}, {rtype}, {name}, {fdate}, {message_content})
+TEST_DATA_REPORT_UPDATE = [
+    ("Valid", True, "FILING", "name.pdf", "2024-09-01T19:00:00+00:00", None),
+    ("Invalid missing update", False, None, None, None, validator.INVALID_REPORT_UPDATE),
+    ("Invalid missing update empty", False, "", "", "", validator.INVALID_REPORT_UPDATE),
+    ("Invalid report type", False, "F", "name.pdf", "2024-09-01T19:00:00+00:00",
+     validator.INVALID_REPORT_TYPE.format(report_type="F")),
+    ("Invalid name", False, "FILING", ".pdf", "2024-09-01T19:00:00+00:00",
+     validator.INVALID_FILENAME.format(filename=".pdf")),
+    ("Invalid date", False, "FILING", "name.pdf", "January 1, 2010",
+     validator.INVALID_FILING_DATE.format(param_date="January 1, 2010")),
+]
+
+
+@pytest.mark.parametrize("desc,valid,entity_id,event_id,rtype,name,fdate,message_content", TEST_DATA_REPORT_CREATE)
+def test_validate_report_create(session, desc, valid, entity_id, event_id, rtype, name, fdate, message_content):
+    """Assert that create report request validation works as expected."""
+    # setup
+    request_json = {
+
+    }
+    if entity_id:
+        request_json["entityIdentifier"] = entity_id
+    if event_id:
+        request_json["requestEventIdentifier"] = event_id
+    if rtype:
+        request_json["reportType"] = rtype
+    if name:
+        request_json["name"] = name
+    if fdate:
+        request_json["datePublished"] = fdate
+    error_msg = validator.validate_report_request(request_json, True)
+    if valid:
+        assert error_msg == ""
+        assert request_json.get("eventIdentifier")
+    else:
+        assert error_msg != ""
+        if message_content:
+            assert error_msg.find(message_content) != -1
+
+
+@pytest.mark.parametrize("desc,valid,rtype,name,fdate,message_content", TEST_DATA_REPORT_UPDATE)
+def test_validate_report_update(session, desc, valid, rtype, name, fdate, message_content):
+    """Assert that the update report request validation works as expected."""
+    # setup
+    request_json = {
+
+    }
+    if rtype:
+        request_json["reportType"] = rtype
+    if name:
+        request_json["name"] = name
+    if fdate:
+        request_json["datePublished"] = fdate
+    error_msg = validator.validate_report_request(request_json, False)
+    if valid:
+        assert error_msg == ""
+    else:
+        assert error_msg != ""
+        if message_content:
+            assert error_msg.find(message_content) != -1
 
 
 @pytest.mark.parametrize("desc,valid,start_date,end_date,message_content", TEST_DATA_SEARCH_DATES)

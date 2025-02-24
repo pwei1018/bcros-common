@@ -11,8 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Maintain db function get_service_report_id here."""
+from alembic_utils.pg_function import PGFunction
 
-"""Export all of the Postgres db functions."""
-from .get_document_number import get_document_number
-from .get_service_doc_id import get_service_doc_id
-from .get_service_report_id import get_service_report_id
+get_service_report_id = PGFunction(
+    schema="public",
+    signature="get_service_report_id()",
+    definition="""
+    RETURNS VARCHAR
+    LANGUAGE plpgsql
+    AS
+    $$
+    BEGIN
+        RETURN 'DSR' || trim(to_char(nextval('service_report_id_seq'), '0000000000'));
+    END
+    ;
+    $$;
+    """,
+)

@@ -226,6 +226,11 @@ def validate_request(info: RequestInfo) -> str:
     return request_validator.validate_request(info)
 
 
+def validate_report_request(request_json: dict, is_create: bool) -> str:
+    """Perform non-schema extra validation on a new requests."""
+    return request_validator.validate_report_request(request_json, is_create)
+
+
 def validate_scanning_request(request_json: dict, is_new: bool = True) -> str:
     """Perform non-schema extra validation on a new document scanning requests."""
     return request_validator.validate_scanning(request_json, is_new)

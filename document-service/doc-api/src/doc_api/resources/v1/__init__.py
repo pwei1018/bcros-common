@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Exposes all of the resource endpoints mounted in Flask-Blueprints."""
+from .application_reports import bp as app_report_bp
 from .business_requests import bp as business_bp
 from .callbacks import bp as callback_bp
 from .documents import bp as document_bp

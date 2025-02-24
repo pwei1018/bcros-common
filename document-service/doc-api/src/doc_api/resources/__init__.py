@@ -15,7 +15,18 @@
 from .constants import EndpointVersionPath
 from .meta import meta_bp
 from .ops import ops_bp
-from .v1 import business_bp, callback_bp, document_bp, mhr_bp, nr_bp, ppr_bp, report_bp, scanning_bp, search_bp
+from .v1 import (
+    app_report_bp,
+    business_bp,
+    callback_bp,
+    document_bp,
+    mhr_bp,
+    nr_bp,
+    ppr_bp,
+    report_bp,
+    scanning_bp,
+    search_bp,
+)
 from .version_endpoint import VersionEndpoint
 
 meta_endpoint = VersionEndpoint(
@@ -27,7 +38,18 @@ ops_endpoint = VersionEndpoint(name="OPS", path=EndpointVersionPath.OPS, bps=[op
 v1_endpoint = VersionEndpoint(  # pylint: disable=invalid-name
     name="API_V1",
     path=EndpointVersionPath.API_V1,
-    bps=[business_bp, callback_bp, document_bp, mhr_bp, nr_bp, ppr_bp, report_bp, scanning_bp, search_bp],
+    bps=[
+        app_report_bp,
+        business_bp,
+        callback_bp,
+        document_bp,
+        mhr_bp,
+        nr_bp,
+        ppr_bp,
+        report_bp,
+        scanning_bp,
+        search_bp,
+    ],
 )
 
 TRACING_EXCLUED_URLS = ["/meta", "/ops"]

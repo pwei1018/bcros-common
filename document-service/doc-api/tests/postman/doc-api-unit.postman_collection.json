@@ -8,6 +8,228 @@
 	},
 	"item": [
 		{
+			"name": "application_reports",
+			"item": [
+				{
+					"name": "Upload App Report Receipt",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/pdf",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Downloads/BC Registry Corp name change.pdf"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-reports/BC0650000/2123456/RECEIPT?consumerFilename=ar-test-1.pdf",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-reports",
+								"BC0650000",
+								"2123456",
+								"RECEIPT"
+							],
+							"query": [
+								{
+									"key": "consumerFilename",
+									"value": "ar-test-1.pdf"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get By DRS ID",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-reports/DSR0000100000",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-reports",
+								"DSR0000100000"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update App Report Info",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"BC0650000-test-receipt.pdf\",\n  \"datePublished\": \"2023-12-22T16:22:32+00:00\",\n  \"reportType\": \"UT_RECEIPT\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-reports/DSR0000100000",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-reports",
+								"DSR0000100000"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get By Event ID",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-reports/events/2123456",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-reports",
+								"events",
+								"2123456"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get By Entity ID",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-reports/history/BC0650000",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-reports",
+								"history",
+								"BC0650000"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Submit requests to create new document records with or without a document payload."
+		},
+		{
 			"name": "business",
 			"item": [
 				{
@@ -1991,11 +2213,11 @@
 	"variable": [
 		{
 			"key": "apikey",
-			"value": "provide"
+			"value": "PROVIDE"
 		},
 		{
 			"key": "account_id",
-			"value": "provide"
+			"value": "PROVIDE"
 		},
 		{
 			"key": "base_url_prism",
@@ -2003,7 +2225,7 @@
 		},
 		{
 			"key": "base_url",
-			"value": "bcregistry-dev.apigee.net/doc",
+			"value": "https://test.api.connect.gov.bc.ca/doc-dev",
 			"type": "string"
 		},
 		{
@@ -2013,7 +2235,7 @@
 		},
 		{
 			"key": "jwt",
-			"value": "provide",
+			"value": "PROVIDE",
 			"type": "string"
 		}
 	]

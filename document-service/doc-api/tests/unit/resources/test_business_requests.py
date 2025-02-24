@@ -34,7 +34,7 @@ from tests.unit.services.utils import (
 )
 
 TEST_DATAFILE = "tests/unit/services/unit_test.pdf"
-MOCK_AUTH_URL = "https://bcregistry-bcregistry-mock.apigee.net/mockTarget/auth/api/v1/"
+MOCK_AUTH_URL = "https://test.api.connect.gov.bc.ca/mockTarget/auth/api/v1/"
 STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
 INVALID_ROLES = [COLIN_ROLE]
 DOC_CLASS1 = DocumentClasses.CORP.value
