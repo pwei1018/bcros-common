@@ -61,7 +61,7 @@ def test_get_document_record(session, client, jwt, desc, doc_id, roles, account,
         with open(TEST_DATAFILE, "rb") as data_file:
             raw_data = data_file.read()
             data_file.close()
-        create_path = "/api/v1/ppr/PPR_MISC" + PARAMS1 + "&consumerDocumentId=" + TEST_DOC_ID
+        create_path = "/api/v1/ppr/CORR" + PARAMS1 + "&consumerDocumentId=" + TEST_DOC_ID
         response = client.post(create_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
         # logger.info(response.json)
     # test

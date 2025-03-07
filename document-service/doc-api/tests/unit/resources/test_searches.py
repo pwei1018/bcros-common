@@ -33,7 +33,7 @@ MOCK_AUTH_URL = "https://test.api.connect.gov.bc.ca/mockTarget/auth/api/v1/"
 STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
 INVALID_ROLES = [COLIN_ROLE]
 DOC_CLASS1 = DocumentClasses.CORP.value
-DOC_TYPE1 = DocumentTypes.CORP_MISC.value
+DOC_TYPE1 = DocumentTypes.CORR.value
 TEST_DOC_ID = "UT9999999"
 TEST_CONSUMER_ID = "UTBUS"
 MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
@@ -60,7 +60,7 @@ PARAMS_DATE_CLASS_ALL_VALID = (
     + DOC_TYPE1
 )
 PARAMS_ALL_VALID = (
-    "?documentClass=CORP&documentType=CORP_MISC&queryStartDate=2024-08-13&queryEndDate=2024-08-13"
+    "?documentClass=CORP&documentType=CORR&queryStartDate=2024-08-13&queryEndDate=2024-08-13"
     + "&consumerIdentifier=BC0700"
     + "&consumerDocumentId=UT-000005B"
     + "&consumerFileName=change_director"
@@ -133,7 +133,7 @@ def test_class_searches(session, client, jwt, desc, params, roles, account, doc_
             raw_data = data_file.read()
             data_file.close()
         response = client.post(
-            "/api/v1/business/CORP/CORP_MISC" + PARAMS1, data=raw_data, headers=headers, content_type=MEDIA_PDF
+            "/api/v1/business/CORP/CORR" + PARAMS1, data=raw_data, headers=headers, content_type=MEDIA_PDF
         )
         # logger.info(response.json)
         if desc == "Valid doc service ID":
@@ -171,7 +171,7 @@ def test_searches(session, client, jwt, desc, params, roles, account, status):
 
     if status == HTTPStatus.OK and desc != "Valid consumer ID no results":  # Create.
         response = client.post(
-            "/api/v1/documents/CORP/CORP_MISC" + PARAMS1, data=None, headers=headers, content_type=MEDIA_PDF
+            "/api/v1/documents/CORP/CORR" + PARAMS1, data=None, headers=headers, content_type=MEDIA_PDF
         )
         # logger.info(response.json)
     # test

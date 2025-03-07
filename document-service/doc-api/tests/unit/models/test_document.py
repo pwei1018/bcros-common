@@ -28,7 +28,7 @@ DOC1 = {
     "consumerDocumentId": "T0000001",
     "consumerFilename": "test.pdf",
     "consumerIdentifier": "T0000002",
-    "documentType": "PPR_MISC",
+    "documentType": "CORR",
     "documentClass": "PPR",
     "consumerFilingDateTime": "2024-07-01T19:00:00+00:00",
     "description": "A meaningful description of the document.",
@@ -46,7 +46,7 @@ UPDATE_DOC = {
     "consumerDocumentId": "T0000002",
     "consumerFilename": "test-update.pdf",
     "consumerIdentifier": "CI-0000002",
-    "documentType": "CORP_MISC",
+    "documentType": "CORR",
     "documentClass": "CORP",
     "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
     "description": "Updated description of the document.",
@@ -56,7 +56,7 @@ UPDATE_DOC = {
 TEST_DOCUMENT = Document(
     id=1,
     document_service_id="1",
-    document_type=DocumentTypes.PPR_MISC.value,
+    document_type=DocumentTypes.CORR.value,
     document_class=DocumentClasses.PPR.value,
     add_ts=model_utils.now_ts(),
     consumer_document_id="T0000001",
@@ -70,27 +70,27 @@ TEST_DOCUMENT = Document(
 
 # testdata pattern is ({id}, {has_results}, {doc_type), {doc_class})
 TEST_ID_DATA = [
-    (200000001, True, DocumentTypes.PPR_MISC.value, DocumentClasses.PPR.value),
-    (300000000, False, DocumentTypes.PPR_MISC.value, DocumentClasses.PPR.value),
+    (200000001, True, DocumentTypes.CORR.value, DocumentClasses.PPR.value),
+    (300000000, False, DocumentTypes.CORR.value, DocumentClasses.PPR.value),
 ]
 TEST_DOC_SERVICE_ID_DATA = [
-    ("T0000001", True, DocumentTypes.MHR_MISC.value, DocumentClasses.MHR.value),
-    ("XXXD0000", False, DocumentTypes.MHR_MISC.value, DocumentClasses.MHR.value),
+    ("T0000001", True, DocumentTypes.CORR.value, DocumentClasses.MHR.value),
+    ("XXXD0000", False, DocumentTypes.CORR.value, DocumentClasses.MHR.value),
 ]
 # testdata pattern is ({id}, {has_results}, {doc_type), {doc_class}, {has_scan})
 TEST_DOC_ID_DATA = [
-    ("T0000001", True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, True),
-    ("T0000001", True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, False),
-    ("XXXD0000", False, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, False),
+    ("T0000001", True, DocumentTypes.CORR.value, DocumentClasses.CORP.value, True),
+    ("T0000001", True, DocumentTypes.CORR.value, DocumentClasses.CORP.value, False),
+    ("XXXD0000", False, DocumentTypes.CORR.value, DocumentClasses.CORP.value, False),
 ]
 # testdata pattern is ({id}, {has_results}, {doc_type), {doc_class}, {query_doc_type})
 TEST_CONSUMER_ID_DATA = [
-    ("T0000001", True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, False),
-    ("T0000001", True, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, True),
-    ("XXXD0000", False, DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, False),
+    ("T0000001", True, DocumentTypes.CORR.value, DocumentClasses.CORP.value, False),
+    ("T0000001", True, DocumentTypes.CORR.value, DocumentClasses.CORP.value, True),
+    ("XXXD0000", False, DocumentTypes.CORR.value, DocumentClasses.CORP.value, False),
 ]
 # testdata pattern is ({has_doc_id}, {doc_type})
-TEST_CREATE_JSON_DATA = [(True, DocumentTypes.CORP_MISC.value), (False, DocumentTypes.MHR_MISC.value)]
+TEST_CREATE_JSON_DATA = [(True, DocumentTypes.CORR.value), (False, DocumentTypes.CORR.value)]
 # testdata pattern is ({doc_info}, {update_doc_info}, {update_class_type})
 TEST_UPDATE_JSON_DATA = [
     (DOC1, UPDATE_DOC, True),

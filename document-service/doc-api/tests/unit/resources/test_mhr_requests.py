@@ -38,7 +38,7 @@ MOCK_AUTH_URL = "https://test.api.connect.gov.bc.ca/mockTarget/auth/api/v1/"
 STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
 INVALID_ROLES = [COLIN_ROLE]
 DOC_CLASS1 = DocumentClasses.MHR.value
-DOC_TYPE1 = DocumentTypes.MHR_MISC.value
+DOC_TYPE1 = DocumentTypes.REG_101.value
 MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
 PARAMS1 = "?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25"
 PATH: str = "/api/v1/mhr/{doc_type}" + PARAMS1
@@ -56,18 +56,18 @@ TEST_CREATE_DATA = [
     ("Invalid role", MEDIA_PDF, INVALID_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.UNAUTHORIZED),
     ("Valid staff", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED),
 ]
-# testdata pattern is ({description}, {params}, {roles}, {account}, {doc_class}, {status})
+# testdata pattern is ({description}, {params}, {roles}, {account}, {doc_class}, {doc_type}, {status})
 TEST_GET_DATA = [
-    ("Invalid no params", None, STAFF_ROLES, "UT1234", DOC_CLASS1, HTTPStatus.BAD_REQUEST),
-    ("Staff missing account", PARAM_CONSUMER_ID, STAFF_ROLES, None, DOC_CLASS1, HTTPStatus.BAD_REQUEST),
-    ("Invalid role", PARAM_CONSUMER_ID, INVALID_ROLES, "UT1234", DOC_CLASS1, HTTPStatus.UNAUTHORIZED),
-    ("Valid no results", PARAM_CONSUMER_ID_NONE, STAFF_ROLES, "UT1234", DOC_CLASS1, HTTPStatus.NOT_FOUND),
-    ("Valid consumer id", PARAM_CONSUMER_ID, STAFF_ROLES, "UT1234", DOC_CLASS1, HTTPStatus.OK),
+    ("Invalid no params", None, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST),
+    ("Staff missing account", PARAM_CONSUMER_ID, STAFF_ROLES, None, DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST),
+    ("Invalid role", PARAM_CONSUMER_ID, INVALID_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.UNAUTHORIZED),
+    ("Valid no results", PARAM_CONSUMER_ID_NONE, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.NOT_FOUND),
+    ("Valid consumer id", PARAM_CONSUMER_ID, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.OK),
 ]
 
 
-@pytest.mark.parametrize("desc,params,roles,account,doc_class,status", TEST_GET_DATA)
-def test_get(session, client, jwt, desc, params, roles, account, doc_class, status):
+@pytest.mark.parametrize("desc,params,roles,account,doc_class,doc_type,status", TEST_GET_DATA)
+def test_get(session, client, jwt, desc, params, roles, account, doc_class, doc_type, status):
     """Assert that a get MHR documents request works as expected."""
     # setup
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
@@ -81,17 +81,18 @@ def test_get(session, client, jwt, desc, params, roles, account, doc_class, stat
         req_path += params
 
     if status == HTTPStatus.OK:  # Create.
+        post_path: str = PATH.format(doc_type=doc_type)
         raw_data = None
         with open(TEST_DATAFILE, "rb") as data_file:
             raw_data = data_file.read()
             data_file.close()
-        response = client.post("/api/v1/mhr/MHR_MISC" + PARAMS1, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+        response = client.post(post_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
         # logger.info(response.json)
     # test
     response = client.get(req_path, headers=headers)
 
     # check
-    # logger.info(response.json)
+    logger.info(response.json)
     assert response.status_code == status
     if response.status_code == HTTPStatus.OK:
         results_json = response.json

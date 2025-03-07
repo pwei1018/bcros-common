@@ -54,17 +54,17 @@ TEST_DATA_DATE_END = [
 TEST_DATA_STORAGE_NAME = [
     (
         "2024-09-01T19:00:00+00:00",
-        DocumentTypes.CORP_MISC.value,
+        DocumentTypes.CORR.value,
         "UT01111",
         model_utils.CONTENT_TYPE_PDF,
-        "2024/09/01/corp_misc-UT01111.pdf",
+        "2024/09/01/corr-UT01111.pdf",
     ),
     (
         "2024-12-01T19:00:00+00:00",
-        DocumentTypes.SOC_MISC.value,
+        DocumentTypes.CORR.value,
         "UT01111",
         model_utils.CONTENT_TYPE_ZIP,
-        "2024/12/01/soc_misc-UT01111.zip",
+        "2024/12/01/corr-UT01111.zip",
     ),
 ]
 # testdata pattern is ({event_ts}, {entity_id}, {event_id}, {report_type}, {name})

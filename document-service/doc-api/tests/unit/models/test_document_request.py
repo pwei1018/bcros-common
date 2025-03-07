@@ -28,7 +28,7 @@ DOC1 = {
     "consumerDocumentId": "T0000001",
     "consumerFilename": "test.pdf",
     "consumerIdentifer": "T0000002",
-    "documentType": "PPR_MISC",
+    "documentType": "CORR",
     "documentClass": "PPR",
     "consumerFilingDateTime": "2024-07-01T19:00:00+00:00",
 }
@@ -43,7 +43,7 @@ REQUEST1 = {
 TEST_DOCUMENT = Document(
     id=1,
     document_service_id="1",
-    document_type=DocumentTypes.PPR_MISC.value,
+    document_type=DocumentTypes.CORR.value,
     document_class=DocumentClasses.PPR.value,
     add_ts=model_utils.now_ts(),
     consumer_document_id="T0000001",
@@ -65,8 +65,8 @@ TEST_REQUEST = DocumentRequest(
 
 # testdata pattern is ({id}, {has_results}, doc_type, request_type)
 TEST_ID_DATA = [
-    (200000001, True, DocumentTypes.PPR_MISC.value, RequestTypes.ADD.value),
-    (300000000, False, DocumentTypes.PPR_MISC.value, RequestTypes.ADD.value),
+    (200000001, True, DocumentTypes.CORR.value, RequestTypes.ADD.value),
+    (300000000, False, DocumentTypes.CORR.value, RequestTypes.ADD.value),
 ]
 
 

@@ -38,7 +38,7 @@ MOCK_AUTH_URL = "https://test.api.connect.gov.bc.ca/mockTarget/auth/api/v1/"
 STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
 INVALID_ROLES = [COLIN_ROLE]
 DOC_CLASS1 = DocumentClasses.PPR.value
-DOC_TYPE1 = DocumentTypes.PPR_MISC.value
+DOC_TYPE1 = DocumentTypes.FNCH.value
 MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
 PARAMS1 = "?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25"
 PATH: str = "/api/v1/ppr/{doc_type}" + PARAMS1
@@ -85,7 +85,7 @@ def test_get(session, client, jwt, desc, params, roles, account, doc_class, stat
         with open(TEST_DATAFILE, "rb") as data_file:
             raw_data = data_file.read()
             data_file.close()
-        response = client.post("/api/v1/ppr/PPR_MISC" + PARAMS1, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+        response = client.post("/api/v1/ppr/FNCH" + PARAMS1, data=raw_data, headers=headers, content_type=MEDIA_PDF)
         # logger.info(response.json)
     # test
     response = client.get(req_path, headers=headers)

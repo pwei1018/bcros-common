@@ -30,13 +30,13 @@ TEST_USER: User = User(username="testuser")
 TEST_INFO: RequestInfo = RequestInfo(
     request_type=RequestTypes.ADD,
     request_path="path",
-    doc_type=DocumentTypes.NR_MISC,
+    doc_type=DocumentTypes.CORR,
     doc_storage_type=StorageDocTypes.NR,
 )
 TEST_DOCUMENT = Document(
     id=200000000,
     document_service_id="UT9999999",
-    document_type=DocumentTypes.PPR_MISC.value,
+    document_type=DocumentTypes.CORR.value,
     document_class=DocumentClasses.PPR.value,
     add_ts=model_utils.now_ts(),
     consumer_document_id="T0000001",
@@ -76,7 +76,7 @@ UPDATE_DOC = {
     "consumerDocumentId": "T0000002",
     "consumerFilename": "test-update.pdf",
     "consumerIdentifier": "CI-0000002",
-    "documentType": "CORP_MISC",
+    "documentType": "CORR",
     "documentClass": "CORP",
     "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
     "description": "Updated description of the document.",
@@ -89,7 +89,7 @@ TEST_DOC_REC_LEGACY = {
     "accountId": "123456",
     "consumerDocumentId": "99990950",
     "consumerIdentifier": "108924",
-    "documentType": "MHR_MISC",
+    "documentType": "REGC",
     "documentClass": "MHR",
     "author": "John Jones"
 }
@@ -106,7 +106,7 @@ TEST_DOC_REC_UPDATE = {
     "accountId": "123456",
     "consumerDocumentId": "1099990950",
     "consumerIdentifier": "108925",
-    "documentType": "MHR_MISC",
+    "documentType": "CORR",
     "documentClass": "MHR",
     "author": "JAMES Jones",
     "consumerReferenceId": "900001",
@@ -114,7 +114,7 @@ TEST_DOC_REC_UPDATE = {
 TEST_DOCUMENT_DELETE = Document(
     id=200000001,
     document_service_id="UTD9999990",
-    document_type=DocumentTypes.PPR_MISC.value,
+    document_type=DocumentTypes.CORR.value,
     document_class=DocumentClasses.PPR.value,
     add_ts=model_utils.now_ts(),
     consumer_document_id="TD0000001",
@@ -126,16 +126,16 @@ TEST_DOCUMENT_DELETE = Document(
 
 # testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff} , {ref_id})
 TEST_DATA_REQUEST_INFO = [
-    (RequestTypes.ADD.value, "/CORP/CORP_MISC", DocumentTypes.CORP_MISC.value, StorageDocTypes.BUSINESS.value, True, "UT0001"),
-    (RequestTypes.GET.value, "/MHR_MISC", DocumentTypes.MHR_MISC.value, StorageDocTypes.MHR.value, False, None),
-    (RequestTypes.REPLACE.value, "/NR_MISC", DocumentTypes.NR_MISC.value, StorageDocTypes.NR.value, True, None),
-    (RequestTypes.UPDATE.value, "/PPR_MISC", DocumentTypes.PPR_MISC.value, StorageDocTypes.PPR.value, False, "UT0002"),
+    (RequestTypes.ADD.value, "/CORP/CORR", DocumentTypes.CORR.value, StorageDocTypes.BUSINESS.value, True, "UT0001"),
+    (RequestTypes.GET.value, "/CORR", DocumentTypes.CORR.value, StorageDocTypes.MHR.value, False, None),
+    (RequestTypes.REPLACE.value, "/CORR", DocumentTypes.CORR.value, StorageDocTypes.NR.value, True, None),
+    (RequestTypes.UPDATE.value, "/CORR", DocumentTypes.CORR.value, StorageDocTypes.PPR.value, False, "UT0002"),
 ]
 # testdata pattern is ({doc_ts}, {doc_type}, {doc_service_id}, {content_type}, {doc_storage_type})
 TEST_DATA_SAVE_STORAGE = [
     (
         "2024-09-01T19:00:00+00:00",
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.CORR,
         "UT000001111",
         model_utils.CONTENT_TYPE_PDF,
         StorageDocTypes.BUSINESS,
@@ -147,9 +147,9 @@ TEST_DATA_DOC_REQUEST = [(TEST_INFO, TEST_USER, 100, "UT1234")]
 TEST_DATA_DOC_DATES = [
     (None, 10, None, None, True),
     (DocumentClasses.CORP, 10, None, None, False),
-    (DocumentClasses.CORP, 1, DocumentTypes.MHR_MISC, None, True),
+    (DocumentClasses.CORP, 1, DocumentTypes.CORR, None, True),
     (DocumentClasses.CORP.value, 10, None, "UT000004", False),
-    (DocumentClasses.CORP.value, 10, DocumentTypes.CORP_MISC.value, "UT000004", False),
+    (DocumentClasses.CORP.value, 10, DocumentTypes.CORR.value, "UT000004", False),
 ]
 # testdata pattern is ({doc_class}, {storage_type})
 TEST_DATA_STORAGE_TYPES = [
@@ -442,7 +442,7 @@ def test_save_doc_storage(session, doc_ts, doc_type, doc_service_id, content_typ
     doc: Document = Document(
         add_ts=model_utils.ts_from_iso_format(doc_ts), document_type=doc_type, document_service_id=doc_service_id
     )
-    info: RequestInfo = RequestInfo("ADD", "/business/CORP/CORP_MISC", doc_type, doc_storage_type)
+    info: RequestInfo = RequestInfo("ADD", "/business/CORP/CORR", doc_type, doc_storage_type)
     info.content_type = content_type
     raw_data = None
     with open(TEST_DATAFILE, "rb") as data_file:

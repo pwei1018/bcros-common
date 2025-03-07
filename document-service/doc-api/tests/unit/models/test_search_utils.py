@@ -28,11 +28,11 @@ PAGE_CLAUSE: str = " ORDER BY d.add_ts DESC) as q LIMIT {page_size} OFFSET {page
 TEST_DATA_DOC_DATES = [
     (None, 10, None, None, True),
     (DocumentClasses.CORP, 10, None, None, False),
-    (DocumentClasses.CORP, 1, DocumentTypes.MHR_MISC, None, True),
-    (DocumentClasses.CORP.value, 10, DocumentTypes.CORP_MISC.value, None, False),
+    (DocumentClasses.CORP, 1, DocumentTypes.CORR, None, True),
+    (DocumentClasses.CORP.value, 10, DocumentTypes.CORR.value, None, False),
     (DocumentClasses.CORP.value, 5, None, "XXXXXXX4", True),
     (DocumentClasses.CORP.value, 10, None, "UT000004", False),
-    (DocumentClasses.CORP.value, 10, DocumentTypes.CORP_MISC.value, "UT000004", False),
+    (DocumentClasses.CORP.value, 10, DocumentTypes.CORR.value, "UT000004", False),
 ]
 # testdata pattern is ({page_num}, {expected_offset})
 TEST_DATA_PAGE_SIZE = [

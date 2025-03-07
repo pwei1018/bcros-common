@@ -40,7 +40,7 @@ MOCK_AUTH_URL = "https://test.api.connect.gov.bc.ca/mockTarget/auth/api/v1/"
 STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
 INVALID_ROLES = [COLIN_ROLE]
 DOC_CLASS1 = DocumentClasses.CORP.value
-DOC_TYPE1 = DocumentTypes.CORP_MISC.value
+DOC_TYPE1 = DocumentTypes.CORR.value
 MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
 PARAMS1 = (
     "?consumerIdentifier=UTBUS&consumerFilename=test.pdf&consumerFilingDate=2024-07-25" + "&consumerDocumentId=UT999999"

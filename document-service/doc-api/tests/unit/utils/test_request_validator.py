@@ -82,7 +82,7 @@ TEST_DATA_ADD = [
         "Valid",
         True,
         RequestTypes.ADD,
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.CORR,
         model_utils.CONTENT_TYPE_PDF,
         DocumentClasses.CORP,
         REF_ID1,
@@ -112,7 +112,7 @@ TEST_DATA_ADD = [
         "Invalid doc class",
         False,
         RequestTypes.ADD,
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.CORR,
         model_utils.CONTENT_TYPE_PDF,
         "JUNK",
         None,
@@ -122,7 +122,7 @@ TEST_DATA_ADD = [
         "Invalid missing content",
         False,
         RequestTypes.ADD,
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.CORR,
         None,
         DocumentClasses.CORP,
         None,
@@ -132,7 +132,7 @@ TEST_DATA_ADD = [
         "Invalid content",
         False,
         RequestTypes.ADD,
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.CORR,
         "XXXXX",
         DocumentClasses.CORP,
         None,
@@ -142,7 +142,7 @@ TEST_DATA_ADD = [
         "Invalid doc class - type",
         False,
         RequestTypes.ADD,
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.TRAN,
         model_utils.CONTENT_TYPE_PDF,
         DocumentClasses.FIRM,
         None,
@@ -152,13 +152,13 @@ TEST_DATA_ADD = [
         "Invalid consumer reference id",
         False,
         RequestTypes.ADD,
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.CORR,
         model_utils.CONTENT_TYPE_PDF,
         DocumentClasses.CORP,
         REF_ID2,
         validator.INVALID_REFERENCE_ID,
     ),
-    ("Valid no class", True, RequestTypes.ADD, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, None, None, None),
+    ("Valid no class", True, RequestTypes.ADD, DocumentTypes.TRAN, model_utils.CONTENT_TYPE_PDF, None, None, None),
 ]
 # test data pattern is ({description}, {valid}, {filing_date}, {message_content})
 TEST_DATA_ADD_DATES = [
@@ -221,12 +221,12 @@ TEST_DATA_PATCH = [
 ]
 # test data pattern is ({description}, {valid}, {payload}, {doc_type}, {content_type}, {doc_class}, {message_content})
 TEST_DATA_REPLACE = [
-    ("Valid", True, True, DocumentTypes.CORP_MISC, model_utils.CONTENT_TYPE_PDF, DocumentClasses.CORP, None),
+    ("Valid", True, True, DocumentTypes.CORR, model_utils.CONTENT_TYPE_PDF, DocumentClasses.CORP, None),
     (
         "Invalid missing content",
         False,
         True,
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.CORR,
         None,
         DocumentClasses.CORP,
         validator.MISSING_CONTENT_TYPE,
@@ -235,7 +235,7 @@ TEST_DATA_REPLACE = [
         "Invalid content",
         False,
         True,
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.CORR,
         "*/*",
         DocumentClasses.CORP,
         validator.INVALID_CONTENT_TYPE,
@@ -244,7 +244,7 @@ TEST_DATA_REPLACE = [
         "Missing payload",
         False,
         False,
-        DocumentTypes.CORP_MISC,
+        DocumentTypes.CORR,
         model_utils.CONTENT_TYPE_PDF,
         DocumentClasses.FIRM,
         validator.MISSING_PAYLOAD,
@@ -368,7 +368,7 @@ def test_validate_search_dates(session, desc, valid, start_date, end_date, messa
 def test_validate_add_dates(session, desc, valid, filing_date, message_content):
     """Assert that new add request validation works as expected for scan and file dates."""
     # setup
-    info: RequestInfo = RequestInfo(RequestTypes.ADD, "NA", DocumentTypes.CORP_MISC, "NA")
+    info: RequestInfo = RequestInfo(RequestTypes.ADD, "NA", DocumentTypes.CORR, "NA")
     info.content_type = model_utils.CONTENT_TYPE_PDF
     info.account_id = "NA"
     info.document_class = DocumentClasses.CORP
@@ -431,8 +431,8 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
     error_msg = validator.validate_request(info)
     if doc_type and not doc_class and not message_content:
         assert info.document_class
-        if doc_type == DocumentTypes.CORP_MISC:
-            assert info.document_class == DocumentClasses.CORP.value
+        if doc_type == DocumentTypes.TRAN.value:
+            assert info.document_class == DocumentClasses.MHR.value
     if valid:
         assert error_msg == ""
     else:
@@ -454,7 +454,7 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
 def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_date, description, ref_id, message_content):
     """Assert that patch request validation works as expected."""
     # setup
-    info: RequestInfo = RequestInfo(RequestTypes.UPDATE, "NA", DocumentTypes.CORP_MISC, "NA")
+    info: RequestInfo = RequestInfo(RequestTypes.UPDATE, "NA", DocumentTypes.CORR, "NA")
     info.content_type = model_utils.CONTENT_TYPE_PDF
     info.account_id = "NA"
     info.document_class = DocumentClasses.CORP
@@ -496,7 +496,7 @@ def test_validate_replace(session, desc, valid, has_payload, doc_type, content_t
     error_msg = validator.validate_request(info)
     if doc_type and not doc_class and not message_content:
         assert info.document_class
-        if doc_type == DocumentTypes.CORP_MISC:
+        if doc_type == DocumentTypes.CORR:
             assert info.document_class == DocumentClasses.CORP.value
     if valid:
         assert error_msg == ""

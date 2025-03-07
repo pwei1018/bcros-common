@@ -32,14 +32,14 @@ TEST_DOC_REC_LEGACY = {
     "accountId": "123456",
     "consumerDocumentId": "99990950",
     "consumerIdentifier": "108924",
-    "documentType": "MHR_MISC",
+    "documentType": "TRAN",
     "documentClass": "MHR"
 }
 TEST_DOC_REC_MODERN = {
     "accountId": "123456",
     "consumerDocumentId": "1099990950",
     "consumerIdentifier": "108924",
-    "documentType": "MHR_MISC",
+    "documentType": "TRAN",
     "documentClass": "MHR"
 }
 TEST_DOC_REC_INVALID = {

@@ -27,16 +27,19 @@ from doc_api.models.type_tables import DocumentClasses, DocumentTypes, RequestTy
 # testdata pattern is ({doc_type}, {doc_class}, {exists})
 TEST_DOC_TYPES = [
     ("XXX", None, False),
-    (DocumentTypes.CORP_MISC.value, DocumentClasses.CORP.value, True),
-    (DocumentTypes.SOC_MISC.value, DocumentClasses.SOCIETY.value, True),
-    (DocumentTypes.NR_MISC.value, DocumentClasses.NR.value, True),
-    (DocumentTypes.PPR_MISC.value, DocumentClasses.PPR.value, True),
+    (DocumentTypes.AMAL.value, DocumentClasses.CORP.value, True),
+    (DocumentTypes.CERT.value, DocumentClasses.SOCIETY.value, True),
+    (DocumentTypes.CORR.value, DocumentClasses.NR.value, True),
+    (DocumentTypes.CORR.value, DocumentClasses.PPR.value, True),
     (DocumentTypes.REG_101.value, DocumentClasses.MHR.value, True),
-    (DocumentTypes.FIRM_MISC.value, DocumentClasses.FIRM.value, True),
+    (DocumentTypes.CORR.value, DocumentClasses.FIRM.value, True),
     (DocumentTypes.ADMN.value, DocumentClasses.OTHER.value, True),
     (DocumentTypes.DELETED.value, DocumentClasses.DELETED.value, False),
     (DocumentTypes.COOP_MEMORANDUM.value, DocumentClasses.COOP.value, True),
     (DocumentTypes.CORP_AFFIDAVIT.value, DocumentClasses.CORP.value, True),
+    (DocumentTypes.REG_103E.value, DocumentClasses.MHR.value, True),
+    (DocumentTypes.CANCEL_PERMIT.value, DocumentClasses.MHR.value, True),
+    (DocumentTypes.AMEND_PERMIT.value, DocumentClasses.MHR.value, True),
 ]
 # testdata pattern is ({doc_class}, {doc_type}, {has_results}, {type_exists})
 TEST_DOC_TYPE_CLASSES = [
@@ -45,7 +48,7 @@ TEST_DOC_TYPE_CLASSES = [
     (DocumentClasses.CORP.value, DocumentTypes.RPL.value, True, False),
     (DocumentClasses.SOCIETY.value, DocumentTypes.AMAL.value, True, True),
     (DocumentClasses.NR.value, DocumentTypes.CORR.value, True, True),
-    (DocumentClasses.PPR.value, DocumentTypes.PPR_MISC.value, True, True),
+    (DocumentClasses.PPR.value, DocumentTypes.CORR.value, True, True),
     (DocumentClasses.MHR.value, DocumentTypes.REG_101.value, True, True),
     (DocumentClasses.MHR.value, DocumentTypes.AMAL.value, True, False),
     (DocumentClasses.FIRM.value, DocumentTypes.CORR.value, True, True),
