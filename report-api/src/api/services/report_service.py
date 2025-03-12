@@ -32,6 +32,8 @@ def format_datetime(value, format='short'):  # pylint: disable=redefined-builtin
         dt_format = '%m-%d-%Y %I:%M %p'
     elif format == 'short':
         dt_format = '%m-%d-%Y'
+    elif format == 'month':
+        dt_format = '%B'
     elif format == 'yyyy-mm-dd':
         dt_format = '%Y-%m-%d'
     elif format == 'mmm dd,yyyy':
