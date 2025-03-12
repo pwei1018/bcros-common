@@ -19,7 +19,7 @@ from datetime import datetime
 
 from doc_api.models import DocumentScanning
 from doc_api.models import utils as model_utils
-from doc_api.models.type_tables import DocumentClasses, DocumentTypeClass, DocumentTypes, RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentType, DocumentTypeClass, DocumentTypes, RequestTypes
 from doc_api.resources.request_info import RequestInfo
 from doc_api.utils.logging import logger
 
@@ -31,8 +31,10 @@ FILENAME_MIN: int = 5
 FILENAME_MAX: int = 1000
 VALIDATOR_ERROR = "Error performing new request extra validation. "
 INVALID_DOC_TYPE = "Request invalid: unrecognized document type {doc_type}. "
+INACTIVE_DOC_TYPE = "Request invalid: document type {doc_type} is not active. "
 MISSING_DOC_TYPE = "Request invalid: required request document type is missing. "
 INVALID_DOC_CLASS = "Request invalid: unrecognized document class {doc_class}. "
+INACTIVE_DOC_CLASS_TYPE = "Request invalid: document class {doc_class} type {doc_type} combination is not active. "
 MISSING_CONTENT_TYPE = "Request invalid: required request header Content-Type is missing. "
 INVALID_CONTENT_TYPE = "Request invalid: unsupported request header Content-type {content_type}. "
 MISSING_QUERY_PARAMS = "Request invalid: get documents is missing one of the required parameters. "
@@ -64,10 +66,7 @@ def validate_request(info: RequestInfo) -> str:
     logger.info(f"Validating {info.request_type} account id={info.account_id} staff={info.staff}")
     error_msg: str = ""
     if not info.request_type or info.request_type not in (RequestTypes.GET, RequestTypes.UPDATE):
-        if not info.document_type:
-            error_msg += MISSING_DOC_TYPE
-        elif info.document_type and info.document_type not in DocumentTypes:
-            error_msg += INVALID_DOC_TYPE.format(doc_type=info.document_type)
+        error_msg += validate_doc_type(info)
     if info.document_class and info.document_class not in DocumentClasses:
         error_msg += INVALID_DOC_CLASS.format(doc_class=info.document_class)
     elif info.document_class and info.document_type:  # Verify document class - document type pair.
@@ -129,6 +128,9 @@ def validate_report_request(request_json: dict, is_create: bool) -> str:
     logger.info(f"Validating new report request for entity {request_json.get('entityIdentifier')}")
     error_msg: str = ""
     try:
+        if not is_create and not request_json:
+            logger.info("PATCH with no payload: request invalid.")
+            return INVALID_REPORT_UPDATE
         error_msg = validate_report_filingdate(request_json)
         report_type: str = request_json.get("reportType")
         if not report_type and is_create:
@@ -223,20 +225,42 @@ def validate_put(info: RequestInfo, error_msg: str) -> str:
     return error_msg
 
 
+def validate_doc_type(info: RequestInfo) -> str:
+    """Validate the document type exists and is active."""
+    error_msg: str = ""
+    if not info.document_type:
+        error_msg += MISSING_DOC_TYPE
+    elif info.document_type and info.document_type not in DocumentTypes:
+        error_msg += INVALID_DOC_TYPE.format(doc_type=info.document_type)
+    else:
+        doc_type: DocumentType = DocumentType.find_by_doc_type(info.document_type)
+        if not doc_type:
+            error_msg += INVALID_DOC_TYPE.format(doc_type=info.document_type)
+        elif not doc_type.active:
+            error_msg += INACTIVE_DOC_TYPE.format(doc_type=info.document_type)
+    return error_msg
+
+
 def validate_class_type(info: RequestInfo) -> str:
-    """Validate the document class matches the document type."""
+    """Validate the document class matches the document type and the combination is active."""
     error_msg: str = ""
     if not info.document_class or not info.document_type:
         return error_msg
-    doc_types = DocumentTypeClass.find_by_doc_type(info.document_type)
+    doc_class: str = info.document_class
+    doc_types = DocumentTypeClass.find_by_doc_type(info.document_type, True)
     if doc_types:
         valid_class: bool = False
         for type_class in doc_types:
-            if type_class.document_class == info.document_class:
-                valid_class = True
+            if type_class.document_class == doc_class:
+                if not type_class.active:
+                    error_msg += INACTIVE_DOC_CLASS_TYPE.format(doc_class=doc_class, doc_type=info.document_type)
+                else:
+                    valid_class = True
                 break
-        if not valid_class:
-            error_msg = INVALID_DOC_CLASS_TYPE.format(doc_type=info.document_type, doc_class=info.document_class)
+        if not valid_class and not error_msg:
+            error_msg = INVALID_DOC_CLASS_TYPE.format(doc_type=info.document_type, doc_class=doc_class)
+    else:
+        error_msg += INVALID_DOC_CLASS_TYPE.format(doc_type=info.document_type, doc_class=doc_class)
     return error_msg
 
 
@@ -259,7 +283,7 @@ def get_doc_class(info: RequestInfo) -> str:
         elif not optional:
             error_msg += MISSING_DOC_CLASS
     except Exception as validation_exception:  # noqa: B902; eat all errors
-        logger.error("validate_class_type exception: " + str(validation_exception))
+        logger.error("get_doc_class exception: " + str(validation_exception))
         error_msg += VALIDATOR_ERROR
     return error_msg
 

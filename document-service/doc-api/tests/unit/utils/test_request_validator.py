@@ -282,6 +282,56 @@ TEST_DATA_REPORT_UPDATE = [
     ("Invalid date", False, "FILING", "name.pdf", "January 1, 2010",
      validator.INVALID_FILING_DATE.format(param_date="January 1, 2010")),
 ]
+# test data pattern is ({description}, {valid}, {doc_type}, {message_content})
+TEST_DATA_DOC_TYPE = [
+    ("Valid", True, "TRAN", None),
+    ("Valid", True, "FNCH", None),
+    ("Invalid", False, "MHR_MISC", validator.INVALID_DOC_TYPE),
+    ("Inactive", False, "CLW", validator.INACTIVE_DOC_TYPE),
+    ("Inactive", False, "DAT", validator.INACTIVE_DOC_TYPE),
+    ("Inactive", False, "PRE", validator.INACTIVE_DOC_TYPE),
+    ("Inactive", False, "MEM", validator.INACTIVE_DOC_TYPE),
+    ("Inactive", False, "MHSP", validator.INACTIVE_DOC_TYPE),
+]
+# test data pattern is ({description}, {valid}, {doc_type}, {doc_class}, {message_content})
+TEST_DATA_DOC_CLASS_TYPE = [
+    ("Valid", True, "TRAN", "MHR", None),
+    ("Invalid", False, "TRAN", "CORP", validator.INVALID_DOC_CLASS_TYPE),
+    ("Invalid", False, "FNCH", "MHR", validator.INVALID_DOC_CLASS_TYPE),
+    ("Invalid", False, "MEM", "MHR", validator.INVALID_DOC_CLASS_TYPE),
+    ("Invalid", False, "DAT", "MHR", validator.INVALID_DOC_CLASS_TYPE),
+    ("Invalid", False, "PRE", "MHR", validator.INVALID_DOC_CLASS_TYPE),
+    ("Inactive", False, "CLW", "MHR", validator.INACTIVE_DOC_CLASS_TYPE),
+    ("Inactive", False, "MHSP", "MHR", validator.INACTIVE_DOC_CLASS_TYPE),
+    ("Inactive", False, "MEM", "PPR", validator.INACTIVE_DOC_CLASS_TYPE),
+    ("Inactive", False, "DAT", "PPR", validator.INACTIVE_DOC_CLASS_TYPE),
+    ("Inactive", False, "PRE", "CORP", validator.INACTIVE_DOC_CLASS_TYPE),
+]
+
+
+@pytest.mark.parametrize("desc,valid,doc_type,doc_class,message_content", TEST_DATA_DOC_CLASS_TYPE)
+def test_validate_doc_type_class(session, desc, valid, doc_type, doc_class, message_content):
+    """Assert that document type validation validation works as expected."""
+    info: RequestInfo = RequestInfo(None, None, doc_type, None)
+    info.document_class = doc_class
+    msg: str = validator.validate_class_type(info)
+    if valid:
+        assert not msg
+    else:
+        test_msg = message_content.format(doc_type=doc_type, doc_class=doc_class)
+        assert test_msg == msg
+
+
+@pytest.mark.parametrize("desc,valid,doc_type,message_content", TEST_DATA_DOC_TYPE)
+def test_validate_doc_type(session, desc, valid, doc_type, message_content):
+    """Assert that document type validation validation works as expected."""
+    info: RequestInfo = RequestInfo(None, None, doc_type, None)
+    msg: str = validator.validate_doc_type(info)
+    if valid:
+        assert not msg
+    else:
+        test_msg = message_content.format(doc_type=doc_type)
+        assert test_msg == msg
 
 
 @pytest.mark.parametrize("desc,valid,entity_id,event_id,rtype,name,fdate,message_content", TEST_DATA_REPORT_CREATE)
