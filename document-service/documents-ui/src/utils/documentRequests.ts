@@ -125,7 +125,7 @@ export async function postDocument(params: DocumentRequestIF, document: RequestD
  * @param document - The document data to be sent in the request body.
  * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
  */
-export async function updateDocument(params: DocumentRequestIF, document: RequestDataIF)
+export async function putDocument(params: DocumentRequestIF, document: RequestDataIF)
   : Promise<ApiResponseOrError> {
   const options = {
     method: 'PUT',

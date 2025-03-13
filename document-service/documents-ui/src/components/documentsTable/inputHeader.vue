@@ -25,7 +25,7 @@ watch(() => props.modelValue, (newValue) => {
   if (filterValue.value !== newValue) {
     filterValue.value = newValue
   }
-})
+}, { immediate: true })
 
 watch(filterValue, (newValue) => {
   debouncedInput(newValue)
@@ -37,7 +37,7 @@ watch(filterValue, (newValue) => {
     <UDivider class="my-3 w-full" />
     <div class="h-11">
       <UInput
-        v-if="column.key!=='description'" 
+        v-if="column.key!=='description'"
         v-model="filterValue"
         class="min-w-[190px] w-full px-2 font-light"
         size="md"
@@ -46,7 +46,7 @@ watch(filterValue, (newValue) => {
           icon: { trailing: { pointer: '' , wrapper: 'pr-3.5'} },
           size: { md: 'h-[44px]' },
         }"
- 
+
       >
         <template #trailing>
           <UButton

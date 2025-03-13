@@ -10,6 +10,7 @@ const {
   isEditingReview,
   validateRecordEdit,
   isError,
+  searchDocumentId
 } = storeToRefs(useBcrosDocuments())
 
 /**
@@ -25,6 +26,7 @@ onMounted(async () => {
   try {
     await retrieveDocumentRecord(identifier)
     isLoading.value = false
+    searchDocumentId.value = identifier
   } catch (error) {
     console.error('Error fetching document record', error)
     navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })

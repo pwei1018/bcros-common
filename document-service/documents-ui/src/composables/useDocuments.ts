@@ -5,7 +5,9 @@ import {
   updateDocumentRecord,
   createScanningRecord,
   updateScanningRecord,
-  getDocumentUrl, getDocUrlByConsumerDocId
+  getDocumentUrl,
+  getDocUrlByConsumerDocId,
+  putDocument
 } from '~/utils/documentRequests'
 import type { ApiResponseOrError } from '~/interfaces/request-interfaces'
 import type { DocumentDetailIF, DocumentInfoIF } from '~/interfaces/document-types-interface'
@@ -314,18 +316,28 @@ export const useDocuments = () => {
 
     // Update Document Files
     if (hasDocumentFileChanges.value && !!document.size) {
-      await postDocument(
-        {
-          consumerDocumentId: documentRecord.value.consumerDocumentId,
-          consumerIdentifier: documentRecord.value.consumerIdentifier,
-          documentClass: documentRecord.value.documentClass,
-          documentType: documentRecord.value.documentType,
-          description: documentRecord.value.description,
-          consumerFilingDate: formatDateToISO(documentRecord.value.consumerFilingDateTime),
-          consumerFilename: document.name
-        },
-        document
-      )
+      if(!!documentRecord.value.documentServiceId && !documentRecord.value.consumerFilename) {
+        await putDocument(
+          {
+            consumerFilename: document.name,
+            documentServiceId: documentRecord.value.documentServiceId
+          },
+          document
+        )
+      } else {
+        await postDocument(
+          {
+            consumerDocumentId: documentRecord.value.consumerDocumentId,
+            consumerIdentifier: documentRecord.value.consumerIdentifier,
+            documentClass: documentRecord.value.documentClass,
+            documentType: documentRecord.value.documentType,
+            description: documentRecord.value.description,
+            consumerFilingDate: formatDateToISO(documentRecord.value.consumerFilingDateTime),
+            consumerFilename: document.name
+          },
+          document
+        )
+      }
     }
     // Update or Create Scanning Details
     if (hasDocumentScanningChanges.value) {
@@ -396,9 +408,10 @@ export const useDocuments = () => {
         const consumerFilenames = []
         data.value.forEach(record => (record.consumerFilename && consumerFilenames.push(record.consumerFilename)))
         documentRecord.value = {
-          ...data.value[0],
+          ...data.value.find(record => !!record.consumerFilename) || data.value[0],
           consumerFilenames: consumerFilenames,
-          documentServiceIds: data.value.map((record) => (record.documentServiceId))
+          documentServiceIds: data.value.filter(record => record.consumerFilename)
+            .map((record) => (record.documentServiceId))
         }
         documentList.value = documentRecord.value.consumerFilenames?.map((file) => ({
           name: file

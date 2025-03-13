@@ -15,6 +15,8 @@ const {
   scanningDetailsSnapshot
 } = storeToRefs(useBcrosDocuments())
 const { updatedDocumentList, fetchUrlAndDownload, getDocumentDescription } = useDocuments()
+const isScanPending = computed(() => documentRecord.value.consumerDocumentId.length === 8 &&
+  !scanningDetails.value?.scanDateTime && documentRecord.value?.consumerFilenames?.length === 0)
 </script>
 <template>
   <ContentWrapper
@@ -121,10 +123,10 @@ const { updatedDocumentList, fetchUrlAndDownload, getDocumentDescription } = use
         </span>
         <span class="col-span-2">
           <UBadge
-            v-if="documentRecord.consumerDocumentId.length === 8"
+            v-if="isScanPending"
             variant="solid"
             color="primary"
-            label="SCAN PENDDING"
+            label="SCAN PENDING"
             class="badge px-2.5 py-1.5"
           />
         </span>
@@ -165,10 +167,10 @@ const { updatedDocumentList, fetchUrlAndDownload, getDocumentDescription } = use
                inactive-class="text-primary underline"
                :disabled="isReviewMode"
                @click="fetchUrlAndDownload(
-                  documentRecordSnapshot.documentClass, 
+                  documentRecordSnapshot.documentClass,
                   documentRecordSnapshot.documentServiceIds[i]
                 )"
-              > 
+              >
                {{ file.name }}
              </ULink>
           </span>
