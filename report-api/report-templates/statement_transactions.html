@@ -54,10 +54,11 @@
     <table class="transaction-table">
         <thead>
         <th style="width: 120px;">Product Purchased</th>
+        <th style="width: 60px;">Folio</th>
         <th class="two-line-head" style="width: 120px;">Date</th>
         <th style="width: 60px;">Fee</th>
-        <th style="width: 60px;">GST</th>
         <th class="two-line-head" style="width: 70px;">Service Fee</th>
+        <th style="width: 60px;">GST</th>
         <th  style="width: 40px;">Total</th>
         </thead>
         {% set totals = namespace(total=0, fees=0, due=0) %}
@@ -76,14 +77,16 @@
                     </div>
                     {% endif %}
                 </td>
+                <!-- Folio -->
+                <td>{{invoice.folio_number if invoice.folio_number else '-'}}</td>
                 <!-- Date -->
                 <td>{{invoice.created_on | format_datetime('mmm dd,yyyy')}}</td>
                 <!-- Fee -->
                 <td>${{"%.2f"|format((invoice.total - invoice.service_fees)) if (invoice.service_fees and invoice.total) else '0.00'}}</td>
-                <!-- GST -->
-                <td>${{"%.2f"|format(invoice.gst) if invoice.gst else '0.00'}}</td>
                 <!-- Service Fee -->
                 <td>${{"%.2f"|format(invoice.service_fees) if invoice.service_fees else '0.00'}}</td>
+                <!-- GST -->
+                <td>${{"%.2f"|format(invoice.gst) if invoice.gst else '0.00'}}</td>
                 <!-- Grand Total -->
                 <td>${{"%.2f"|format(invoice.total) if invoice.total else '0.00'}}</td>
                 {% set totals.total = totals.total + invoice.total %}

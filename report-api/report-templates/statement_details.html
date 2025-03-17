@@ -4,17 +4,20 @@
             <td colspan="2">
                 <div>
                     <div><span class="font-bold">Account Number:</span> {{ account.id }}</div>
-                    {% if statement.is_interim_statement %}
+                    {% if payment_method_index.value == 0 %}
+                        <div><span class="font-bold">Statement Total</span> <span class="font-bold">${{ "{:,.2f}".format(total.due)}}</span></div>
                         {% set total_paid = invoices|selectattr("payment_method", "equalto", payment_method)|sum(attribute='paid') %}
                         <div><span class="font-bold">Total Amount Paid:</span> <span class="font-bold">${{ "{:,.2f}".format(total_paid)}}</span></div>
-                    {% endif %}
-                    {% if statement.is_interim_statement and payment_method_index.value == 0 %}
-                        <div><span class="font-bold">Total Amount Owing:</span> <span class="font-bold">${{ "{:,.2f}".format(statement.amount_owing) if statement.amount_owing else '0.00' }}</span></div>
-                        <div><span class="font-bold">Payment Received Date:</span>
-                            {%  if statementSummary.latestStatementPaymentDate %}
-                                {{statementSummary.latestStatementPaymentDate | format_datetime('detail')}}
-                            {% endif %}
-                        </div>
+                        {% if payment_method == 'EFT' %}
+                            <div><span class="font-bold">Total Amount Owing:</span> <span class="font-bold">${{ "{:,.2f}".format(statement.amount_owing) if statement.amount_owing else '0.00' }}</span></div>
+                        {% endif %}
+                        {% if statement.is_interim_statement %}
+                            <div><span class="font-bold">Payment Received Date:</span>
+                                {%  if statementSummary.latestStatementPaymentDate %}
+                                    {{statementSummary.latestStatementPaymentDate | format_datetime('detail')}}
+                                {% endif %}
+                            </div>
+                        {% endif %}
                     {% else %}
                         {% if not statement.is_interim_statement and payment_method_index.value == 0 and statementSummary.dueDate %}
                             <div><span class="font-bold">Payment Due Date:</span> {{statementSummary.dueDate | format_datetime('mmm dd,yyyy')}}</div>
