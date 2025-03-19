@@ -107,7 +107,7 @@ const isScanPending = computed(() => documentRecord.value.consumerDocumentId.len
         </span>
         <template v-if="documentRecord.consumerDocumentId.length === 8">
           <span class="font-bold">{{ $t('documentReview.labels.author') }}</span>
-          <span class="col-span-2">{{ scanningDetails?.author }}</span>
+          <span class="col-span-2">{{ documentRecord?.author }}</span>
         </template>
 
         <!-- Scanning Information -->

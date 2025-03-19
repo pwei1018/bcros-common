@@ -120,7 +120,7 @@ watch(() => [
     ) { return }
     pageNumber.value = 1
     searchDocumentRecords()
-})
+}, { immediate: true })
 
 watch(() => searchEntityId.value, (id: string) => {
     // Format Entity Identifier
