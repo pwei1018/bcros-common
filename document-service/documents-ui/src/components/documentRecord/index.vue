@@ -105,7 +105,7 @@ const isScanPending = computed(() => documentRecord.value.consumerDocumentId.len
         <span class="col-span-2">
           {{ formatToReadableDate(documentRecord.consumerFilingDateTime, true) || 'Not Entered' }}
         </span>
-        <template v-if="documentRecord.consumerDocumentId.length === 8">
+        <template>
           <span class="font-bold">{{ $t('documentReview.labels.author') }}</span>
           <span class="col-span-2">{{ documentRecord?.author }}</span>
         </template>
