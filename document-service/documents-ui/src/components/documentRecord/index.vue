@@ -16,7 +16,7 @@ const {
 } = storeToRefs(useBcrosDocuments())
 const { updatedDocumentList, fetchUrlAndDownload, getDocumentDescription } = useDocuments()
 const isScanPending = computed(() => documentRecord.value.consumerDocumentId.length === 8 &&
-  !scanningDetails.value?.scanDateTime && documentRecord.value?.consumerFilenames?.length === 0)
+  !scanningDetails.value?.scanDateTime)
 </script>
 <template>
   <ContentWrapper
