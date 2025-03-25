@@ -15,7 +15,6 @@ export const documentTypes: Array<DocumentClassIF> = [
     documents: [
       { type: 'CONT', description: 'Consent', productCode: 'business' },
       { type: 'CORR', description: 'Correspondence', productCode: 'business' },
-      { type: 'COOP_MISC', description: 'Correction Filing', productCode: 'business' },
       { type: 'COFI', description: 'Cooperatives Miscellaneous Documents', productCode: 'business' }
     ]
   },
@@ -26,13 +25,11 @@ export const documentTypes: Array<DocumentClassIF> = [
     documents: [
       { type: 'APCO', description: 'Application to Correct the Registry', productCode: 'business' },
       { type: 'CERT', description: 'Certificates', productCode: 'business' },
-      { type: 'CLW', description: 'Client Letters', productCode: 'business' },
       { type: 'CNVS', description: 'Conversions', productCode: 'business' },
       { type: 'CONT', description: 'Consent', productCode: 'business' },
       { type: 'CORR', description: 'Correspondence', productCode: 'business' },
       { type: 'COU', description: 'Court Order', productCode: 'business' },
       { type: 'CRTO', description: 'Court Orders', productCode: 'business' },
-      { type: 'CORP_MISC', description: 'Corporations Miscellaneous Documents', productCode: 'business' },
       { type: 'DIRS', description: 'Directors', productCode: 'business' },
       { type: 'LTR', description: 'Letter Templates', productCode: 'business' },
       { type: 'MNOR', description: 'Minister\'s Order', productCode: 'business' },
@@ -66,7 +63,6 @@ export const documentTypes: Array<DocumentClassIF> = [
     documents: [
       { type: 'CONT', description: 'Consent', productCode: 'business' },
       { type: 'CORR', description: 'Correspondence', productCode: 'business' },
-      { type: 'FIRM_MISC', description: 'Firms miscellaneous documents', productCode: 'business' },
       { type: 'CNVF', description: 'Conversion of Firm', productCode: 'business' },
       { type: 'COPN', description: 'Change of Proprietor\'s Name', productCode: 'business' },
       { type: 'DISS', description: 'Dissolution Due to Death', productCode: 'business' }
@@ -109,7 +105,6 @@ export const documentTypes: Array<DocumentClassIF> = [
       { type: 'BYLT', description: 'Bylaw Alterations', productCode: 'business' },
       { type: 'BYLW', description: 'Bylaw', productCode: 'business' },
       { type: 'CERT', description: 'Certificates', productCode: 'business' },
-      { type: 'CLW', description: 'Client Letters', productCode: 'business' },
       { type: 'CNST', description: 'Constitution', productCode: 'business' },
       { type: 'CNVS', description: 'Conversions', productCode: 'business' },
       { type: 'CONT', description: 'Consent', productCode: 'business' },
@@ -123,7 +118,6 @@ export const documentTypes: Array<DocumentClassIF> = [
       { type: 'RSLN', description: 'Resolution Document', productCode: 'business' },
       { type: 'SUPP', description: 'Supporting Documents', productCode: 'business' },
       { type: 'SYSR', description: 'System is the record', productCode: 'business' },
-      { type: 'SOC_MISC', description: 'Societies miscellaneous documents', productCode: 'business' },
       { type: 'SOCF', description: 'Society Filing', productCode: 'business' },
       { type: 'CORC', description: 'Corrections', productCode: 'business' },
       { type: 'ADDR', description: 'Address', productCode: 'business' },
@@ -150,21 +144,16 @@ export const documentTypes: Array<DocumentClassIF> = [
     prefixes: ['MH'],
     documents: [
       { type: 'AFDV', description: 'Affidavit Document', productCode: 'business' },
-      { type: 'CLW', description: 'Client Letters', productCode: 'business' },
+      { type: 'AMEND_PERMIT', description: 'Transport Permit - Amended', productCode: 'business' },
+      { type: 'CANCEL_PERMIT', description: 'Transport Permit - Cancelled', productCode: 'business' },
       { type: 'CONT', description: 'Consent', productCode: 'business' },
       { type: 'CORR', description: 'Correspondence', productCode: 'business' },
-      { type: 'CORSP', description: 'Correspondence - MHR', productCode: 'business' },
       { type: 'CRTO', description: 'Court Orders', productCode: 'business' },
-      { type: 'DAT', description: 'DAT or CAT', productCode: 'business' },
       { type: 'MEAM', description: 'Certificate of Merger or Amalgamation', productCode: 'business' },
-      { type: 'MEM', description: 'Membership', productCode: 'business' },
-      { type: 'PRE', description: 'Pre Image Documents', productCode: 'business' },
-      { type: 'MHR_MISC', description: 'MHR Miscellaneous Documents', productCode: 'mhr' },
-      { type: 'FNCH', description: 'MH Supporting Documentation', productCode: 'mhr' },
-      { type: 'MHSP', description: 'Finance Change Statements/Partial Discharges', productCode: 'mhr' },
       { type: 'REG_101', description: 'Manufactured Home Registration', productCode: 'mhr' },
       { type: 'REG_102', description: 'Decal Replacement', productCode: 'mhr' },
       { type: 'REG_103', description: 'Transport Permit', productCode: 'mhr' },
+      { type: 'REG_103E', description: 'Transport Permit - Extended', productCode: 'mhr' },
       { type: 'ABAN', description: 'Transfer Due To Abandonment And Sale', productCode: 'mhr' },
       { type: 'ADDI', description: 'Addition', productCode: 'mhr' },
       { type: 'AFFE', description: 'Transfer To Executor – Estate Under $25,000 With Will', productCode: 'mhr' },
@@ -217,10 +206,6 @@ export const documentTypes: Array<DocumentClassIF> = [
     documents: [
       { type: 'CONT', description: 'Consent', productCode: 'business' },
       { type: 'CORR', description: 'Correspondence', productCode: 'business' },
-      { type: 'DAT', description: 'DAT or CAT', productCode: 'business' },
-      { type: 'MEM', description: 'Membership', productCode: 'business' },
-      { type: 'PRE', description: 'Pre Image Documents', productCode: 'business' },
-      { type: 'PPR_MISC', description: 'PPR miscellaneous documents', productCode: 'ppr' },
       { type: 'PPR', description: 'PPR (Register Discharges)', productCode: 'ppr' },
       { type: 'PPRS', description: 'PPR Search', productCode: 'ppr' },
       { type: 'PPRC', description: 'PPR Secure Party Codes', productCode: 'ppr' }
