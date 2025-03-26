@@ -43,7 +43,7 @@ class EmailValidator(BaseModel):
 
                 res_json = response.json()
                 if res_json and res_json["result"] != MillionverifierResult.OK.value:
-                    raise EmailNotValidError(f'{res_json["subresult"]} {res_json["error"]}')
+                    raise EmailNotValidError(f"{res_json['subresult']} {res_json['error']}")
         except EmailNotValidError as error_msg:
             raise ValueError(f"Invalid: {value} {error_msg}") from error_msg
 

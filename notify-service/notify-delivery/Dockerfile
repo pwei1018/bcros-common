@@ -70,6 +70,7 @@ COPY --chown=web:web ./README.md /code
 # Project initialization:
 RUN --mount=type=cache,target="$POETRY_CACHE_DIR" \
   echo "$APP_ENV" \
+  && rm -rf .venv && poetry env remove --all \
   && poetry version \
   && poetry config installer.max-workers 1 \
   # Install deps:

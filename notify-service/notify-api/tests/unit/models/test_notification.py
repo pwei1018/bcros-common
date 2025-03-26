@@ -14,7 +14,7 @@
 
 """The Unit Test for the Notification Model."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 from pydantic import ValidationError

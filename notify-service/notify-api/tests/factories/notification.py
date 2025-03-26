@@ -14,7 +14,7 @@
 
 """notification factory."""
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import ClassVar
 
