@@ -46,13 +46,21 @@ class EmailSMTP:
         """Send message."""
         encoding = "utf-8"
         message = MIMEMultipart()
-        message["Subject"] = self.notification.content[0].subject
+
+        deployment_env = current_app.config.get("DEPLOYMENT_ENV", "production").lower()
+        content = self.notification.content[0]
+        subject = content.subject
+
+        if deployment_env != "production":
+            subject += f" - from {deployment_env.upper()} environment"
+
+        message["Subject"] = subject
         message["From"] = self.mail_from_id
         message["To"] = self.notification.recipients
-        message.attach(MIMEText(self.notification.content[0].body, "html", encoding))
+        message.attach(MIMEText(content.body, "html", encoding))
 
-        if self.notification.content[0].attachments:
-            for attachment in self.notification.content[0].attachments:
+        if content.attachments:
+            for attachment in content.attachments:
                 part = MIMEBase("application", "octet-stream")
                 part.set_payload(attachment.file_bytes)
                 encode_base64(part)

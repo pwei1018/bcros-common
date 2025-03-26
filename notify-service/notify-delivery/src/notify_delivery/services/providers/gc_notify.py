@@ -47,13 +47,20 @@ class GCNotify:
             api_key=self.api_key, base_url=self.gc_notify_url
         )
 
+        deployment_env = current_app.config.get("DEPLOYMENT_ENV", "production").lower()
+        content = self.notification.content[0]
+        subject = content.subject
+
+        if deployment_env != "production":
+            subject += f" - from {deployment_env.upper()} environment"
+
         email_content = {
-            "email_subject": self.notification.content[0].subject,
-            "email_body": self.notification.content[0].body,
+            "email_subject": subject,
+            "email_body": content.body,
         }
 
         # Collect attachments if they exist
-        if self.notification.content[0].attachments:
+        if content.attachments:
             email_content.update(
                 {
                     f"attachment{idx}": {
@@ -62,7 +69,7 @@ class GCNotify:
                         "sending_method": "attach",
                     }
                     for idx, attachment in enumerate(
-                        self.notification.content[0].attachments
+                        content.attachments
                     )
                 }
             )

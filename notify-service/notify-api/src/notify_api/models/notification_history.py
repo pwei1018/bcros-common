@@ -13,7 +13,7 @@
 # limitations under the License.
 """Notification data model."""
 
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 
 from .db import db
 from .notification import Notification
