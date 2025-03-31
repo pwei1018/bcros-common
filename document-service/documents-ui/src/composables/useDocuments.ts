@@ -397,10 +397,10 @@ export const useDocuments = () => {
    * - Fetches document record and populates `documentRecord` and `documentList`.
    * - If `accessionNumber` is missing, attempts to fetch and merge scanning data.
    */
-  const retrieveDocumentRecord = async (identifier: string) => {
+  const retrieveDocumentRecord = async (identifier: string, docClass = '') => {
     try {
       // Fetch Document Record
-      const { data, status } = await getDocumentRecord(identifier)
+      const { data, status } = await getDocumentRecord(identifier, docClass)
       if(status.value === 'error') {
         navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
       }

@@ -298,14 +298,14 @@ export async function updateScanningRecord(params: DocumentRequestIF, ignoreErro
  * @param consumerDocumentId - The unique identifier for the document to be retrieved.
  * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
  */
-export async function getDocumentRecord(consumerDocumentId: string): Promise<ApiResponseOrError> {
+export async function getDocumentRecord(consumerDocumentId: string, docClass = ''): Promise<ApiResponseOrError> {
   const options = {
     method: 'GET',
     headers: { 'x-apikey': `${docApiKey}` }
   }
 
   // Build the full URL
-  const url = `${baseURL}/documents/verify/${consumerDocumentId}`
+  const url = `${baseURL}/searches/${docClass}?consumerDocumentId=${consumerDocumentId}`
 
   try {
     const response = await useBcrosDocFetch<ApiResponseIF>(url, options)

@@ -53,6 +53,7 @@ const isFiltered = computed(() => {
 const openDocumentRecord = (searchResult: DocumentInfoIF) => {
   navigateTo({
     name: RouteNameE.DOCUMENT_RECORDS,
+    query: { class: searchResult.documentClass },
     params: { identifier: searchResult.consumerDocumentId },
   })
 }

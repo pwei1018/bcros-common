@@ -75,6 +75,7 @@ export const useDocumentSearch = () => {
 
   /**
    * Removes duplicate documents based on consumerDocumentId and aggregates filenames.
+   * Prevents consolidation if documentClass is different.
    * @param {Array} docs - Array of document objects with consumerDocumentId and consumerFilename.
    * @returns {Array} Array of unique documents with aggregated filenames.
    */
@@ -83,25 +84,24 @@ export const useDocumentSearch = () => {
 
     docs.forEach((doc) => {
       const { consumerDocumentId, consumerFilename, documentURL, ...rest } = doc
+      const docKey = doc.documentClass + consumerDocumentId
 
-      if (!map.has(consumerDocumentId)) {
-        map.set(consumerDocumentId, {
+      if (!map.get(docKey)) {
+        map.set(docKey, {
           consumerDocumentId,
           consumerFilenames: [consumerFilename],
-          // TODO: Remove Remove google.com once document URL is coming
-          documentUrls: documentURL ? [documentURL] : ["https://google.com"],
+          documentUrls: [documentURL],
           ...rest,
         })
-      } else {
-        const existingDoc = map.get(consumerDocumentId)
+      }
+
+      if (map.get(docKey)) {
+        const existingDoc = map.get(docKey)
         if (consumerFilename) {
           existingDoc.consumerFilenames.push(consumerFilename)
         }
         if (documentURL) {
           existingDoc.documentUrls.push(documentURL)
-        } else {
-          // TODO: Remove Remove google.com once document URL is coming
-          existingDoc.documentUrls.push("https://google.com")
         }
       }
     })

@@ -24,7 +24,7 @@ onMounted(async () => {
   isEditing.value = false
   isLoading.value = true
   try {
-    await retrieveDocumentRecord(identifier)
+    await retrieveDocumentRecord(identifier, docClass)
     isLoading.value = false
     searchDocumentId.value = identifier
   } catch (error) {
@@ -36,6 +36,7 @@ onMounted(async () => {
 
 const showDialog = ref(false)
 const identifier = useRoute()?.params?.identifier as string
+const docClass = useRoute()?.query?.class as string
 
 const cancel = (forceCancel: boolean = false) => {
   if(hasDocumentRecordChanges.value && !forceCancel) {
