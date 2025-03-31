@@ -172,6 +172,7 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
     <template #content>
       <UTable
         ref="documentRecordsTableRef"
+        class="min-h-[400px]"
         :columns="columnsToShow"
         :rows="documentSearchResults || []"
         :loading="isLoading"
