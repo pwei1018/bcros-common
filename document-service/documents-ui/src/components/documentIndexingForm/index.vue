@@ -47,15 +47,14 @@ const docIdTrailingIcon = computed(() => {
 })
 
 watch(() => consumerDocumentId.value.trim(), async (docId: string) => {
-  
-  if (docId.length < 8 && !noDocIdCheckbox.value) {
-    docIdError.value = "Enter the 8-digit Document ID number, also referred to as the barcode number"
-    return
-  } 
   if (docId && !/^\d+$/.test(docId)) {
     docIdError.value = "Must contain numbers only"
     return
   }
+  if (docId.length < 8 && !noDocIdCheckbox.value) {
+    docIdError.value = "Enter the 8-digit Document ID number, also referred to as the barcode number"
+    return
+  } 
   docIdError.value = ""
   isDocIdLoading.value = true
   const response = await getDocumentRecord(docId)
