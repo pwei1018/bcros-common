@@ -6,6 +6,13 @@ export interface ApiResponseIF<T = any> {
   statusCode?: number
 }
 
+// Defind a type for the API error response
+export interface ErrorResponseIF {
+  message?: string
+  status: string
+  statusCode: number
+}
+
 // Define a type for the Axios error response
 export interface ApiErrorIF {
   message: string
@@ -14,7 +21,7 @@ export interface ApiErrorIF {
   statusCode?: number
 }
 
-export type ApiResponseOrError = ApiResponseIF | ApiErrorIF
+export type ApiResponseOrError = ApiResponseIF | ApiErrorIF | ErrorResponseIF
 
 // Define a type for the document request parameters
 export interface DocumentRequestIF {

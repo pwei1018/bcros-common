@@ -36,6 +36,7 @@ export const useBcrosDocuments = defineStore('bcros/documents', () => {
     validateRecordEdit: false,
     isLoading: false,
     validateDocumentSearch: false,
+    isValidDocId: false,
 
     // Document Review
     displayDocumentReview: false,
