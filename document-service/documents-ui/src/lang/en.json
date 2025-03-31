@@ -76,14 +76,15 @@
       },
       "docId": {
         "label": "Document ID",
-        "description": "Enter the 8-digit Document ID, also referred to as the Barcode Number. If you don't have a Document ID, one will be generated upon saving the document record.",
+        "description": "Enter the 8-digit Document ID number, also referred to as the barcode number. If you do not have one, check the box to generate a Document ID upon submission.",
         "help": "Example: 1234567, 7654321"
       },
       "checkbox": {
         "label": "I do not have an Entity ID"
       },
       "docIdCheckbox": {
-        "label": "I do not have a Document ID"
+        "label": "Generate a Document ID Number upon submission.",
+        "tooltip": "Upon submission a document record will be created with a generated document ID."
       },
       "selectMenu": {
         "label": "Document Type",

@@ -309,10 +309,18 @@ export async function getDocumentRecord(consumerDocumentId: string, docClass = '
 
   try {
     const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
-    return {
-      data: response.data,
-      status: response.status
+    if(response.status.value === 'success') {
+      return {
+        data: response.data,
+        status: response.status
+      }
+    } else {
+      return {
+        status: response.status,
+        statusCode: response.error?.value?.statusCode
+      }
     }
+    
   } catch (error) {
     const axiosError = error as AxiosError
     return {
