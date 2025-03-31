@@ -46,6 +46,7 @@ const docIdTrailingIcon = computed(() => {
   return "i-mdi-check"
 })
 
+/** Watch the document ID for validation and update the error message accordingly. */
 watch(() => consumerDocumentId.value.trim(), async (docId: string) => {
   if (docId && !/^\d+$/.test(docId)) {
     docIdError.value = "Must contain numbers only"
