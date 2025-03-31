@@ -309,18 +309,10 @@ export async function getDocumentRecord(consumerDocumentId: string, docClass = '
 
   try {
     const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
-    if(response.status.value === 'success') {
-      return {
-        data: response.data,
-        status: response.status
-      }
-    } else {
-      return {
-        status: response.status,
-        statusCode: response.error?.value?.statusCode
-      }
+    return {
+      data: response.data,
+      status: response.status
     }
-    
   } catch (error) {
     const axiosError = error as AxiosError
     return {
@@ -461,6 +453,44 @@ export async function getScanningRecord(documentClass: string, documentId: strin
       data: response.data,
       status: response.status
     }
+  } catch (error) {
+    const axiosError = error as AxiosError
+    return {
+      message: axiosError.message,
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+    }
+  }
+}
+
+/**
+ * Sends a GET request to verify a consumer document ID.
+ *
+ * @param consumerDocumentId - The unique identifier for the document to be verified.
+ * @returns A promise that resolves to either an ApiResponseIF on success or an ApiErrorIF on failure.
+ */
+export async function verifyDocumentId(consumerDocumentId: string): Promise<ApiResponseOrError> {
+  const options = {
+    method: 'GET',
+    headers: { 'x-apikey': `${docApiKey}` }
+  }
+
+  const url = `${baseURL}/documents/verify/${consumerDocumentId}`
+
+  try {
+    const response = await useBcrosDocFetch<ApiResponseIF>(url, options)
+    if(response.status.value === 'success') {
+      return {
+        data: response.data,
+        status: response.status
+      }
+    } else {
+      return {
+        status: response.status,
+        statusCode: response.error?.value?.statusCode
+      }
+    }
+    
   } catch (error) {
     const axiosError = error as AxiosError
     return {

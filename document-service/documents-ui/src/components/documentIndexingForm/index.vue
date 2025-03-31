@@ -58,7 +58,7 @@ watch(() => consumerDocumentId.value.trim(), async (docId: string) => {
   } 
   docIdError.value = ""
   isDocIdLoading.value = true
-  const response = await getDocumentRecord(docId)
+  const response = await verifyDocumentId(docId)
   
   if (response.status.value === 'success' && Array.isArray(response.data.value)) {
     docIdError.value = "A document record already exists with this document ID. "
