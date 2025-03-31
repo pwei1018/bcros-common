@@ -15,7 +15,8 @@ const {
   documentClass,
   documentType,
   description,
-  consumerFilingDate
+  consumerFilingDate,
+  isValidDocId
 } = storeToRefs(useBcrosDocuments())
 
 const {
@@ -23,16 +24,8 @@ const {
   getDocumentTypesByClass
 } = useDocuments()
 
-const docIdError = computed(() => {
-  if(props.validate && !consumerDocumentId.value.trim() && !noDocIdCheckbox.value) {
-    return "Enter a Document ID"
-  } 
-  if (consumerDocumentId.value && !/^\d+$/.test(consumerDocumentId.value)) {
-    return "Must contain numbers only"
-  }
-
-  return ""
-})
+const isDocIdLoading = ref(false)
+const docIdError = ref('')
 
 const hasIdError = computed(() => {
   return props.validate && !consumerIdentifier.value && !noIdCheckbox.value
@@ -45,6 +38,38 @@ const hasTypeError = computed(() => {
 })
 const hasDescriptionError = computed(() => {
   return description.value.length > 1000
+})
+
+const docIdTrailingIcon = computed(() => {
+  if (docIdError.value !== '' || consumerDocumentId.value.length === 0) return ""
+  if (isDocIdLoading.value) return "i-mdi-loading"
+  return "i-mdi-check"
+})
+
+/** Watch the document ID for validation and update the error message accordingly. */
+watch(() => consumerDocumentId.value.trim(), async (docId: string) => {
+  if (docId && !/^\d+$/.test(docId)) {
+    docIdError.value = "Must contain numbers only"
+    return
+  }
+  if (docId.length < 8 && !noDocIdCheckbox.value) {
+    docIdError.value = "Enter the 8-digit Document ID number, also referred to as the barcode number"
+    return
+  } 
+  docIdError.value = ""
+  isDocIdLoading.value = true
+  const response = await verifyDocumentId(docId)
+  
+  if (response.status.value === 'success' && Array.isArray(response.data.value)) {
+    docIdError.value = "A document record already exists with this document ID. "
+    isValidDocId.value = false
+  } else if (response?.statusCode === 400){
+    docIdError.value = "Document ID check digit failed"
+    isValidDocId.value = false
+  } else if (response?.statusCode === 404) {
+    isValidDocId.value = true
+  }
+  isDocIdLoading.value = false
 })
 
 /** Watch the entity identifier and pre-populate document category when there is a prefix match **/
@@ -62,7 +87,10 @@ watch(() => noIdCheckbox.value, (hasNoId: boolean) => {
 
 /** Reset Document Identifier when No Doc Id Checkbox is selected **/
 watch(() => noDocIdCheckbox.value, (hasNoDocId: boolean) => {
-  if (hasNoDocId) consumerDocumentId.value = ''
+  if (hasNoDocId) {
+    consumerDocumentId.value = ''
+    isValidDocId.value = true
+  }
 })
 
 /** Reset Document Type when Category Changes **/
@@ -91,20 +119,39 @@ watch(() => documentClass.value, () => {
             v-model="consumerDocumentId"
             class="mt-3"
             type="text"
+            maxlength="8"
             required
             :disabled="noDocIdCheckbox"
             :placeholder="$t('documentIndexing.form.docId.label')"
             :ui="{ placeholder: docIdError ? 'placeholder:text-red-500' : 'text-gray-700' }"
-          />
+          >
+          <template #trailing>
+            <UIcon
+              v-show="docIdTrailingIcon"
+              :name="docIdTrailingIcon"
+              :class="['w-5 h-5 ml-1', isDocIdLoading ? 'animate-spin' : 'text-green-700']"
+            />
+        </template>
+          </UInput>
         </UFormGroup>
-
-        <UCheckbox
+        <div class="mt-5 flex">
+          <UCheckbox
           v-model="noDocIdCheckbox"
-          class="mt-5"
           name="unknown-docId-checkbox"
           :label="$t('documentIndexing.form.docIdCheckbox.label')"
         />
-
+          <UTooltip
+            :popper="{ placement: 'top', arrow: true }"
+            :text="$t('documentIndexing.form.docIdCheckbox.tooltip')"
+            :ui="{ base: 'w-[265px]' }"
+          >
+            <UIcon
+              name="i-mdi-information-outline"
+              class="w-5 h-5 ml-1 text-primary"
+            />
+          </UTooltip>
+        </div>
+        
         <UDivider class="my-7" />
 
         <UFormGroup

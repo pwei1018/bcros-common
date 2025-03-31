@@ -30,6 +30,7 @@ export const useDocuments = () => {
     uploadedDocumentList,
     validateIndex,
     isLoading,
+    isValidDocId,
     documentInfoRO,
     searchDocumentClass
   } = storeToRefs(useBcrosDocuments())
@@ -220,7 +221,7 @@ export const useDocuments = () => {
   /** Computed validation flag to check for required document meta data **/
   const isValidIndexData = computed(() => {
     return (!!consumerIdentifier.value || !!noIdCheckbox.value)
-      && (!!consumerDocumentId.value || !!noDocIdCheckbox.value)
+      && (isValidDocId.value || !!noDocIdCheckbox.value)
       && !!documentClass.value
       && !!documentType.value
       && description.value.length <= 1000

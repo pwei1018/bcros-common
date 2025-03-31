@@ -39,6 +39,7 @@ export interface DocumentStateIF {
   validateRecordEdit: boolean
   isLoading: boolean
   validateDocumentSearch: boolean
+  isValidDocId: boolean
 
   // Document Review
   displayDocumentReview: boolean
