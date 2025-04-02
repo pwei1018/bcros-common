@@ -1,12 +1,14 @@
 <script setup lang="ts">
 const { scanningDetails, scanningDetailsSnapshot } = storeToRefs(useBcrosDocuments())
-defineProps({
-  validate: {
-    type: Boolean,
-    default: false
-  }
+const hasScanningDetails = computed(() => {
+  return !!scanningDetailsSnapshot.value?.scanDateTime
+})
+
+const scannedDate = computed(() => {
+  return formatToReadableDate(scanningDetails.value?.scanDateTime, true)
 })
 </script>
+
 <template>
   <FormWrapper
     name="document-scanning-form"
@@ -26,6 +28,7 @@ defineProps({
           v-model="scanningDetails.accessionNumber"
           type="text"
           required
+          :disabled="!hasScanningDetails"
           :placeholder="$t('scanningDetails.accessionNumber')"
         />
 
@@ -36,6 +39,7 @@ defineProps({
               class="mt-3"
               type="text"
               required
+              :disabled="!hasScanningDetails"
               :placeholder="$t('scanningDetails.batchId')"
             />
           </div>
@@ -50,12 +54,13 @@ defineProps({
             />
           </div>
         </div>
-
-        <InputDatePicker
-          v-model="scanningDetails.scanDateTime"
-          :date-placeholder="$t('scanningDetails.scannedDate')"
+        <UInput
+          v-model="scannedDate"
+          :placeholder="$t('scanningDetails.scannedDate')"
           class="mt-3"
-          :is-trailing="true"
+          :disabled="!hasScanningDetails"
+          readonly
+          :ui="{ base: 'border-b-[2px] border-dotted'}"
         />
       </div>
     </template>
