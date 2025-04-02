@@ -64,7 +64,7 @@ watch(() => consumerDocumentId.value.trim(), async (docId: string) => {
     docIdError.value = "A document record already exists with this document ID. "
     isValidDocId.value = false
   } else if (response?.statusCode === 400){
-    docIdError.value = "Document ID check digit failed"
+    docIdError.value = "The number entered is not recognized in our system. Please check and try again."
     isValidDocId.value = false
   } else if (response?.statusCode === 404) {
     isValidDocId.value = true
