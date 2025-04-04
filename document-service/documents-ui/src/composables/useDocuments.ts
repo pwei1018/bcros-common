@@ -405,13 +405,14 @@ export const useDocuments = () => {
       if(status.value === 'error') {
         navigateTo({ name: RouteNameE.DOCUMENT_MANAGEMENT })
       }
-      if (data.value) {
+      const docRecord = docClass ? data.value : data.value.results
+      if (docRecord) {
         const consumerFilenames = []
-        data.value.forEach(record => (record.consumerFilename && consumerFilenames.push(record.consumerFilename)))
+        docRecord.forEach(record => (record.consumerFilename && consumerFilenames.push(record.consumerFilename)))
         documentRecord.value = {
-          ...data.value.find(record => !!record.consumerFilename) || data.value[0],
+          ...docRecord.find(record => !!record.consumerFilename) || docRecord[0],
           consumerFilenames: consumerFilenames,
-          documentServiceIds: data.value.filter(record => record.consumerFilename)
+          documentServiceIds: docRecord.filter(record => record.consumerFilename)
             .map((record) => (record.documentServiceId))
         }
         documentList.value = documentRecord.value.consumerFilenames?.map((file) => ({

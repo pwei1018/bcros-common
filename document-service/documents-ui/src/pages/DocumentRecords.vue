@@ -13,6 +13,10 @@ const {
   searchDocumentId
 } = storeToRefs(useBcrosDocuments())
 
+const showDialog = ref(false)
+const identifier = useRoute()?.params?.identifier as string
+const docClass = useRoute()?.query?.class as string
+
 /**
  * onMounted hook to initialize document state:
  * - Disables editing mode.
@@ -33,10 +37,6 @@ onMounted(async () => {
     isLoading.value = false
   }
 })
-
-const showDialog = ref(false)
-const identifier = useRoute()?.params?.identifier as string
-const docClass = useRoute()?.query?.class as string
 
 const cancel = (forceCancel: boolean = false) => {
   if(hasDocumentRecordChanges.value && !forceCancel) {

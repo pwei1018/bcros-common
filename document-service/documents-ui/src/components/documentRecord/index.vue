@@ -106,7 +106,7 @@ const isScanPending = computed(() => documentRecord.value.consumerDocumentId.len
           {{ formatToReadableDate(documentRecord.consumerFilingDateTime, true) || 'Not Entered' }}
         </span>
         <span class="font-bold">{{ $t('documentReview.labels.author') }}</span>
-        <span class="col-span-2">{{ documentRecord?.author }}</span>
+        <span class="col-span-2">{{ documentRecord?.author || scanningDetails?.author || 'N/A' }}</span>
 
         <!-- Scanning Information -->
         <UDivider class="my-6 col-span-3" />
