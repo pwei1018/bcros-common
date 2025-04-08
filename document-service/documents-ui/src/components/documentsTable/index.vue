@@ -36,7 +36,7 @@ const {
 const documentRecordsTableRef = ref(null)
 const columnsToShow = ref(documentResultColumns)
 const isDescriptionExpanded = ref({})
-
+const tableHeight = ref(0)
 const documentTypeOptions = ref(getDocumentTypesByClass())
 
 const isFiltered = computed(() => {
@@ -49,6 +49,12 @@ const isFiltered = computed(() => {
     !!searchDateRange.value?.end
   )
 })
+
+const updateTableHeight = () => {
+  if (documentRecordsTableRef.value) {
+    tableHeight.value = documentRecordsTableRef.value?.$el.clientHeight;
+  }
+};
 
 const openDocumentRecord = (searchResult: DocumentInfoIF) => {
   navigateTo({
@@ -96,6 +102,9 @@ onMounted(async () => {
   if (tableElement) {
     tableElement.addEventListener("scroll", handleTableScroll)
   }
+  updateTableHeight()
+  const observer = new ResizeObserver(() => updateTableHeight())
+  if (documentRecordsTableRef.value?.$el) observer.observe(documentRecordsTableRef.value?.$el)
 })
 
 onBeforeUnmount(() => {
@@ -142,6 +151,24 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
     searchDocumentType.value = ''
   }
 })
+
+/** Watch tableHeight and expand the last row if the table is too short **/
+watch([tableHeight, documentSearchResults], ([newHeight, newResults], [_, oldResults]) => {
+  if (newHeight < 400) {
+    const lastRow = documentRecordsTableRef.value?.$el.querySelector('table tbody tr:last-child')
+    if (lastRow) {
+      lastRow.id = "doc-table-last-child";
+      lastRow.classList.add('h-[300px]');
+    }
+  } 
+  else if (newResults.length !== oldResults.length && tableHeight.value > 400) {
+    const lastRow = documentRecordsTableRef.value?.$el.querySelector("#doc-table-last-child")
+    if (lastRow) {
+      lastRow.classList.remove('h-[300px]');
+      lastRow.removeAttribute('id')
+    }
+  }
+});
 </script>
 <template>
   <ContentWrapper
@@ -172,7 +199,6 @@ watch(() => searchDocumentClass.value, (newValue: string) => {
     <template #content>
       <UTable
         ref="documentRecordsTableRef"
-        class="min-h-[400px]"
         :columns="columnsToShow"
         :rows="documentSearchResults || []"
         :loading="isLoading"

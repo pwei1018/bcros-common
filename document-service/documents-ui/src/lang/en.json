@@ -149,7 +149,7 @@
     "title": "Scanning Document Details",
     "accessionNumber": "Accession Number",
     "batchId": "Batch Number",
-    "pagesToScan": "Pages to Scan",
+    "pagesToScan": "Pages to Scan(Optional)",
     "scannedDate": "Scanned Date"
   },
   "cancelDialog": {
