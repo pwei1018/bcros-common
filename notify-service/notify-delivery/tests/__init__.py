@@ -71,7 +71,7 @@ def strip_keys_from_dict(orig_dict: dict, keys: list) -> dict:
                 try:
                     if item not in keys:
                         modified_list.append(item)
-                except:  # pylint: disable=bare-except
+                except Exception:  # pylint: disable=bare-except
                     modified_list.append(item)
         return modified_list
 

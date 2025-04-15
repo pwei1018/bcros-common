@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "notify-delivery"
-version = "2.0.0"
+version = "2.0.2"
 description = "This module is the service worker for delivery emails."
 authors = ["pwei1018 <patrick.wei@gov.bc.ca>"]
 license = "BSD-3-Clause"
@@ -12,16 +12,16 @@ python = "^3.12"
 notify-api = { git = "https://github.com/bcgov/bcros-common.git", subdirectory = "notify-service/notify-api",  branch = "main" }
 
 [tool.poetry.group.test.dependencies]
-psycopg2 = "^2.9.9"
 pytest = "^8.2.2"
 pytest-cov = "^5.0.0"
 pytest-mock = "^3.14.0"
 requests-mock = "^1.12.1"
 faker = "^25.9.2"
 freezegun = "^1.5.1"
+aiohttp = "^3.11.15"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.3.4"
+ruff = "^0.11.2"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -71,22 +71,18 @@ docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint]
 select = [
+    "E",   # pycodestyle
+    "F",   # Pyflakes
+    "UP",  # pyupgrade
     "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "ERA", # flake8-eradicate/eradicate
+    "SIM", # flake8-simplify
     "I",   # isort
     "N",   # pep8-naming
-    "PIE", # flake8-pie
     "PL",  # pyLint
-    "PGH", # pygrep
-    "RUF", # ruff checks
-    "SIM", # flake8-simplify
-    "T20", # flake8-print
-    "TCH", # flake8-type-checking
-    "TID", # flake8-tidy-imports
-    "UP",  # pyupgrade
 ]
 ignore = [
+    "F401",
+    "E501", # https://stackoverflow.com/questions/76771858/ruff-does-not-autofix-line-too-long-violation
     "B904", # use 'raise ... from err'
     "B905", # use explicit 'strict=' parameter with 'zip()'
     "N999"
