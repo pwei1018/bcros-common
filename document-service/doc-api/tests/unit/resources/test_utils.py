@@ -284,16 +284,18 @@ def test_save_update(session, document, token, doc_class, scan_info,  update_sca
     """Assert that patch request resource_utils.save_update works as expected."""
     doc: Document = copy.deepcopy(document)
     doc.save()
+    existing_doc = doc.json
     if scan_info:
         scan_doc: DocumentScanning = DocumentScanning.create_from_json(scan_info,
                                                                        UPDATE_DOC.get("consumerDocumentId"),
                                                                        doc_class)
         scan_doc.id = 200000000
         scan_doc.save()
-    info: RequestInfo = RequestInfo(RequestTypes.UPDATE.value, None, doc.document_type, None)
+        existing_doc["scanningInformation"] = scan_info
+    info: RequestInfo = RequestInfo(RequestTypes.UPDATE.value, None, UPDATE_DOC.get("documentType"), None)
     request_data = copy.deepcopy(UPDATE_DOC)
+    request_data["existingDocument"] = existing_doc
     if not update_class_type:
-        del request_data["documentType"]
         del request_data["documentClass"]
     if update_scan_info:
         request_data['scanningInformation'] = update_scan_info
@@ -305,23 +307,23 @@ def test_save_update(session, document, token, doc_class, scan_info,  update_sca
     info.consumer_filename = request_data.get("consumerFilename")
     info.consumer_filedate = request_data.get("consumerFilingDateTime")
     info.description = request_data.get("description")
+    logger.info(info.request_data)
     result = resource_utils.save_update(info, doc, token)
     assert result.get("documentServiceId")
     assert result.get("createDateTime")
     assert result.get("documentTypeDescription")
     if update_class_type:
         assert result.get("documentType") == request_data.get("documentType")
-        assert result.get("documentClass") == request_data.get("documentClass")
     else:
         assert result.get("documentType") == doc.document_type
-        assert result.get("documentClass") == doc.document_class
+    assert result.get("documentClass") == doc.document_class
     assert result.get("consumerDocumentId") == request_data.get("consumerDocumentId")
     assert result.get("consumerFilename") == request_data.get("consumerFilename")
     assert result.get("consumerIdentifier") == request_data.get("consumerIdentifier")
     assert result.get("description") == request_data.get("description")
     assert result.get("consumerFilingDateTime") == request_data.get("consumerFilingDateTime")
     assert not result.get("documentURL")
-    if scan_info or update_scan_info:
+    if scan_info:
         assert result.get("scanningInformation")
         scan_json = result.get("scanningInformation")
         if not update_scan_info:

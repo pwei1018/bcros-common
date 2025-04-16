@@ -403,8 +403,9 @@ def save_update(info: RequestInfo, document: Document, token) -> dict:
         return save_remove(info, document, token)
     doc_scan: DocumentScanning = None
     update_doc_id: str = info.request_data.get("consumerDocumentId") if info.request_data else None
-    update_doc_class: str = info.request_data.get("documentClass") if info.request_data else None
-    if info.request_data and info.request_data.get("scanningInformation"):
+    update_doc_class: str = document.document_class
+    # Conditionally update scanning information
+    if info.request_data and request_validator.is_scanning_modified(info):
         scan_json = info.request_data.get("scanningInformation")
         doc_scan = DocumentScanning.find_by_document_id(document.consumer_document_id, document.document_class)
         if not doc_scan and update_doc_id and update_doc_class:
@@ -412,20 +413,24 @@ def save_update(info: RequestInfo, document: Document, token) -> dict:
         if doc_scan:
             logger.info("save_update found existing scanning record to update")
             doc_scan.update(scan_json, update_doc_id, update_doc_class)
-        else:
-            logger.info("save_update no existing scanning record to update: creating one.")
-            if not update_doc_id:
-                update_doc_id = document.consumer_document_id
-            if not update_doc_class:
-                update_doc_class = document.document_class
-            doc_scan = DocumentScanning.create_from_json(scan_json, update_doc_id, update_doc_class)
-    document.update(info.request_data)
-    logger.info("save_update saving updated document model and document_request...")
+        # Only allow scanning info updates from the UI: not new scanning info records.
+        # else:
+        #    logger.info("save_update no existing scanning record to update: creating one.")
+        #    if not update_doc_id:
+        #        update_doc_id = document.consumer_document_id
+        #    if not update_doc_class:
+        #        update_doc_class = document.document_class
+        #    doc_scan = DocumentScanning.create_from_json(scan_json, update_doc_id, update_doc_class)
     doc_request: DocumentRequest = build_doc_request(info, user, document.id)
-    db.session.add(document)
+    if request_validator.is_document_modified(info):
+        document.update(info.request_data)
+        db.session.add(document)
+        logger.info("save_update saving updated document model...")
     if doc_scan:
         db.session.add(doc_scan)
+        logger.info("save_update saving updated document_scanning model...")
     db.session.add(doc_request)
+    logger.info("save_update saving document_request...")
     db.session.commit()
     doc_json = document.json
     if doc_json.get("documentURL"):

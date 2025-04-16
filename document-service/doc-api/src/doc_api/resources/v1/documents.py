@@ -89,6 +89,10 @@ def update_document_info(doc_service_id: str):
             RequestTypes.UPDATE, req_path, document.document_type, resource_utils.get_doc_storage_type(doc_class)
         )
         info = resource_utils.update_request_info(request, info, doc_service_id, doc_class, is_staff(jwt))
+        req_data = info.request_data
+        req_data["existingDocument"] = document.json  # Add to validate changes
+        info.request_data = req_data
+        logger.info(info.request_data)
         # Additional validation not covered by the schema.
         extra_validation_msg = resource_utils.validate_request(info)
         if extra_validation_msg != "":

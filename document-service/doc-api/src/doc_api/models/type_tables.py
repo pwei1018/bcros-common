@@ -355,11 +355,11 @@ class DocumentTypeClass(db.Model):  # pylint: disable=too-few-public-methods
         return results
 
     @classmethod
-    def find_by_doc_type(cls, doc_type: str, all: bool = False):
+    def find_by_doc_type(cls, doc_type: str, all_classes: bool = False):
         """Return a specific set of records by type."""
         if not doc_type or doc_type not in DocumentTypes or doc_type == DocumentTypes.DELETED.value:
             return None
-        if all:
+        if all_classes:
             return db.session.query(DocumentTypeClass).filter(DocumentTypeClass.document_type == doc_type).all()
 
         return (

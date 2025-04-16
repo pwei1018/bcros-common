@@ -33,7 +33,7 @@ TEST_SCAN1 = {
     "accessionNumber": "AN-0001",
     "batchId": "1234",
     "author": "Jane Smith",
-    "pageCount": 3,
+    "pageCount": 3
 }
 TEST_SCAN2 = {"accessionNumber": "AN-0001", "batchId": "1234", "author": "Jane Smith", "pageCount": 3}
 TEST_SCAN3 = {
@@ -49,6 +49,27 @@ TEST_REMOVE = {
 }
 DOC_ID_VALID_CHECKSUM = '63166035'
 DOC_ID_INVALID_CHECKSUM = '63166034'
+TEST_DOC1 = {
+    "consumerDocumentId": "T0000001",
+    "consumerFilename": "test.pdf",
+    "consumerIdentifier": "T0000002",
+    "documentType": "TRAN",
+    "documentClass": "MHR",
+    "consumerFilingDateTime": "2024-07-01T19:00:00+00:00",
+    "description": "A meaningful description of the document.",
+    "author": "John Smith",
+    "consumerReferenceId": "9014001"
+}
+TEST_DOC_UPDATE1 = {"consumerFilename": "test.pdf"}
+TEST_DOC_UPDATE2 = {"consumerFilename": "test-update.pdf"}
+TEST_DOC_UPDATE3 = {"consumerIdentifier": "T0000002"}
+TEST_DOC_UPDATE4 = {"consumerIdentifier": "UT0000003"}
+TEST_DOC_UPDATE5 = {"documentType": "TRAN"}
+TEST_DOC_UPDATE6 = {"documentType": "DEAT"}
+TEST_DOC_UPDATE7 = {"description": "A meaningful description of the document."}
+TEST_DOC_UPDATE8 = {"description": "UPDATED"}
+TEST_DOC_UPDATE9 = {"author": "John Smith"}
+TEST_DOC_UPDATE10 = {"author": "John David Smith"}
 
 # test data pattern is ({description}, {valid}, {payload}, {new}, {cons_doc_id}, {doc_class}, {message_content})
 TEST_DATA_SCANNING = [
@@ -207,17 +228,21 @@ TEST_DATA_SEARCH_DATES = [
     ("Invalid start date", False, "January 12, 2022", None, validator.INVALID_START_DATE),
     ("Invalid end date", False, None, "January 12, 2022", validator.INVALID_END_DATE),
 ]
-# test data pattern is ({description},{valid},{doc_id},{cons_id},{filename},{filing_date},{desc},{ref_id},{message_content})
+# test data pattern is ({description},{valid},{doc_type},{cons_id},{filename},{filing_date},{desc},{ref_id},{message_content})
 TEST_DATA_PATCH = [
-    ("Valid doc id", True, "89999999", None, None, None, None, REF_ID1, None),
+    ("Valid doc type", True, "DEAT", None, None, None, None, REF_ID1, None),
     ("Valid removed", True, None, None, None, None, None, None, None),
     ("Valid consumer id", True, None, "BC0700000", None, None, None, None, None),
     ("Valid filename", True, None, None, "change_address.pdf", None, None, None, None),
     ("Valid filing date", True, None, None, None, "2024-07-31", None, None, None),
     ("Valid description", True, None, None, None, None, "Important description", None, None),
+    ("Valid scanning change", True, None, None, None, None, None, None, None),
     ("Invalid no change", False, None, None, None, None, None, None, validator.MISSING_PATCH_PARAMS),
+    ("Invalid no change scanning", False, None, None, None, None, None, None, validator.MISSING_PATCH_PARAMS),
     ("Invalid filing date", False, None, None, None, "January 12, 2022", None, None, validator.INVALID_FILING_DATE),
     ("Invalid ref id", False, None, None, None, None, None, REF_ID2, validator.INVALID_REFERENCE_ID),
+    ("Invalid doc type", False, "ADDR", None, None, None, None, None,
+     validator.INVALID_DOC_CLASS_TYPE.format(doc_type="ADDR", doc_class="MHR")),
 ]
 # test data pattern is ({description}, {valid}, {payload}, {doc_type}, {content_type}, {doc_class}, {message_content})
 TEST_DATA_REPLACE = [
@@ -307,6 +332,81 @@ TEST_DATA_DOC_CLASS_TYPE = [
     ("Inactive", False, "DAT", "PPR", validator.INACTIVE_DOC_CLASS_TYPE),
     ("Inactive", False, "PRE", "CORP", validator.INACTIVE_DOC_CLASS_TYPE),
 ]
+# test data pattern is ({description},{modified},{existing},{update})
+TEST_DATA_SCAN_MODIFIED = [
+    ("No info", False, None, None),
+    ("No update", False, TEST_SCAN1, None),
+    ("No existing", False, None, TEST_SCAN1),
+    ("No change", False, TEST_SCAN1, TEST_SCAN1),
+    ("Update accessionNumber", True, TEST_SCAN1, TEST_SCAN1),
+    ("Update scanDateTime", True, TEST_SCAN1, TEST_SCAN1),
+    ("Update batchId", True, TEST_SCAN1, TEST_SCAN1),
+    ("Update author", True, TEST_SCAN1, TEST_SCAN1),
+    ("Update pageCount", True, TEST_SCAN1, TEST_SCAN1),
+]
+# test data pattern is ({description},{modified},{existing},{update})
+TEST_DATA_DOC_MODIFIED = [
+    ("No update", False, TEST_DOC1, {}),
+    ("No change", False, TEST_DOC1, TEST_DOC1),
+    ("Filename no change", False, TEST_DOC1, TEST_DOC_UPDATE1),
+    ("Filename change", True, TEST_DOC1, TEST_DOC_UPDATE2),
+    ("Entity ID no change", False, TEST_DOC1, TEST_DOC_UPDATE3),
+    ("Entity ID change", True, TEST_DOC1, TEST_DOC_UPDATE4),
+    ("Doc type no change", False, TEST_DOC1, TEST_DOC_UPDATE5),
+    ("Doc type change", True, TEST_DOC1, TEST_DOC_UPDATE6),
+    ("Description no change", False, TEST_DOC1, TEST_DOC_UPDATE7),
+    ("Description change", True, TEST_DOC1, TEST_DOC_UPDATE8),
+    ("Author no change", False, TEST_DOC1, TEST_DOC_UPDATE9),
+    ("Author change", True, TEST_DOC1, TEST_DOC_UPDATE10),
+]
+
+
+@pytest.mark.parametrize("desc,modified,existing,update", TEST_DATA_DOC_MODIFIED)
+def test_validate_doc_modified(session, desc, modified, existing, update):
+    """Assert that document record modified check works as expected."""
+    info: RequestInfo = RequestInfo("UPDATE", None, existing.get("documentType"), None)
+    info.document_class = existing.get("documentClass")
+    if update:
+        info.request_data = copy.deepcopy(update)
+        info.consumer_doc_id = update.get("consumerDocumentId")
+        info.consumer_filename = update.get("consumerFilename")
+        info.consumer_filedate = update.get("consumerFilingDateTime")
+        info.consumer_identifier = update.get("consumerIdentifer")
+        info.consumer_reference_id = update.get("consumerReferenceId")
+        info.description = update.get("description")
+    else:
+        info.request_data = {}
+    if existing:
+        info.request_data["existingDocument"] = copy.deepcopy(existing)
+    test_modified = validator.is_document_modified(info)
+    assert test_modified == modified
+
+
+@pytest.mark.parametrize("desc,modified,existing,update", TEST_DATA_SCAN_MODIFIED)
+def test_validate_scan_modified(session, desc, modified, existing, update):
+    """Assert that the scanning record update check works as expected."""
+    info: RequestInfo = RequestInfo(None, None, None, None)
+    info.request_data = {}
+    if existing:
+        existing_doc = {
+            "scanningInformation": copy.deepcopy(existing)
+        }
+        info.request_data["existingDocument"] = existing_doc
+    if update:
+        test_json = copy.deepcopy(update)
+        if desc == "Update accessionNumber":
+            test_json["accessionNumber"] = "TEST-12343"
+        elif desc == "Update scanDateTime":
+            test_json["scanDateTime"] = "2025-10-10"
+        if desc == "Update batchId":
+            test_json["batchId"] = "TEST1234"
+        if desc == "Update author":
+            test_json["author"] = "NEW TEST AUTHOR"
+        if desc == "Update pageCount":
+            test_json["pageCount"] = 91
+        info.request_data["scanningInformation"] = test_json
+    test_modified = validator.is_scanning_modified(info)
+    assert test_modified == modified
 
 
 @pytest.mark.parametrize("desc,valid,doc_type,doc_class,message_content", TEST_DATA_DOC_CLASS_TYPE)
@@ -500,28 +600,43 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
             assert error_msg.find(err_msg) != -1
 
 
-@pytest.mark.parametrize("desc,valid,doc_id,cons_id,filename,filing_date,description,ref_id,message_content", TEST_DATA_PATCH)
-def test_validate_patch(session, desc, valid, doc_id, cons_id, filename, filing_date, description, ref_id, message_content):
+@pytest.mark.parametrize("desc,valid,doc_type,cons_id,filename,filing_date,description,ref_id,message_content", TEST_DATA_PATCH)
+def test_validate_patch(session, desc, valid, doc_type, cons_id, filename, filing_date, description, ref_id, message_content):
     """Assert that patch request validation works as expected."""
     # setup
-    info: RequestInfo = RequestInfo(RequestTypes.UPDATE, "NA", DocumentTypes.CORR, "NA")
+    info: RequestInfo = RequestInfo(RequestTypes.UPDATE, "NA", TEST_DOC1.get("documentType"), "NA")
     info.content_type = model_utils.CONTENT_TYPE_PDF
     info.account_id = "NA"
-    info.document_class = DocumentClasses.CORP
-    if doc_id:
-        info.consumer_doc_id = doc_id
-    if cons_id:
-        info.consumer_identifier = cons_id
-    if filename:
-        info.consumer_filename = filename
-    if filing_date:
-        info.consumer_filedate = filing_date
-    if description:
-        info.description = description
+    info.document_class = TEST_DOC1.get("documentClass")
     if desc == "Valid removed":
         info.request_data = TEST_REMOVE
+    else:
+        info.request_data = {}
+    info.request_data["existingDocument"] = copy.deepcopy(TEST_DOC1)
+    if desc in ("Valid scanning change", "Invalid no change scanning"):
+        info.request_data["existingDocument"]["scanningInformation"] = copy.deepcopy(TEST_SCAN1)
+        info.request_data["scanningInformation"] = copy.deepcopy(TEST_SCAN1)
+        if desc == "Valid scanning change":
+            info.request_data["scanningInformation"]["pageCount"] = 1
+    if doc_type:
+        info.document_type = doc_type
+        info.request_data["documentType"] = doc_type
+    if cons_id:
+        info.consumer_identifier = cons_id
+        info.request_data["consumerIdentifier"] = cons_id
+    if filename:
+        info.consumer_filename = filename
+        info.request_data["consumerFilename"] = filename
+    if filing_date:
+        info.consumer_filedate = filing_date
+        info.request_data["consumerFilingDateTime"] = filing_date
+    if description:
+        info.description = description
+        info.request_data["description"] = description
     if ref_id:
         info.consumer_reference_id = ref_id
+        info.request_data["consumerReferenceId"] = ref_id
+
     error_msg = validator.validate_request(info)
     if valid:
         assert error_msg == ""

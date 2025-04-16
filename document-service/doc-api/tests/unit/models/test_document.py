@@ -17,12 +17,15 @@
 Test-Suite to ensure that the document Model is working as expected.
 """
 import copy
+import json
 
 import pytest
+from flask import current_app
 
 from doc_api.models import Document, DocumentScanning
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, DocumentType, DocumentTypes
+from doc_api.utils.logging import logger
 
 DOC1 = {
     "consumerDocumentId": "T0000001",
@@ -30,6 +33,17 @@ DOC1 = {
     "consumerIdentifier": "T0000002",
     "documentType": "CORR",
     "documentClass": "PPR",
+    "consumerFilingDateTime": "2024-07-01T19:00:00+00:00",
+    "description": "A meaningful description of the document.",
+    "author": "John Smith",
+    "consumerReferenceId": "9014001"
+}
+DOC2 = {
+    "consumerDocumentId": "T0000001",
+    "consumerFilename": "test.pdf",
+    "consumerIdentifier": "T0000002",
+    "documentType": "CORR",
+    "documentClass": "MHR",
     "consumerFilingDateTime": "2024-07-01T19:00:00+00:00",
     "description": "A meaningful description of the document.",
     "author": "John Smith",
@@ -46,7 +60,7 @@ UPDATE_DOC = {
     "consumerDocumentId": "T0000002",
     "consumerFilename": "test-update.pdf",
     "consumerIdentifier": "CI-0000002",
-    "documentType": "CORR",
+    "documentType": "TRAN",
     "documentClass": "CORP",
     "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
     "description": "Updated description of the document.",
@@ -93,8 +107,8 @@ TEST_CONSUMER_ID_DATA = [
 TEST_CREATE_JSON_DATA = [(True, DocumentTypes.CORR.value), (False, DocumentTypes.CORR.value)]
 # testdata pattern is ({doc_info}, {update_doc_info}, {update_class_type})
 TEST_UPDATE_JSON_DATA = [
-    (DOC1, UPDATE_DOC, True),
-    (DOC1, UPDATE_DOC, False)
+    (DOC2, UPDATE_DOC, True),
+    (DOC2, UPDATE_DOC, False)
 ]
 
 
@@ -247,14 +261,12 @@ def test_update(session, doc_info, update_doc_info, update_class_type):
     """Assert that updating document information contains all expected elements."""
 
     save_doc: Document = Document.create_from_json(doc_info, doc_info.get("documentType"))
-    save_doc.document_class = doc_info.get("documentClass")
     save_doc.save()
     assert save_doc.id
     assert save_doc.document_service_id
     assert save_doc.consumer_document_id
     if not update_class_type:
         del update_doc_info["documentType"]
-        del update_doc_info["documentClass"]
     save_doc.update(update_doc_info)
     save_doc.save()
     update_doc: Document = Document.find_by_doc_service_id(save_doc.document_service_id)
@@ -262,13 +274,12 @@ def test_update(session, doc_info, update_doc_info, update_class_type):
     assert update_doc.consumer_document_id == save_doc.consumer_document_id
     if update_class_type:
         assert update_doc.document_type == update_doc_info["documentType"]
-        assert update_doc.document_class == update_doc_info["documentClass"]
     else:
         assert update_doc.document_type == doc_info["documentType"]
-        assert update_doc.document_class == doc_info["documentClass"]
+    assert update_doc.document_class == doc_info["documentClass"]
     doc_json = update_doc.json
     assert doc_json
-    assert doc_json.get("documentClass")
+    assert doc_json.get("documentClass") == save_doc.document_class
     assert doc_json.get("documentTypeDescription")
     assert doc_json.get("consumerDocumentId") == update_doc_info.get("consumerDocumentId")
     assert doc_json.get("consumerFilename") == update_doc_info.get("consumerFilename")
@@ -276,3 +287,15 @@ def test_update(session, doc_info, update_doc_info, update_class_type):
     assert doc_json.get("consumerFilingDateTime") == update_doc_info.get("consumerFilingDateTime")
     assert doc_json.get("author") == update_doc_info.get("author")
     assert doc_json.get("consumerReferenceId") == update_doc_info.get("consumerReferenceId")
+
+
+def test_find_history_by_document_id(session):
+    """Assert that find doc history by consumer document id contains all expected elements."""
+    # doc_id: str = "0100000191"
+    doc_id: str = ""
+    if doc_id:
+        doc_history = Document.find_history_by_document_id(doc_id)
+        logger.info(f"Checking doc id {doc_id} history")
+        if doc_history:
+            history_json = json.dumps(doc_history).encode("utf-8")
+            logger.info(history_json)

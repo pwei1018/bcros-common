@@ -59,6 +59,8 @@ INVALID_ENTITY_ID = "Entity identifier {entity_id} is required and must be betwe
 INVALID_EVENT_ID = "Event identifier {event_id} is invalid: it must be an integer > 0. "
 INVALID_FILENAME = "File name {filename} is invalid: it must be between 5 and 1000 characters in length. "
 INVALID_REPORT_UPDATE = "PATCH update report record payload no properties found to update (see the API spec). "
+INVALID_DOC_CLASS_UPDATE = "Request invalid: document class may not be updated. "
+MISSING_EXISTING_SCAN = "Request invalid: no document scanning information exists to update. "
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -194,14 +196,17 @@ def validate_patch(info: RequestInfo, error_msg: str) -> str:
     try:
         if info.request_data and info.request_data.get("removed"):
             return error_msg
-        if (
-            not info.consumer_filedate
-            and not info.consumer_identifier
-            and not info.consumer_filename
-            and not info.consumer_doc_id
-            and not info.description
-        ):
+        if not is_document_modified(info) and not is_scanning_modified(info):
             error_msg += MISSING_PATCH_PARAMS
+        if (
+            info.request_data
+            and info.request_data.get("documentClass")
+            and info.request_data.get("documentClass") != info.document_class
+        ):
+            error_msg += INVALID_DOC_CLASS_UPDATE
+        if info.request_data and info.request_data.get("documentType"):
+            error_msg += validate_doc_type_class(info.request_data.get("documentType"), info.document_class)
+        error_msg += validate_scanning_info(info)
         error_msg += validate_filingdate(info)
         error_msg += validate_reference_id(info)
     except Exception as validation_exception:  # noqa: B902; eat all errors
@@ -225,6 +230,73 @@ def validate_put(info: RequestInfo, error_msg: str) -> str:
     return error_msg
 
 
+def is_modified(existing: dict, update: dict, prop_name: str) -> bool:
+    """Determine if a specific property modifies the existing record."""
+    if not update.get(prop_name):
+        return False
+    return update.get(prop_name) != existing.get(prop_name, "")
+
+
+def is_document_modified(info: RequestInfo) -> bool:
+    """For a document PATCH request determine if any of the allowed properties have been updated."""
+    if not info.request_data or not info.request_data.get("existingDocument"):
+        return False
+    existing = info.request_data["existingDocument"]
+    updated = info.request_data
+    if (
+        is_modified(existing, updated, "consumerFilename")
+        or is_modified(existing, updated, "consumerIdentifier")
+        or is_modified(existing, updated, "consumerFilingDateTime")
+        or is_modified(existing, updated, "documentType")
+    ):
+        return True
+    if (
+        is_modified(existing, updated, "description")
+        or is_modified(existing, updated, "author")
+        or is_modified(existing, updated, "consumerReferenceId")
+        or is_modified(existing, updated, "consumerDocumentId")
+    ):
+        return True
+    return False
+
+
+def is_scanning_modified(info: RequestInfo) -> bool:
+    """For a document PATCH request determine if any of the scanning information has been modifed."""
+    if (
+        not info.request_data
+        or not info.request_data.get("existingDocument")
+        or not info.request_data["existingDocument"].get("scanningInformation")
+        or not info.request_data.get("scanningInformation")
+    ):
+        return False
+    existing = info.request_data["existingDocument"].get("scanningInformation")
+    updated = info.request_data.get("scanningInformation")
+    if (
+        is_modified(existing, updated, "accessionNumber")
+        or is_modified(existing, updated, "scanDateTime")
+        or is_modified(existing, updated, "batchId")
+        or is_modified(existing, updated, "author")
+    ):
+        return True
+    if updated.get("pageCount") and existing.get("pageCount", 0) != updated.get("pageCount"):
+        return True
+    return False
+
+
+def validate_scanning_info(info: RequestInfo) -> str:
+    """Validate the PATCH scanning information: only allowed if record exists."""
+    error_msg: str = ""
+    if not info.request_data or not info.request_data.get("scanningInformation"):
+        return error_msg
+    if not info.request_data.get("existingDocument") or not info.request_data["existingDocument"].get(
+        "scanningInformation"
+    ):
+        error_msg += MISSING_EXISTING_SCAN
+    elif is_scanning_modified(info):
+        error_msg += validate_scandate(info.request_data.get("scanningInformation"))
+    return error_msg
+
+
 def validate_doc_type(info: RequestInfo) -> str:
     """Validate the document type exists and is active."""
     error_msg: str = ""
@@ -241,27 +313,33 @@ def validate_doc_type(info: RequestInfo) -> str:
     return error_msg
 
 
-def validate_class_type(info: RequestInfo) -> str:
+def validate_doc_type_class(doc_type: str, doc_class: str) -> str:
     """Validate the document class matches the document type and the combination is active."""
     error_msg: str = ""
-    if not info.document_class or not info.document_type:
+    if not doc_type or not doc_class:
         return error_msg
-    doc_class: str = info.document_class
-    doc_types = DocumentTypeClass.find_by_doc_type(info.document_type, True)
+    doc_types = DocumentTypeClass.find_by_doc_type(doc_type, True)
     if doc_types:
         valid_class: bool = False
         for type_class in doc_types:
             if type_class.document_class == doc_class:
                 if not type_class.active:
-                    error_msg += INACTIVE_DOC_CLASS_TYPE.format(doc_class=doc_class, doc_type=info.document_type)
+                    error_msg += INACTIVE_DOC_CLASS_TYPE.format(doc_class=doc_class, doc_type=doc_type)
                 else:
                     valid_class = True
                 break
         if not valid_class and not error_msg:
-            error_msg = INVALID_DOC_CLASS_TYPE.format(doc_type=info.document_type, doc_class=doc_class)
+            error_msg = INVALID_DOC_CLASS_TYPE.format(doc_type=doc_type, doc_class=doc_class)
     else:
-        error_msg += INVALID_DOC_CLASS_TYPE.format(doc_type=info.document_type, doc_class=doc_class)
+        error_msg += INVALID_DOC_CLASS_TYPE.format(doc_type=doc_type, doc_class=doc_class)
     return error_msg
+
+
+def validate_class_type(info: RequestInfo) -> str:
+    """Validate the document class matches the document type and the combination is active."""
+    if not info.document_class or not info.document_type:
+        return ""
+    return validate_doc_type_class(info.document_type, info.document_class)
 
 
 def get_doc_class(info: RequestInfo) -> str:

@@ -151,6 +151,35 @@ class Document(db.Model):
         return documents
 
     @classmethod
+    def find_history_by_document_id(cls, doc_id: str):
+        """Return a list of documents by consumer document id/number. Include request info, return as JSON."""
+        documents = None
+        if doc_id:
+            logger.info(f"get history for doc id={doc_id}")
+            try:
+                documents = (
+                    db.session.query(Document)
+                    .filter(Document.consumer_document_id == doc_id)
+                    .order_by(Document.id)
+                    .all()
+                )
+            except Exception as db_exception:  # noqa: B902; return nicer error
+                logger.error("Document.find_by_document_id exception: " + str(db_exception))
+                raise DatabaseException(db_exception) from db_exception
+        doc_history = []
+        logger.info(f"history doc count = {len(documents)}")
+        if documents:
+            for doc in documents:
+                doc_json = doc.json
+                if doc.doc_requests:
+                    doc_changes = []
+                    for doc_req in doc.doc_requests:
+                        doc_changes.append(doc_req.history_json)
+                    doc_json["documentHistory"] = doc_changes
+                doc_history.append(doc_json)
+        return doc_history
+
+    @classmethod
     def find_by_consumer_id(cls, consumer_id: str, doc_type: str = None):
         """Return a list of document objects by consumer document id/number and optional document type."""
         documents = None
@@ -219,8 +248,6 @@ class Document(db.Model):
             self.consumer_filing_date = model_utils.ts_from_iso_date_noon(request_data.get("consumerFilingDate"))
         if request_data.get("documentType"):
             self.document_type = request_data.get("documentType")
-        if request_data.get("documentClass"):
-            self.document_class = request_data.get("documentClass")
         if request_data.get("author"):
             self.author = request_data.get("author")
         if request_data.get("consumerReferenceId"):
