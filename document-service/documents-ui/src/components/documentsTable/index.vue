@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { formatToReadableDate } from "~/utils/dateHelper"
-import { documentResultColumns } from "~/utils/documentTypes"
+import { documentResultColumns, documentTypes } from '~/utils/documentTypes'
 import { truncate } from "~/utils/documentRecords"
 import type { DocumentInfoIF } from "~/interfaces/document-types-interface"
 import { throttle } from 'lodash'
+const route = useRoute()
 
 const {
   getDocumentDescription,
@@ -96,7 +97,34 @@ const clearDocumentType = (event) => {
   event.stopPropagation();
 }
 
+const prepopulateFilters =  () => {
+  // Extract route query parameters and apply filters
+  const {
+    class: docClass,
+    entityId,
+    documentId,
+    documentType,
+  } = route.query as {
+    class: string
+    entityId: string
+    documentId: string
+    documentType: string
+  }
+  // Apply document class filter if valid
+  if (documentTypes.find(document => document.class === docClass)) searchDocumentClass.value = docClass
+
+  // Apply Document or Entity Id when present
+  if (entityId) searchEntityId.value = entityId
+  if (documentId) searchDocumentId.value = documentId
+
+  // Apply document type filter if it exists in the available options for the selected class
+  if (documentType && documentTypeOptions.value.some(opt => opt.type === documentType)) {
+    searchDocumentType.value = documentType
+  }
+}
+
 onMounted(async () => {
+  prepopulateFilters()
   await searchDocumentRecords()
   const tableElement = documentRecordsTableRef.value?.$el
   if (tableElement) {
@@ -160,7 +188,7 @@ watch([tableHeight, documentSearchResults], ([newHeight, newResults], [_, oldRes
       lastRow.id = "doc-table-last-child";
       lastRow.classList.add('h-[300px]');
     }
-  } 
+  }
   else if (newResults.length !== oldResults.length && tableHeight.value > 400) {
     const lastRow = documentRecordsTableRef.value?.$el.querySelector("#doc-table-last-child")
     if (lastRow) {
