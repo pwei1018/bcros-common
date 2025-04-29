@@ -97,7 +97,7 @@ const clearDocumentType = (event) => {
   event.stopPropagation();
 }
 
-const prepopulateFilters =  () => {
+const prepopulateFilters =  async () => {
   // Extract route query parameters and apply filters
   const {
     class: docClass,
@@ -124,8 +124,9 @@ const prepopulateFilters =  () => {
 }
 
 onMounted(async () => {
-  prepopulateFilters()
   await searchDocumentRecords()
+  await prepopulateFilters()
+
   const tableElement = documentRecordsTableRef.value?.$el
   if (tableElement) {
     tableElement.addEventListener("scroll", handleTableScroll)
