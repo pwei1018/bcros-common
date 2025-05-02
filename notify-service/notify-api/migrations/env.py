@@ -1,9 +1,11 @@
 import logging
 from logging.config import fileConfig
 
-from flask import current_app
-
 from alembic import context
+from flask import current_app
+from sqlalchemy import text
+
+from notify_api.config import Config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -90,6 +92,7 @@ def run_migrations_online():
     connectable = get_engine()
 
     with connectable.connect() as connection:
+
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),
@@ -98,7 +101,12 @@ def run_migrations_online():
         )
 
         with context.begin_transaction():
+            owner_role = Config.NOTIFY_DATABASE_OWNER
+            connection.execute(text(f"SET ROLE {owner_role};"))
+            result = connection.execute(text("SELECT current_user, session_user;"))
+            logger.info(f"User running migration is: {result.fetchone()}")
             context.run_migrations()
+            connection.execute(text("RESET ROLE;"))
 
 
 if context.is_offline_mode():

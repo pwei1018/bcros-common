@@ -36,6 +36,7 @@ class Config:  # pylint: disable=too-few-public-methods
     FLASK_PYDANTIC_VALIDATION_ERROR_RAISE = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ALEMBIC_INI = "migrations/alembic.ini"
+    NOTIFY_DATABASE_OWNER = os.getenv("NOTIFY_DATABASE_OWNER", "notifyuser")
 
     # POSTGRESQL
     if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
