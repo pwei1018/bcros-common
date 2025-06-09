@@ -212,10 +212,28 @@ def account_org(token: str, account_id: str) -> dict:
     return response
 
 
-def is_staff(jwt: JwtManager) -> bool:  # pylint: disable=too-many-return-statements
+def is_staff(jwt: JwtManager) -> bool:
     """Return True if the user has the BC Registries staff role."""
     if not jwt:
         return False
     if jwt.validate_roles([STAFF_ROLE]) or jwt.validate_roles([PPR_STAFF_ROLE]):
+        return True
+    return False
+
+
+def is_report_authorized(jwt: JwtManager) -> bool:
+    """Return True if the user can submit application report requests: staff or service account."""
+    if not jwt:
+        return False
+    if jwt.validate_roles([STAFF_ROLE]) or jwt.validate_roles([PPR_STAFF_ROLE]) or jwt.validate_roles([SYSTEM_ROLE]):
+        return True
+    return False
+
+
+def is_scanner_authorized(jwt: JwtManager) -> bool:
+    """Return True if the user can submit desktop scanner application requests: staff or service account only."""
+    if not jwt:
+        return False
+    if jwt.validate_roles([STAFF_ROLE]) or jwt.validate_roles([PPR_STAFF_ROLE]) or jwt.validate_roles([SYSTEM_ROLE]):
         return True
     return False

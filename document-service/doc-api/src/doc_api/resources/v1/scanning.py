@@ -28,7 +28,7 @@ from doc_api.models import (
     ScanningSchedule,
 )
 from doc_api.resources import utils as resource_utils
-from doc_api.services.authz import is_staff
+from doc_api.services.authz import is_scanner_authorized
 from doc_api.utils.auth import jwt
 from doc_api.utils.logging import logger
 
@@ -56,7 +56,7 @@ def post_document_scanning(doc_class: str, consumer_doc_id: str):
         logger.info(f"Starting new create document scanning request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         request_json = request.get_json(silent=True)
@@ -91,7 +91,7 @@ def update_document_scanning(doc_class: str, consumer_doc_id: str):
         logger.info(f"Starting new update document scanning request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         request_json = request.get_json(silent=True)
@@ -130,7 +130,7 @@ def get_document_scanning(doc_class: str, consumer_doc_id: str):
         logger.info(f"Starting new get document scanning request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         doc_scan: DocumentScanning = DocumentScanning.find_by_document_id(consumer_doc_id, doc_class)
@@ -158,7 +158,7 @@ def get_document_classes():
         logger.info(f"Starting new get scanning document classes request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         results = DocumentClass.find_all_scanning()
@@ -189,7 +189,7 @@ def get_document_types():
         logger.info(f"Starting new get scanning document types request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         results = DocumentType.find_all_scanning()
@@ -220,7 +220,7 @@ def get_authors():
         logger.info(f"Starting new get scanning authors request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         results = ScanningAuthor.find_all()
@@ -250,7 +250,7 @@ def get_schedules():
         logger.info(f"Starting new get scanning schedules request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         results = ScanningSchedule.find_all()
@@ -280,7 +280,7 @@ def get_parameters():
         logger.info(f"Starting new get scanning parameters request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         results = ScanningParameter.find()
@@ -307,7 +307,7 @@ def post_parameters():
         logger.info(f"Starting new create scanning parameters request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         request_json = request.get_json(silent=True)
@@ -339,7 +339,7 @@ def patch_parameters():
         logger.info(f"Starting new update scanning parameters request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         request_json = request.get_json(silent=True)
@@ -371,7 +371,7 @@ def get_max_batch_id(accession_number: str):
         logger.info(f"Starting new get scanning batch id request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         batch_id: int = DocumentScanning.get_max_batch_id(accession_number)
@@ -396,7 +396,7 @@ def post_boxes():
         logger.info(f"Starting new create scanning box request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         request_json = request.get_json(silent=True)
@@ -424,7 +424,7 @@ def patch_boxes():
         logger.info(f"Starting new update scanning box request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         request_json = request.get_json(silent=True)
@@ -459,7 +459,7 @@ def get_all_boxes():
         logger.info(f"Starting new get all scanning boxes request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         results = ScanningBox.find_all()
@@ -489,7 +489,7 @@ def get_sequence_boxes(sequence_number: str, schedule_number: str):
         logger.info(f"Starting new get scanning boxes request {req_path}, account={account_id}")
         if account_id is None:
             return resource_utils.account_required_response()
-        if not is_staff(jwt):
+        if not is_scanner_authorized(jwt):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         results = ScanningBox.find_by_sequence_schedule(int(sequence_number), int(schedule_number))

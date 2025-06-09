@@ -19,7 +19,14 @@ from datetime import datetime
 
 from doc_api.models import DocumentScanning
 from doc_api.models import utils as model_utils
-from doc_api.models.type_tables import DocumentClasses, DocumentType, DocumentTypeClass, DocumentTypes, RequestTypes
+from doc_api.models.type_tables import (
+    DocumentClasses,
+    DocumentType,
+    DocumentTypeClass,
+    DocumentTypes,
+    ProductCodes,
+    RequestTypes,
+)
 from doc_api.resources.request_info import RequestInfo
 from doc_api.utils.logging import logger
 
@@ -61,6 +68,7 @@ INVALID_FILENAME = "File name {filename} is invalid: it must be between 5 and 10
 INVALID_REPORT_UPDATE = "PATCH update report record payload no properties found to update (see the API spec). "
 INVALID_DOC_CLASS_UPDATE = "Request invalid: document class may not be updated. "
 MISSING_EXISTING_SCAN = "Request invalid: no document scanning information exists to update. "
+INVALID_PRODUCT_CODE = "Request invalid: unknown product code {product_code}. "
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -130,10 +138,14 @@ def validate_report_request(request_json: dict, is_create: bool) -> str:
     logger.info(f"Validating new report request for entity {request_json.get('entityIdentifier')}")
     error_msg: str = ""
     try:
+        if request_json.get("productCode") and request_json.get("productCode") not in ProductCodes:
+            error_msg += INVALID_PRODUCT_CODE.format(product_code=request_json.get("productCode"))
+        if request_json.get("isGet"):
+            return error_msg
         if not is_create and not request_json:
             logger.info("PATCH with no payload: request invalid.")
             return INVALID_REPORT_UPDATE
-        error_msg = validate_report_filingdate(request_json)
+        error_msg += validate_report_filingdate(request_json)
         report_type: str = request_json.get("reportType")
         if not report_type and is_create:
             error_msg += INVALID_REPORT_TYPE.format(report_type="(missing)")

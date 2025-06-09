@@ -19,7 +19,7 @@ Test-Suite to ensure that the MHR Type Table Models are working as expected.
 import pytest
 
 from doc_api.models import type_tables
-from doc_api.models.type_tables import DocumentClasses, DocumentTypes, RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentTypes, ProductCodes, RequestTypes
 
 # from doc_api.utils.logging import logger
 
@@ -84,6 +84,19 @@ TEST_DOC_TYPE_CLASSES_ALL = [
     ("PPR", 5),
     ("SOCIETY", 5),
 ]
+# testdata pattern is ({product_code}, {exists})
+TEST_PRODUCT_CODES = [
+    ("XXX", False),
+    (ProductCodes.BUSINESS.value, True),
+    (ProductCodes.BUSINESS_SEARCH.value, True),
+    (ProductCodes.CA_SEARCH.value, True),
+    (ProductCodes.DIR_SEARCH.value, True),
+    (ProductCodes.MHR.value, True),
+    (ProductCodes.PPR.value, True),
+    (ProductCodes.NRO.value, True),
+    (ProductCodes.STRR.value, True),
+]
+
 
 def test_request_type_findall(session):
     """Assert that the RequestType.find_all() works as expected."""
@@ -231,3 +244,26 @@ def test_document_type_class_all(session, doc_class, type_count):
             assert type_json.get("documentTypeDescription")
     else:
         assert not results.get(doc_class)
+
+
+def test_product_code_findall(session):
+    """Assert that the ProductCode.find_all() works as expected."""
+    results = type_tables.ProductCode.find_all()
+    assert results
+    assert len(results) >= 8
+    for result in results:
+        assert result.product_code
+        assert result.product_code in ProductCodes
+        assert result.product_code_desc
+
+
+@pytest.mark.parametrize("product_code, exists", TEST_PRODUCT_CODES)
+def test_product_code_find(session, product_code, exists):
+    """Assert that the ProductCode.find_by_product_code() works as expected."""
+    result = type_tables.ProductCode.find_by_product_code(product_code)
+    if exists:
+        assert result
+        assert result.product_code == product_code
+        assert result.product_code_desc
+    else:
+        assert not result

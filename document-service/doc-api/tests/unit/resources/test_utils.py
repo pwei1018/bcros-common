@@ -19,7 +19,7 @@ import pytest
 
 from doc_api.models import Document, DocumentRequest, DocumentScanning, User
 from doc_api.models import utils as model_utils
-from doc_api.models.type_tables import DocumentClasses, DocumentTypes, RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentTypes, ProductCodes, RequestTypes
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
@@ -161,6 +161,17 @@ TEST_DATA_STORAGE_TYPES = [
     (DocumentClasses.MHR, StorageDocTypes.MHR),
     (DocumentClasses.NR, StorageDocTypes.NR),
     (DocumentClasses.PPR, StorageDocTypes.PPR),
+]
+# testdata pattern is ({product_code}, {storage_type})
+TEST_DATA_PRODUCT_STORAGE_TYPES = [
+    (ProductCodes.BUSINESS, StorageDocTypes.BUSINESS),
+    (ProductCodes.BUSINESS_SEARCH, StorageDocTypes.BUSINESS),
+    (ProductCodes.CA_SEARCH, StorageDocTypes.BUSINESS),
+    (ProductCodes.DIR_SEARCH, StorageDocTypes.BUSINESS),
+    (ProductCodes.MHR, StorageDocTypes.MHR),
+    (ProductCodes.NRO, StorageDocTypes.NR),
+    (ProductCodes.PPR, StorageDocTypes.PPR),
+    (ProductCodes.STRR, StorageDocTypes.BUSINESS),
 ]
 # testdata pattern is ({document}, {token}, {doc_class}, {scan_info}, {update_scan_info}, {update_class_type})
 TEST_UPDATE_DATA = [
@@ -457,6 +468,13 @@ def test_save_doc_storage(session, doc_ts, doc_type, doc_service_id, content_typ
 
 @pytest.mark.parametrize("doc_class,storage_type", TEST_DATA_STORAGE_TYPES)
 def test_get_storage_type(session, doc_class, storage_type):
-    """Assert that get_docs_by_date_range works as expected."""
+    """Assert that get_doc_storage_type works as expected."""
     test_type = resource_utils.get_doc_storage_type(doc_class)
+    assert test_type == storage_type
+
+
+@pytest.mark.parametrize("product_code,storage_type", TEST_DATA_PRODUCT_STORAGE_TYPES)
+def test_get_product_storage_type(session, product_code, storage_type):
+    """Assert that get_product_storage_type works as expected."""
+    test_type = resource_utils.get_product_storage_type(product_code)
     assert test_type == storage_type

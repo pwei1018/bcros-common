@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This module holds model data for registries application reports."""
+from sqlalchemy import and_
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.sql import text
 
 from doc_api.exceptions import DatabaseException
@@ -19,6 +21,7 @@ from doc_api.models import utils as model_utils
 from doc_api.utils.logging import logger
 
 from .db import db
+from .type_tables import ProductCodes
 
 QUERY_KEYS = """
 select nextval('application_report_id_seq') AS report_id,
@@ -43,8 +46,22 @@ class ApplicationReport(db.Model):
     doc_storage_url = db.mapped_column("doc_storage_url", db.String(1000), nullable=True)
 
     # parent keys
+    product_code = db.mapped_column(
+        "product_code",
+        PG_ENUM(ProductCodes, name="productcode"),
+        db.ForeignKey("product_codes.product_code"),
+        nullable=True,
+        index=True,
+    )
 
     # Relationships - MhrRegistration
+    prod_code = db.relationship(
+        "ProductCode",
+        foreign_keys=[product_code],
+        back_populates="application_report",
+        cascade="all, delete",
+        uselist=False,
+    )
 
     @property
     def json(self) -> dict:
@@ -57,6 +74,7 @@ class ApplicationReport(db.Model):
             "reportType": self.report_type,
             "name": self.filename if self.filename else "",
             "url": self.doc_storage_url if self.doc_storage_url else "",
+            "productCode": self.product_code if self.product_code else "",
         }
         if self.filing_date:
             report["datePublished"] = model_utils.format_ts(self.filing_date)
@@ -112,72 +130,111 @@ class ApplicationReport(db.Model):
         return report
 
     @classmethod
-    def find_by_doc_service_id(cls, doc_service_id: str):
+    def find_by_doc_service_id(cls, doc_service_id: str, product_code: str = None):
         """Return a application report object by document service ID."""
         report = None
         if doc_service_id:
             try:
-                report = (
-                    db.session.query(ApplicationReport)
-                    .filter(ApplicationReport.document_service_id == doc_service_id)
-                    .one_or_none()
-                )
+                if product_code:
+                    report = (
+                        db.session.query(ApplicationReport)
+                        .filter(
+                            and_(
+                                ApplicationReport.product_code == product_code.upper(),
+                                ApplicationReport.document_service_id == doc_service_id,
+                            )
+                        )
+                        .one_or_none()
+                    )
+                else:
+                    report = (
+                        db.session.query(ApplicationReport)
+                        .filter(ApplicationReport.document_service_id == doc_service_id)
+                        .one_or_none()
+                    )
             except Exception as db_exception:  # noqa: B902; return nicer error
                 logger.error("ApplicationReport.find_by_doc_service_id exception: " + str(db_exception))
                 raise DatabaseException(db_exception) from db_exception
         return report
 
     @classmethod
-    def find_by_entity_id(cls, entity_id: str) -> list:
+    def find_by_entity_id(cls, entity_id: str, product_code: str = None) -> list:
         """Return the all report records that match the entity ID ordered by event ID."""
         if not entity_id:
             return None
         reports = None
         try:
-            reports = (
-                db.session.query(ApplicationReport)
-                .filter(ApplicationReport.entity_id == entity_id)
-                .order_by(ApplicationReport.event_id)
-                .all()
-            )
+            if product_code:
+                reports = (
+                    db.session.query(ApplicationReport)
+                    .filter(
+                        and_(
+                            ApplicationReport.product_code == product_code.upper(),
+                            ApplicationReport.entity_id == entity_id,
+                        )
+                    )
+                    .order_by(ApplicationReport.event_id)
+                    .all()
+                )
+            else:
+                reports = (
+                    db.session.query(ApplicationReport)
+                    .filter(ApplicationReport.entity_id == entity_id)
+                    .order_by(ApplicationReport.event_id)
+                    .all()
+                )
         except Exception as db_exception:  # noqa: B902; return nicer error
             logger.error("ApplicationReport.find_by_entity_id exception: " + str(db_exception))
             raise DatabaseException(db_exception) from db_exception
         return reports
 
     @classmethod
-    def find_by_entity_id_json(cls, entity_id: str) -> list[dict]:
+    def find_by_entity_id_json(cls, entity_id: str, product_code: str = None) -> list[dict]:
         """Return the all report records that match the entity ID as JSON, ordered by event ID."""
         report_json = []
-        reports = cls.find_by_entity_id(entity_id)
+        reports = cls.find_by_entity_id(entity_id, product_code)
         if reports:
             for report in reports:
                 report_json.append(report.json)
         return report_json
 
     @classmethod
-    def find_by_event_id(cls, event_id: int) -> list:
+    def find_by_event_id(cls, event_id: int, entity_id: str = None, product_code: str = None) -> list:
         """Return the all report records that match the event ID ordered by event ID."""
         if not event_id:
             return None
         reports = None
         try:
-            reports = (
-                db.session.query(ApplicationReport)
-                .filter(ApplicationReport.event_id == event_id)
-                .order_by(ApplicationReport.event_id)
-                .all()
-            )
+            if entity_id and product_code:
+                reports = (
+                    db.session.query(ApplicationReport)
+                    .filter(
+                        and_(
+                            ApplicationReport.product_code == product_code.upper(),
+                            ApplicationReport.entity_id == entity_id,
+                            ApplicationReport.event_id == event_id,
+                        )
+                    )
+                    .order_by(ApplicationReport.event_id)
+                    .all()
+                )
+            else:
+                reports = (
+                    db.session.query(ApplicationReport)
+                    .filter(ApplicationReport.event_id == event_id)
+                    .order_by(ApplicationReport.event_id)
+                    .all()
+                )
         except Exception as db_exception:  # noqa: B902; return nicer error
             logger.error("ApplicationReport.find_by_event_id exception: " + str(db_exception))
             raise DatabaseException(db_exception) from db_exception
         return reports
 
     @classmethod
-    def find_by_event_id_json(cls, event_id: int) -> list[dict]:
+    def find_by_event_id_json(cls, event_id: int, entity_id: str = None, product_code: str = None) -> list[dict]:
         """Return the all report records that match the event ID as JSON, ordered by event ID."""
         report_json = []
-        reports = cls.find_by_event_id(event_id)
+        reports = cls.find_by_event_id(event_id, entity_id, product_code)
         if reports:
             for report in reports:
                 report_json.append(report.json)
@@ -205,5 +262,7 @@ class ApplicationReport(db.Model):
             report.filename = DEFAULT_NAME.format(
                 entity_id=report.entity_id, event_id=report.event_id, report_type=report.report_type.lower()
             )
+        if request_json.get("productCode"):
+            report.product_code = request_json.get("productCode")
         report.get_generated_values()
         return report

@@ -19,7 +19,7 @@ from flask import current_app, jsonify, request
 from doc_api.exceptions import ResourceErrorCodes
 from doc_api.models import Document, DocumentRequest, DocumentScanning, User, db, search_utils
 from doc_api.models import utils as model_utils
-from doc_api.models.type_tables import DocumentClasses, DocumentTypes, RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentTypes, ProductCodes, RequestTypes
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils import request_validator
@@ -75,6 +75,16 @@ TO_STORAGE_TYPE = {
     DocumentClasses.OTHER: StorageDocTypes.BUSINESS,
     DocumentClasses.SOCIETY: StorageDocTypes.BUSINESS,
     DocumentClasses.XP: StorageDocTypes.BUSINESS,
+}
+TO_PRODUCT_STORAGE_TYPE = {
+    ProductCodes.BUSINESS: StorageDocTypes.BUSINESS,
+    ProductCodes.BUSINESS_SEARCH: StorageDocTypes.BUSINESS,
+    ProductCodes.CA_SEARCH: StorageDocTypes.BUSINESS,
+    ProductCodes.DIR_SEARCH: StorageDocTypes.BUSINESS,
+    ProductCodes.MHR: StorageDocTypes.MHR,
+    ProductCodes.NRO: StorageDocTypes.NR,
+    ProductCodes.PPR: StorageDocTypes.PPR,
+    ProductCodes.STRR: StorageDocTypes.BUSINESS,
 }
 STORAGE_TYPE_DEFAULT = StorageDocTypes.BUSINESS
 REMOVE_PREFIX = "DEL-"
@@ -562,6 +572,13 @@ def get_docs(info: RequestInfo) -> list:
         )
     logger.info("get docs completed...")
     return get_doc_links(info, results)
+
+
+def get_product_storage_type(product_code: str) -> str:
+    """Get the document storage type that maps to the product code."""
+    if product_code and TO_PRODUCT_STORAGE_TYPE.get(product_code):
+        return TO_PRODUCT_STORAGE_TYPE.get(product_code)
+    return STORAGE_TYPE_DEFAULT
 
 
 def get_doc_storage_type(doc_class: str) -> str:

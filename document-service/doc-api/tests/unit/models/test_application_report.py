@@ -22,8 +22,11 @@ import pytest
 
 from doc_api.models import ApplicationReport
 from doc_api.models import utils as model_utils
+from doc_api.models.type_tables import ProductCodes
+
 
 REPORT1 = {
+    "productCode": "BUSINESS",
     "entityIdentifier": "T0000001",
     "eventIdentifier": 1000000,
     "reportType": "RECEIPT",
@@ -31,6 +34,7 @@ REPORT1 = {
     "datePublished": "2024-07-01T19:00:00+00:00"
 }
 REPORT2 = {
+    "productCode": "BUSINESS",
     "identifier": "1",
     "entityIdentifier": "T0000001",
     "eventIdentifier": 1000000,
@@ -40,6 +44,7 @@ REPORT2 = {
     "url": ""
 }
 REPORT3 = {
+    "productCode": "BUSINESS",
     "entityIdentifier": "T0000001",
     "eventIdentifier": 1000000,
     "reportType": "FILING",
@@ -47,6 +52,7 @@ REPORT3 = {
     "datePublished": "2024-07-01T19:00:00+00:00"
 }
 REPORT4 = {
+    "productCode": "BUSINESS",
     "entityIdentifier": "T0000001",
     "eventIdentifier": 1000000,
     "reportType": "CERTIFICATE",
@@ -67,7 +73,8 @@ TEST_REPORT = ApplicationReport(
     event_id=1000000,
     report_type = "RECEIPT",
     filename="test.pdf",
-    filing_date=model_utils.ts_from_iso_format("2024-07-01T19:00:00+00:00")
+    filing_date=model_utils.ts_from_iso_format("2024-07-01T19:00:00+00:00"),
+    product_code = ProductCodes.BUSINESS
 )
 
 # testdata pattern is ({id}, {has_results}, {doc_type), {doc_class})
@@ -75,17 +82,27 @@ TEST_ID_DATA = [
     (200000001, True),
     (300000000, False),
 ]
+# testdata pattern is ({id}, {has_result}, {product_code})
 TEST_DOC_SERVICE_ID_DATA = [
-    ("T0000001", True),
-    ("XXXD0000", False),
+    ("T0000001", True, None),
+    ("T0000001", True, ProductCodes.BUSINESS.value),
+    ("T0000001", False, ProductCodes.PPR.value),
+    ("XXXD0000", False, None),
 ]
+# testdata pattern is ({id}, {has_result}, {entity_id}, {product_code})
 TEST_EVENT_ID_DATA = [
-    (1000000, True),
-    (100000000, False),
+    (1000000, True, None, None),
+    (1000000, True, 'T0000001', ProductCodes.BUSINESS.value),
+    (1000000, False, 'T0000001', ProductCodes.MHR.value),
+    (1000000, False, 'T000000X', ProductCodes.BUSINESS.value),
+    (100000000, False, None, None),
 ]
+# testdata pattern is ({id}, {has_result}, {product_code})
 TEST_ENTITY_ID_DATA = [
-    ("T0000001", True),
-    ("XXXTXX001", False),
+    ("T0000001", True, None),
+    ("T0000001", True, ProductCodes.BUSINESS.value),
+    ("T0000001", False, ProductCodes.NRO.value),
+    ("XXXTXX001", False, None),
 ]
 # testdata pattern is ({has_name}, {has_filing_date}, {filename})
 TEST_CREATE_JSON_DATA = [
@@ -128,14 +145,15 @@ def test_find_by_id(session, id, has_results):
         assert report_json.get("name") == REPORT1.get("name")
         assert report_json.get("dateCreated")
         assert report_json.get("datePublished")
+        assert report_json.get("productCode")
         assert "url" in report_json and not report_json.get("url")
 
 
-@pytest.mark.parametrize("id, has_results", TEST_DOC_SERVICE_ID_DATA)
-def test_find_by_doc_service_id(session, id, has_results):
+@pytest.mark.parametrize("id, has_results, product_code", TEST_DOC_SERVICE_ID_DATA)
+def test_find_by_doc_service_id(session, id, has_results, product_code):
     """Assert that find a report by document service id contains all expected elements."""
     if not has_results:
-        report: ApplicationReport = ApplicationReport.find_by_doc_service_id(id)
+        report: ApplicationReport = ApplicationReport.find_by_doc_service_id(id, product_code)
         assert not report
     else:
         save_report: ApplicationReport = ApplicationReport.create_from_json(REPORT1)
@@ -148,7 +166,7 @@ def test_find_by_doc_service_id(session, id, has_results):
         save_report.save()
         assert save_report.id
         assert save_report.document_service_id == id
-        report: ApplicationReport = ApplicationReport.find_by_doc_service_id(id)
+        report: ApplicationReport = ApplicationReport.find_by_doc_service_id(id, product_code)
         assert report
         assert report.document_service_id == id
         assert report.entity_id == save_report.entity_id
@@ -162,14 +180,22 @@ def test_find_by_doc_service_id(session, id, has_results):
         assert report_json.get("name") == REPORT1.get("name")
         assert report_json.get("dateCreated")
         assert report_json.get("datePublished")
+        if product_code:
+            assert report_json.get("productCode") == product_code
+        else:
+            assert report_json.get("productCode")
         assert "url" in report_json and not report_json.get("url")
 
 
-@pytest.mark.parametrize("id, has_results", TEST_EVENT_ID_DATA)
-def test_find_by_event_id(session, id, has_results):
+@pytest.mark.parametrize("id, has_results,entity_id,product_code", TEST_EVENT_ID_DATA)
+def test_find_by_event_id(session, id, has_results, entity_id, product_code):
     """Assert that find reports by event id contains all expected elements."""
+    report = None
     if not has_results:
-        reports = ApplicationReport.find_by_event_id(id)
+        if product_code and entity_id:
+            reports = ApplicationReport.find_by_event_id(id, entity_id, product_code)
+        else:
+            reports = ApplicationReport.find_by_event_id(id)
         assert not reports
     else:
         save_report: ApplicationReport = ApplicationReport.create_from_json(REPORT1)
@@ -178,7 +204,10 @@ def test_find_by_event_id(session, id, has_results):
         save_report2.save()
         save_report3: ApplicationReport = ApplicationReport.create_from_json(REPORT4)
         save_report3.save()
-        reports = ApplicationReport.find_by_event_id(id)
+        if product_code and entity_id:
+            reports = ApplicationReport.find_by_event_id(id, entity_id, product_code)
+        else:
+            reports = ApplicationReport.find_by_event_id(id)
         assert reports
         assert len(reports) >= 3
         for report in reports:
@@ -188,13 +217,21 @@ def test_find_by_event_id(session, id, has_results):
         assert len(report_json) >= 3
         for json in report_json:
             assert json.get("eventIdentifier") == id
+            if product_code:
+                assert json.get("productCode") == product_code
+            else:
+                assert json.get("productCode")
 
 
-@pytest.mark.parametrize("id, has_results", TEST_ENTITY_ID_DATA)
-def test_find_by_entity_id(session, id, has_results):
+@pytest.mark.parametrize("id, has_results,product_code", TEST_ENTITY_ID_DATA)
+def test_find_by_entity_id(session, id, has_results, product_code):
     """Assert that find reports by entity id contains all expected elements."""
+    reports = None
     if not has_results:
-        reports = ApplicationReport.find_by_entity_id(id)
+        if not product_code:
+            reports = ApplicationReport.find_by_entity_id(id)
+        else:
+            reports = ApplicationReport.find_by_entity_id(id, product_code)
         assert not reports
     else:
         save_report: ApplicationReport = ApplicationReport.create_from_json(REPORT1)
@@ -203,7 +240,10 @@ def test_find_by_entity_id(session, id, has_results):
         save_report2.save()
         save_report3: ApplicationReport = ApplicationReport.create_from_json(REPORT4)
         save_report3.save()
-        reports = ApplicationReport.find_by_entity_id(id)
+        if product_code:
+            reports = ApplicationReport.find_by_entity_id(id, product_code)
+        else:
+            reports = ApplicationReport.find_by_entity_id(id)
         assert reports
         assert len(reports) >= 3
         for report in reports:
@@ -213,6 +253,10 @@ def test_find_by_entity_id(session, id, has_results):
         assert len(report_json) >= 3
         for json in report_json:
             assert json.get("entityIdentifier") == id
+            if product_code:
+                assert json.get("productCode") == product_code
+            else:
+                assert json.get("productCode")
 
 
 def test_report_json(session):
@@ -241,6 +285,7 @@ def test_create_from_json(session, has_name, has_filing_date, filename):
     assert report.report_type == json_data.get("reportType")
     assert report.create_ts
     assert report.filing_date
+    assert report.product_code == ProductCodes.BUSINESS
     if not has_filing_date:
         assert report.filing_date == report.create_ts
     assert report.filename == filename

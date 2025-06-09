@@ -24,14 +24,19 @@ from flask import current_app
 from doc_api.models import ApplicationReport
 from doc_api.models import utils as model_utils
 from doc_api.utils.logging import logger
-from doc_api.services.authz import BC_REGISTRY
+from doc_api.services.authz import BC_REGISTRY, COLIN_ROLE, STAFF_ROLE, SYSTEM_ROLE
 from tests.unit.services.utils import (
     create_header_account,
+    create_header_account_report,
     create_header_account_upload,
 )
 
 
 USER_ROLES = [BC_REGISTRY]
+PRODUCT_ROLES_SYSTEM = [SYSTEM_ROLE]
+PRODUCT_ROLES_STAFF = [STAFF_ROLE]
+PRODUCT_ROLES_COLIN = [COLIN_ROLE]
+
 TEST_DATAFILE = "tests/unit/services/unit_test.pdf"
 TEST_FILENAME = "updated_name.pdf"
 PARAM_TEST_FILENAME = "?consumerFilename=updated_name.pdf"
@@ -44,6 +49,10 @@ PATH: str = "/api/v1/application-reports/{entity_id}/{event_id}/{report_type}"
 CHANGE_PATH = "/api/v1/application-reports/{doc_service_id}"
 EVENT_PATH = "/api/v1/application-reports/events/{event_id}"
 HISTORY_PATH = "/api/v1/application-reports/history/{entity_id}"
+PATH_PRODUCT: str = "/api/v1/application-reports/{prod_code}/{entity_id}/{event_id}/{report_type}"
+CHANGE_PATH_PRODUCT = "/api/v1/application-reports/{prod_code}/{doc_service_id}"
+EVENT_PATH_PRODUCT = "/api/v1/application-reports/events/{prod_code}/{entity_id}/{event_id}"
+HISTORY_PATH_PRODUCT = "/api/v1/application-reports/history/{prod_code}/{entity_id}"
 PATCH_PAYLOAD_EMPTY = {}
 PATCH_PAYLOAD = {
     "name": "new-name.pdf",
@@ -74,6 +83,17 @@ TEST_CREATE_DATA = [
     ("Valid minimal", "UT-123456", "123456", "FILING", HTTPStatus.CREATED),
     ("Valid all", "UT-123456", "123456", "FILING", HTTPStatus.CREATED),
 ]
+# testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status}, {prod_code}, {roles})
+TEST_CREATE_DATA_PRODUCT = [
+    ("Invalid entity ID", "1", "12345", "FILING", HTTPStatus.BAD_REQUEST, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Invalid event ID", "UT-123456", "JUNK", "FILING", HTTPStatus.BAD_REQUEST, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Invalid report type", "UT-123456", "123456", "F", HTTPStatus.BAD_REQUEST, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Invalid no payload", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Valid minimal SA", "UT-123456", "123456", "FILING", HTTPStatus.CREATED, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Valid all staff", "UT-123456", "123456", "FILING", HTTPStatus.CREATED, "BUSINESS", PRODUCT_ROLES_STAFF),
+    ("Invalid role", "UT-123456", "123456", "FILING", HTTPStatus.UNAUTHORIZED, "BUSINESS", PRODUCT_ROLES_COLIN),
+    ("Invalid product code", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, "XXX", PRODUCT_ROLES_SYSTEM),
+ ]
 # testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status}, {payload})
 TEST_PATCH_DATA = [
     ("Invalid name", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, PATCH_PAYLOAD1),
@@ -82,27 +102,228 @@ TEST_PATCH_DATA = [
     ("Invalid no payload", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, PATCH_PAYLOAD_EMPTY),
     ("Valid", "UT-123456", "123456", "FILING", HTTPStatus.OK, PATCH_PAYLOAD),
 ]
+# testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status}, {payload}, {prod_code}, {roles})
+TEST_PATCH_DATA_PRODUCT = [
+    ("Invalid name", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, PATCH_PAYLOAD1, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Invalid event ID", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, PATCH_PAYLOAD2, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Invalid report type", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, PATCH_PAYLOAD3, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Invalid no payload", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, PATCH_PAYLOAD_EMPTY, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Invalid role", "UT-123456", "123456", "FILING", HTTPStatus.UNAUTHORIZED, PATCH_PAYLOAD, "BUSINESS", PRODUCT_ROLES_COLIN),
+    ("Invalid product_code", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, PATCH_PAYLOAD, "XXX", PRODUCT_ROLES_SYSTEM),
+    ("Valid SA", "UT-123456", "123456", "FILING", HTTPStatus.OK, PATCH_PAYLOAD, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Valid staff", "UT-123456", "123456", "FILING", HTTPStatus.OK, PATCH_PAYLOAD, "BUSINESS", PRODUCT_ROLES_STAFF),
+    ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND, PATCH_PAYLOAD, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+]
 # testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status})
 TEST_GET_ID_DATA = [
     ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND),
     ("Valid", "UT-123456", "123456", "FILING", HTTPStatus.OK),
+]
+# testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status}, {prod_code}, {roles})
+TEST_GET_ID_DATA_PRODUCT = [
+    ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Invalid role", "UT-123456", "123456", "FILING", HTTPStatus.UNAUTHORIZED, "BUSINESS", USER_ROLES),
+    ("Invalid product code", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, "XXX", PRODUCT_ROLES_SYSTEM),
+    ("Valid SA", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Valid staff", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_STAFF),
 ]
 # testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status})
 TEST_GET_EVENT_DATA = [
     ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND),
     ("Valid", "UT-123456", "123456", "FILING", HTTPStatus.OK),
 ]
+# testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status}, {prod_code}, {roles})
+TEST_GET_EVENT_DATA_PRODUCT = [
+    ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Valid SA", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Valid staff", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_STAFF),
+    ("Invalid role", "UT-123456", "123456", "FILING", HTTPStatus.UNAUTHORIZED, "BUSINESS", USER_ROLES),
+    ("Invalid product code", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, "XXX", PRODUCT_ROLES_SYSTEM),
+]
 # testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status})
 TEST_GET_HISTORY_DATA = [
     ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND),
     ("Valid", "UT-123456", "123456", "FILING", HTTPStatus.OK),
 ]
+# testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status}, {prod_code}, {roles})
+TEST_GET_HISTORY_DATA_PRODUCT = [
+    ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Valid SA", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+    ("Valid staff", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_STAFF),
+    ("Invalid role", "UT-123456", "123456", "FILING", HTTPStatus.UNAUTHORIZED, "BUSINESS", USER_ROLES),
+    ("Invalid product code", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, "XXX", PRODUCT_ROLES_STAFF),
+]
+
+
+@pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,prod_code,roles", TEST_CREATE_DATA_PRODUCT)
+def test_product_create(session, client, jwt, desc, entity_id, event_id, report_type, status, prod_code, roles):
+    """Assert that a post save new product report works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    headers = create_header_account_upload(jwt, roles, "UT-TEST", "PS12345", MEDIA_PDF)
+    req_path = PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id, event_id=event_id, report_type=report_type)
+    if desc == "Valid all staff":
+        req_path += PARAMS1
+    # test
+    if status != HTTPStatus.CREATED:
+        response = client.post(req_path, data=None, headers=headers, content_type=MEDIA_PDF)
+    else:
+        raw_data = None
+        with open(TEST_DATAFILE, "rb") as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+        response = client.post(req_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+        # logger.info(response.json)
+
+    # check
+    assert response.status_code == status
+    if response.status_code == HTTPStatus.CREATED:
+        report_json = response.json
+        assert report_json
+        assert report_json.get("identifier")
+        assert report_json.get("url")
+        assert report_json.get("productCode")
+        app_report: ApplicationReport = ApplicationReport.find_by_doc_service_id(report_json.get("identifier"))
+        assert app_report
+
+
+@pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,payload,prod_code,roles", TEST_PATCH_DATA_PRODUCT)
+def test_product_update(session, client, jwt, desc, entity_id, event_id, report_type, status, payload, prod_code, roles):
+    """Assert that a request to update report information (not the report itself) works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    create_path = PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id, event_id=event_id, report_type=report_type)
+    if status == HTTPStatus.OK:  # Create.
+        headers = create_header_account_upload(jwt, roles, "UT-TEST", "PS12345", MEDIA_PDF)
+    else:
+        headers = create_header_account(jwt, roles, "UT-TEST", "PS12345")
+    req_path = CHANGE_PATH_PRODUCT.format(prod_code=prod_code, doc_service_id="test")
+ 
+    if status == HTTPStatus.OK:  # Create.
+        raw_data = None
+        with open(TEST_DATAFILE, "rb") as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+        response = client.post(create_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+        # logger.info(response.json)
+        resp_json = response.json
+        valid_id = resp_json.get("identifier")
+        req_path = CHANGE_PATH_PRODUCT.format(prod_code=prod_code, doc_service_id=valid_id)
+
+    # test
+    response = client.patch(req_path, json=payload, headers=headers, content_type="application/json")
+
+    # check
+    # logger.info(response.json)
+    assert response.status_code == status
+
+
+@pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,prod_code,roles", TEST_GET_ID_DATA_PRODUCT)
+def test_get_product_by_id(session, client, jwt, desc, entity_id, event_id, report_type, status, prod_code, roles):
+    """Assert that a request to get product report information (not the report itself) by DRS ID works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    create_path = PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id, event_id=event_id, report_type=report_type)
+    if status == HTTPStatus.OK:  # Create.
+        headers = create_header_account_upload(jwt, roles, "UT-TEST", "PS12345", MEDIA_PDF)
+    else:
+        headers = create_header_account(jwt, roles, "UT-TEST", "PS12345")
+    req_path = CHANGE_PATH_PRODUCT.format(prod_code=prod_code, doc_service_id="test")
+ 
+    if status == HTTPStatus.OK:  # Create.
+        raw_data = None
+        with open(TEST_DATAFILE, "rb") as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+        response = client.post(create_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+        # logger.info(response.json)
+        resp_json = response.json
+        valid_id = resp_json.get("identifier")
+        req_path = CHANGE_PATH_PRODUCT.format(prod_code=prod_code, doc_service_id=valid_id)
+    # test
+    if desc == "Valid SA":
+        headers = create_header_account_report(jwt, roles, "UT-TEST", "PS12345")
+    response = client.get(req_path, headers=headers, content_type="application/json")
+    # check
+    # logger.info(response.json)
+    assert response.status_code == status
+    if status == HTTPStatus.OK:
+        if desc != "Valid SA":
+            assert response.json
+        else:
+            assert response.data
+
+
+@pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,prod_code,roles", TEST_GET_EVENT_DATA_PRODUCT)
+def test_get_product_event_id(session, client, jwt, desc, entity_id, event_id, report_type, status, prod_code, roles):
+    """Assert that a request to get product report information by an event ID works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    create_path = PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id, event_id=event_id, report_type=report_type)
+    if status == HTTPStatus.OK:  # Create.
+        headers = create_header_account_upload(jwt, roles, "UT-TEST", "PS12345", MEDIA_PDF)
+    else:
+        headers = create_header_account(jwt, roles, "UT-TEST", "PS12345")
+    req_path = EVENT_PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id, event_id=event_id)
+    if status == HTTPStatus.OK:  # Create.
+        raw_data = None
+        with open(TEST_DATAFILE, "rb") as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+        # logger.info(create_path)
+        response = client.post(create_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+        # logger.info(response.json)
+
+    # test
+    # logger.info(req_path)
+    response = client.get(req_path, headers=headers, content_type="application/json")
+    # check
+    # logger.info(response.json)
+    assert response.status_code == status
+    if status == HTTPStatus.OK:
+        assert response.json
+
+
+@pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,prod_code,roles", TEST_GET_HISTORY_DATA_PRODUCT)
+def test_get_product_entity_id(session, client, jwt, desc, entity_id, event_id, report_type, status, prod_code, roles):
+    """Assert that a request to get report information by a product entity ID works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    create_path = PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id, event_id=event_id, report_type=report_type)
+    if status == HTTPStatus.OK:  # Create.
+        headers = create_header_account_upload(jwt, roles, "UT-TEST", "PS12345", MEDIA_PDF)
+    else:
+        headers = create_header_account(jwt, roles, "UT-TEST", "PS12345")
+    req_path = HISTORY_PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id)
+    if status == HTTPStatus.OK:  # Create.
+        raw_data = None
+        with open(TEST_DATAFILE, "rb") as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+        response = client.post(create_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+        # logger.info(response.json)
+
+    # test
+    response = client.get(req_path, headers=headers, content_type="application/json")
+
+    # check
+    # logger.info(response.json)
+    assert response.status_code == status
+    if status == HTTPStatus.OK:
+        assert response.json
 
 
 @pytest.mark.parametrize("desc,entity_id,event_id,report_type,status", TEST_CREATE_DATA)
 def test_create(session, client, jwt, desc, entity_id, event_id, report_type, status):
     """Assert that a post save new report works as expected."""
     # setup
+    if is_ci_testing() or not current_app.config.get("SUBSCRIPTION_API_KEY"):
+        return
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
     headers = None
     headers = create_header_account_upload(jwt, USER_ROLES, "UT-TEST", "PS12345", MEDIA_PDF)
@@ -134,6 +355,8 @@ def test_create(session, client, jwt, desc, entity_id, event_id, report_type, st
 @pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,payload", TEST_PATCH_DATA)
 def test_update(session, client, jwt, desc, entity_id, event_id, report_type, status, payload):
     """Assert that a request to update report information (not the report itself) works as expected."""
+    if is_ci_testing() or not current_app.config.get("SUBSCRIPTION_API_KEY"):
+        return
     # setup
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
     headers = None
@@ -166,6 +389,8 @@ def test_update(session, client, jwt, desc, entity_id, event_id, report_type, st
 @pytest.mark.parametrize("desc,entity_id,event_id,report_type,status", TEST_GET_ID_DATA)
 def test_get_by_id(session, client, jwt, desc, entity_id, event_id, report_type, status):
     """Assert that a request to get report information (not the report itself) by DRS ID works as expected."""
+    if is_ci_testing() or not current_app.config.get("SUBSCRIPTION_API_KEY"):
+        return
     # setup
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
     headers = None
@@ -200,6 +425,8 @@ def test_get_by_id(session, client, jwt, desc, entity_id, event_id, report_type,
 @pytest.mark.parametrize("desc,entity_id,event_id,report_type,status", TEST_GET_EVENT_DATA)
 def test_get_event_id(session, client, jwt, desc, entity_id, event_id, report_type, status):
     """Assert that a request to get report information (not the report itself) by an event ID works as expected."""
+    if is_ci_testing() or not current_app.config.get("SUBSCRIPTION_API_KEY"):
+        return
     # setup
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
     headers = None
@@ -230,6 +457,8 @@ def test_get_event_id(session, client, jwt, desc, entity_id, event_id, report_ty
 @pytest.mark.parametrize("desc,entity_id,event_id,report_type,status", TEST_GET_HISTORY_DATA)
 def test_get_entity_id(session, client, jwt, desc, entity_id, event_id, report_type, status):
     """Assert that a request to get report information (not the report itself) by an entity ID works as expected."""
+    if is_ci_testing():
+        return
     # setup
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
     headers = None
@@ -255,3 +484,8 @@ def test_get_entity_id(session, client, jwt, desc, entity_id, event_id, report_t
     assert response.status_code == status
     if status == HTTPStatus.OK:
         assert response.json
+
+
+def is_ci_testing() -> bool:
+    """Check unit test environment: exclude pub/sub for CI testing."""
+    return  current_app.config.get("DEPLOYMENT_ENV", "testing") == "testing"

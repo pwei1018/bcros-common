@@ -48,6 +48,17 @@ select d2.document_service_id, d2.add_ts, d2.consumer_document_id, d2.consumer_i
    and d2.consumer_document_id in (?)
  order by d2.add_ts desc
 """
+SEARCH_CLASS_BASE = """
+select d2.document_service_id, d2.add_ts, d2.consumer_document_id, d2.consumer_identifier, d2.consumer_filename,
+       d2.consumer_filing_date, d2.document_type, dt.document_type_desc, d2.document_class, dc.document_class_desc,
+       d2.description, d2.doc_storage_url
+  from documents d2, document_types dt, document_classes dc
+ where d2.document_type = dt.document_type
+   and d2.document_class = dc.document_class and dc.document_class != 'DELETED'
+   and d2.document_class = '??'
+   and d2.consumer_document_id in (?)
+ order by d2.add_ts desc
+"""
 SEARCH_COUNT_ANY_BASE = """
 select count(distinct d.consumer_document_id)
   from documents d, document_types dt
@@ -160,7 +171,12 @@ def get_search_results(request_info: RequestInfo, filter_clause: str) -> int:
     doc_ids = []
     try:
         query_filter_doc_id = SEARCH_FILTER_BASE + filter_clause + build_page_clause(request_info)
-        query = text(SEARCH_ANY_BASE.replace("?", query_filter_doc_id))
+        query_text: str = (
+            SEARCH_ANY_BASE
+            if not request_info.document_class
+            else SEARCH_CLASS_BASE.replace("??", request_info.document_class)
+        )
+        query = text(query_text.replace("?", query_filter_doc_id))
         logger.info(f"get_search_results executing query doc id filter {query_filter_doc_id}")
         qresults = db.session.execute(query)
         rows = qresults.fetchall()

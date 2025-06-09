@@ -41,7 +41,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/application-reports/BC0650000/2123456/RECEIPT?consumerFilename=ar-test-1.pdf",
+							"raw": "{{base_url}}/api/v1/application-reports/BUSINESS/BC0650000/2123456/FILING?consumerFilename=ar-test-1.pdf",
 							"host": [
 								"{{base_url}}"
 							],
@@ -49,9 +49,10 @@
 								"api",
 								"v1",
 								"application-reports",
+								"BUSINESS",
 								"BC0650000",
 								"2123456",
-								"RECEIPT"
+								"FILING"
 							],
 							"query": [
 								{
@@ -64,9 +65,12 @@
 					"response": []
 				},
 				{
-					"name": "Get By DRS ID",
+					"name": "Get By DRS ID Link",
 					"protocolProfileBehavior": {
-						"disableBodyPruning": true
+						"disableBodyPruning": true,
+						"disabledSystemHeaders": {
+							"accept": true
+						}
 					},
 					"request": {
 						"method": "GET",
@@ -90,7 +94,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/application-reports/DSR0000100000",
+							"raw": "{{base_url}}/api/v1/application-reports/BUSINESS/DSR0000100000",
 							"host": [
 								"{{base_url}}"
 							],
@@ -98,6 +102,57 @@
 								"api",
 								"v1",
 								"application-reports",
+								"BUSINESS",
+								"DSR0000100000"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get By DRS ID Report Data",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true,
+						"disabledSystemHeaders": {
+							"accept": true
+						}
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/pdf",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-reports/BUSINESS/DSR0000100000",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-reports",
+								"BUSINESS",
 								"DSR0000100000"
 							]
 						}
@@ -120,7 +175,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"BC0650000-test-receipt.pdf\",\n  \"datePublished\": \"2023-12-22T16:22:32+00:00\",\n  \"reportType\": \"UT_RECEIPT\"\n}\n",
+							"raw": "{\n  \"name\": \"BC0650000-test-receipt.pdf\",\n  \"datePublished\": \"2023-12-22T16:22:32+00:00\",\n  \"reportType\": \"RECEIPT\"\n}\n",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -128,7 +183,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/application-reports/DSR0000100000",
+							"raw": "{{base_url}}/api/v1/application-reports/BUSINESS/DSR0000100000",
 							"host": [
 								"{{base_url}}"
 							],
@@ -136,6 +191,7 @@
 								"api",
 								"v1",
 								"application-reports",
+								"BUSINESS",
 								"DSR0000100000"
 							]
 						}
@@ -169,7 +225,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/application-reports/events/2123456",
+							"raw": "{{base_url}}/api/v1/application-reports/events/BUSINESS/BC0650000/2123456",
 							"host": [
 								"{{base_url}}"
 							],
@@ -178,6 +234,8 @@
 								"v1",
 								"application-reports",
 								"events",
+								"BUSINESS",
+								"BC0650000",
 								"2123456"
 							]
 						}
@@ -211,7 +269,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/application-reports/history/BC0650000",
+							"raw": "{{base_url}}/api/v1/application-reports/history/BUSINESS/BC0650000",
 							"host": [
 								"{{base_url}}"
 							],
@@ -220,6 +278,7 @@
 								"v1",
 								"application-reports",
 								"history",
+								"BUSINESS",
 								"BC0650000"
 							]
 						}
@@ -2230,7 +2289,7 @@
 		},
 		{
 			"key": "base_url_local",
-			"value": "https://localhost:5000",
+			"value": "http://localhost:5000",
 			"type": "string"
 		},
 		{

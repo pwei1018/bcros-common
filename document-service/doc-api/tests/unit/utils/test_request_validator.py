@@ -281,18 +281,21 @@ TEST_DATA_DOC_ID_CHECKSUM = [
     ("Invalid doc id", False, DOC_ID_INVALID_CHECKSUM),
     ("Valid doc id skip", True, "0100000204")
 ]
-# test data pattern is ({description}, {valid}, {entity_id}, {event_id}, {rtype}, {name}, {fdate}, {message_content})
+# test data pattern is ({description}, {valid}, {prod_code}, {entity_id}, {event_id}, {rtype}, {name}, {fdate}, {message_content})
 TEST_DATA_REPORT_CREATE = [
-    ("Valid", True, "123455", "1234234", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00", None),
-    ("Invalid entity id", False, "1", "1234234", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00",
+    ("Valid", True, None, "123455", "1234234", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00", None),
+    ("Valid product", True, "BUSINESS", "123455", "1234234", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00", None),
+    ("Invalid product", False, "XXX", "123455", "1234234", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00",
+     validator.INVALID_PRODUCT_CODE.format(product_code="XXX")),
+    ("Invalid entity id", False, None, "1", "1234234", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00",
      validator.INVALID_ENTITY_ID.format(entity_id="1")),
-    ("Invalid event id", False, "12345", "junk", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00",
+    ("Invalid event id", False, None, "12345", "junk", "FILING", "name.pdf", "2024-09-01T19:00:00+00:00",
      validator.INVALID_EVENT_ID.format(event_id="junk")),
-    ("Invalid report type", False, "12345", "12345", "F", "name.pdf", "2024-09-01T19:00:00+00:00",
+    ("Invalid report type", False, None, "12345", "12345", "F", "name.pdf", "2024-09-01T19:00:00+00:00",
      validator.INVALID_REPORT_TYPE.format(report_type="F")),
-    ("Invalid name", False, "12345", "12345", "FILING", ".pdf", "2024-09-01T19:00:00+00:00",
+    ("Invalid name", False, None, "12345", "12345", "FILING", ".pdf", "2024-09-01T19:00:00+00:00",
      validator.INVALID_FILENAME.format(filename=".pdf")),
-    ("Invalid date", False, "12345", "12345", "FILING", "name.pdf", "January 1, 2010",
+    ("Invalid date", False, None, "12345", "12345", "FILING", "name.pdf", "January 1, 2010",
      validator.INVALID_FILING_DATE.format(param_date="January 1, 2010")),
 ]
 # test data pattern is ({description}, {valid}, {rtype}, {name}, {fdate}, {message_content})
@@ -434,13 +437,14 @@ def test_validate_doc_type(session, desc, valid, doc_type, message_content):
         assert test_msg == msg
 
 
-@pytest.mark.parametrize("desc,valid,entity_id,event_id,rtype,name,fdate,message_content", TEST_DATA_REPORT_CREATE)
-def test_validate_report_create(session, desc, valid, entity_id, event_id, rtype, name, fdate, message_content):
+@pytest.mark.parametrize("desc,valid,prod_code,entity_id,event_id,rtype,name,fdate,message_content", TEST_DATA_REPORT_CREATE)
+def test_validate_report_create(session, desc, valid, prod_code, entity_id, event_id, rtype, name, fdate, message_content):
     """Assert that create report request validation works as expected."""
     # setup
     request_json = {
-
     }
+    if prod_code:
+        request_json["productCode"] = prod_code
     if entity_id:
         request_json["entityIdentifier"] = entity_id
     if event_id:

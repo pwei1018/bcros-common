@@ -181,6 +181,19 @@ class DocumentTypes(BaseEnum):
     NWP = "NWP"
 
 
+class ProductCodes(BaseEnum):
+    """Render an Enum of the auth product codes supported by the DRS."""
+
+    BUSINESS = "BUSINESS"
+    BUSINESS_SEARCH = "BUSINESS_SEARCH"
+    CA_SEARCH = "CA_SEARCH"
+    DIR_SEARCH = "DIR_SEARCH"
+    MHR = "MHR"
+    NRO = "NRO"
+    PPR = "PPR"
+    STRR = "STRR"
+
+
 class RequestType(db.Model):  # pylint: disable=too-few-public-methods
     """This class defines the model for the request_types table."""
 
@@ -378,3 +391,27 @@ class DocumentTypeClass(db.Model):  # pylint: disable=too-few-public-methods
             .filter(and_(DocumentTypeClass.document_class == doc_class, DocumentTypeClass.active))
             .all()
         )
+
+
+class ProductCode(db.Model):  # pylint: disable=too-few-public-methods
+    """This class defines the model for the product codes table."""
+
+    __tablename__ = "product_codes"
+
+    product_code = db.mapped_column("product_code", PG_ENUM(ProductCodes, name="productcode"), primary_key=True)
+    product_code_desc = db.mapped_column("product_code_desc", db.String(100), nullable=False)
+
+    # Relationships
+    application_report = db.relationship("ApplicationReport", back_populates="prod_code")
+
+    @classmethod
+    def find_all(cls):
+        """Return all the product code records."""
+        return db.session.query(ProductCode).all()
+
+    @classmethod
+    def find_by_product_code(cls, product_code: str):
+        """Return a specific record by product code."""
+        if not product_code or product_code not in ProductCodes:
+            return None
+        return db.session.query(ProductCode).filter(ProductCode.product_code == product_code).one_or_none()
