@@ -178,6 +178,7 @@ export async function updateDocumentRecord(params: DocumentRequestIF)
     consumerFilename,
     consumerIdentifier,
     consumerFilingDate,
+    documentType,
     description
   } = params
 
@@ -189,6 +190,7 @@ export async function updateDocumentRecord(params: DocumentRequestIF)
       consumerIdentifier,
       consumerFilename,
       consumerFilingDate,
+      documentType,
       description
     }
   }
@@ -490,7 +492,7 @@ export async function verifyDocumentId(consumerDocumentId: string): Promise<ApiR
         statusCode: response.error?.value?.statusCode
       }
     }
-    
+
   } catch (error) {
     const axiosError = error as AxiosError
     return {
