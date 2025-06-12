@@ -1,6 +1,3 @@
-{% set totals = namespace(total=0) %}
-{% set due = dict() %}
-{% set paid = dict () %}
 <div>
     <table>
         <tr>
@@ -12,45 +9,13 @@
         </tr>
         <tr>
             <td colspan="2">
-                {% set filtered_invoices = invoices|selectattr("payment_method", "equalto", payment_method)|list %}
                 <div class="section-subtitle">
-                    Number of Transactions: {{filtered_invoices|length}}
+                    Number of Transactions: {{ transactions|length }}
                 </div>
             </td>
         </tr>
     </table>
-    {% if invoices %}
-        {% for invoice in invoices if invoice.payment_method == payment_method %}
-            <!-- Paid -->
-            {% if not paid.get(invoice.payment_method) and paid.get(invoice.payment_method) != 0 %}
-                {% set _ = paid.update({invoice.payment_method:0 + invoice.paid}) %}
-            {% else %}
-                {% set _ = paid.update({invoice.payment_method: paid.get(invoice.payment_method, 0) + invoice.paid}) %}
-            {% endif %}
-
-            <!-- Due -->
-            {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) + invoice.total}) %}
-
-            {% if payment_method != 'EFT' %}
-                {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.paid}) %}
-                {% if invoice.paid == 0 and invoice.refund > 0 %}
-                    {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.refund}) %}
-                {% endif %}
-            {% endif %}
-            
-            {% if payment_method == 'EFT' %}
-                {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.paid}) %}
-
-                {% if 
-                    invoice.paid == 0
-                    and invoice.refund > 0
-                    and invoice.refund_date
-                    and invoice.refund_date | format_datetime('unix') <= statement.to_date | format_datetime('unix')
-                %}
-                    {% set _ = due.update({invoice.payment_method: due.get(invoice.payment_method, 0) - invoice.refund}) %}
-                {% endif %}
-            {% endif %}
-        {% endfor %}
+    {% if transactions %}
     <table class="transaction-table">
         <thead>
         <th style="width: 120px;">Product Purchased</th>
@@ -61,37 +26,28 @@
         <th style="width: 60px;">GST</th>
         <th  style="width: 40px;">Total</th>
         </thead>
-        {% set totals = namespace(total=0, fees=0, due=0) %}
-        {% for invoice in invoices if invoice.payment_method == payment_method %}
+        {% for row in transactions %}
             <tr>
-                <!-- Product Name -->
                 <td class="product-purchased">
-                    {% for lineItemProduct in invoice.line_items %}
-                    <div class="font-bold">{{'(Cancelled) ' if (invoice.status_code == 'CANCELLED') else ''}}{{lineItemProduct.description}}</div>
+                    {% for product in row.products %}
+                    <div class="font-bold">{{ product }}</div>
                     {% endfor %}
-                    {% if invoice.details and invoice.details|length > 0 %}
+                    {% if row.details %}
                     <div class="transaction-details">
-                        {% for detail in invoice.details %}
-                        <div>{{detail.label}} {{detail.value}}</div>
+                        {% for detail in row.details %}
+                        <div>{{ detail }}</div>
                         {% endfor %}
                     </div>
                     {% endif %}
                 </td>
-                <!-- Folio -->
-                <td>{{invoice.folio_number if invoice.folio_number else '-'}}</td>
-                <!-- Date -->
-                <td>{{invoice.created_on | format_datetime('mmm dd,yyyy')}}</td>
-                <!-- Fee -->
-                <td>${{"%.2f"|format((invoice.total - invoice.service_fees)) if (invoice.service_fees and invoice.total) else '0.00'}}</td>
-                <!-- Service Fee -->
-                <td>${{"%.2f"|format(invoice.service_fees) if invoice.service_fees else '0.00'}}</td>
-                <!-- GST -->
-                <td>${{"%.2f"|format(invoice.gst) if invoice.gst else '0.00'}}</td>
-                <!-- Grand Total -->
-                <td>${{"%.2f"|format(invoice.total) if invoice.total else '0.00'}}</td>
-                {% set totals.total = totals.total + invoice.total %}
+                <td>{{ row.folio }}</td>
+                <td>{{ row.created_on }}</td>
+                <td>${{ row.fee }}</td>
+                <td>${{ row.service_fee }}</td>
+                <td>${{ row.gst }}</td>
+                <td>${{ row.total }}</td>
             </tr>
-        {% endfor %}
+            {% endfor %}
     </table>
     {% endif %}
     <table class="main-table">
@@ -107,7 +63,7 @@
                 <td colspan="2">
                     <div class="total-elements font-bold">
                         Statement Total:
-                        <span class="total-elements-price font-bold">${{"{:,.2f}".format(totals.total)}}</span>
+                        <span class="total-elements-price font-bold">${{ data.totals_summary }}</span>
                     </div>
                 </td>
             </tr>
@@ -115,7 +71,7 @@
                 <td colspan="2">
                     <div class="total-elements">
                         Last Statement Total:
-                        <span class="total-elements-price">${{"{:,.2f}".format(statementSummary.lastStatementTotal)}}</span>
+                        <span class="total-elements-price">${{ statementSummary.lastStatementTotal }}</span>
                     </div>
                 </td>
             </tr>
@@ -123,7 +79,7 @@
                 <td colspan="2">
                     <div class="total-elements">
                         Payment Received for Last Statement:
-                        <span class="total-elements-price">-${{"{:,.2f}".format(statementSummary.lastStatementPaidAmount)}}</span>
+                        <span class="total-elements-price">-${{ statementSummary.lastStatementPaidAmount }}</span>
                     </div>
                 </td>
             </tr>
@@ -132,7 +88,7 @@
                 <td colspan="2">
                     <div class="total-elements">
                         Cancelled Transactions:
-                        <span class="total-elements-price">-${{ "{:,.2f}".format(statementSummary.cancelledTransactions) }}</span>
+                        <span class="total-elements-price">-${{ statementSummary.cancelledTransactions }}</span>
                     </div>
                 </td>
             </tr>
@@ -143,10 +99,10 @@
                     <td colspan="2">
                         <div class="total-elements font-bold" style="border-bottom: none;">
                             Total Amount Paid:
-                            <span class="total-elements-price font-bold">${{ "{:,.2f}".format(paid[payment_method]) if paid[payment_method] else '0.00' }}</span>
+                            <span class="total-elements-price font-bold">${{ data.paid_summary }}</span>
                         </div>
                         {%  if statementSummary.latestStatementPaymentDate %}
-                        <div class="total-elements font-14"  style="border-bottom: none;">Paid on {{ statementSummary.latestStatementPaymentDate | format_datetime('detail') }}</div>
+                        <div class="total-elements font-14"  style="border-bottom: none;">Paid on {{ statementSummary.latestStatementPaymentDate }}</div>
                         {% endif %}
                     </td>
                 </tr>
@@ -155,10 +111,10 @@
                 <td colspan="2">
                     <div class="total-elements font-bold" style="border-bottom: none;">
                         Total Amount Owing:
-                        <span class="total-elements-price font-bold">${{ "{:,.2f}".format(due[payment_method]) if due[payment_method] else '0.00' }}</span>
+                        <span class="total-elements-price font-bold">${{ data.due_summary }}</span>
                     </div>
                     {% if not statement.is_interim_statement %}
-                        <div class="total-elements font-14"  style="border-bottom: none;">Payment Due Date: {{ statementSummary.dueDate | format_datetime('mmm dd,yyyy') }}</div>
+                        <div class="total-elements font-14"  style="border-bottom: none;">Payment Due Date: {{ statementSummary.dueDate }}</div>
                     {% endif %}
                 </td>
             </tr>
@@ -168,17 +124,16 @@
                 <td colspan="2">
                     <div class="total-elements font-bold">
                         Total Amount:
-                        <span class="total-elements-price font-bold">${{"{:,.2f}".format(totals.total)}}</span>
+                        <span class="total-elements-price font-bold">${{ data.totals_summary }}</span>
                     </div>
                 </td>
             </tr>
             {% endif %}
-            {% set total_paid = invoices|selectattr("payment_method", "equalto", payment_method)|sum(attribute="paid") %}
             <tr>
                 <td colspan="2">
                     <div class="total-elements font-bold">
                         Total Amount Paid:
-                        <span class="total-elements-price font-bold">${{"%.2f"|format(paid[payment_method] if paid.get(payment_method) else 0)}}</span>
+                        <span class="total-elements-price font-bold">${{ data.paid_summary }}</span>
                     </div>
                 </td>
             </tr>
@@ -187,7 +142,7 @@
                 <td colspan="2">
                     <div class="total-elements" style="border-bottom: none;">
                         Total Amount Due:
-                        <span class="total-elements-price">${{"%.2f"|format(due[payment_method]) if due[payment_method] else '0.00'}}</span>
+                        <span class="total-elements-price">${{ data.due_summary }}</span>
                     </div>
                 </td>
             </tr>

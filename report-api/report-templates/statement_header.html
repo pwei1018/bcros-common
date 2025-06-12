@@ -15,24 +15,8 @@
                 <div class="r-title">
                   {% if is_payment_instructions %}
                       ELECTRONIC FUNDS TRANSFER INSTRUCTIONS
-                  {% elif payment_method == 'EFT' %}
-                      ACCOUNT STATEMENT - ELECTRONIC FUNDS TRANSFER
-                  {% elif payment_method == 'PAD' %}
-                      ACCOUNT STATEMENT - PRE-AUTHORIZED DEBIT
-                  {% elif payment_method == 'ONLINE_BANKING' %}
-                      ACCOUNT STATEMENT - ONLINE BANKING
-                  {% elif payment_method == 'CC' %}
-                      ACCOUNT STATEMENT - CREDIT CARD
-                  {% elif payment_method == 'EJV' %}
-                      ACCOUNT STATEMENT - ELECTRONIC JOURNAL VOUCHER
-                  {% elif payment_method == 'DRAWDOWN' %}
-                      ACCOUNT STATEMENT - BC ONLINE
-                  {% elif payment_method == 'DIRECT_PAY' %}
-                      ACCOUNT STATEMENT - DIRECT PAY
-                  {% elif payment_method == 'INTERNAL' and is_staff_payment %}
-                      ACCOUNT STATEMENT - STAFF PAYMENT
-                  {% elif payment_method == 'INTERNAL' %}
-                      ACCOUNT STATEMENT - ROUTING SLIP
+                  {% elif statement_header_text %}
+                      {{ statement_header_text }}
                   {% else %}
                       ACCOUNT STATEMENT
                   {% endif %}
@@ -41,11 +25,7 @@
                   <div class="r-subtitle">BC Registries And Online Services</div>
                 {% elif statement.from_date or statement.to_date %}
                   <div class="r-subtitle">
-                      {% if 'DAILY' == statement.frequency %}
-                      {{statement.from_date | format_datetime('mmm dd,yyyy')}}
-                      {% else %}
-                      {{statement.from_date | format_datetime('mmm dd,yyyy')}} - {{statement.to_date | format_datetime('mmm dd,yyyy')}}
-                      {% endif %}
+                      {{ statement.duration }}
                   </div>
                 {% endif %}
             </div>
