@@ -18,6 +18,7 @@ from .db import db  # noqa: I001
 from .document import Document
 from .document_request import DocumentRequest
 from .document_scanning import DocumentScanning
+from .event_tracking import EventTracking
 from .scanning_author import ScanningAuthor
 from .scanning_box import ScanningBox
 from .scanning_parameter import ScanningParameter
@@ -33,6 +34,7 @@ __all__ = (
     "DocumentType",
     "DocumentRequest",
     "DocumentScanning",
+    "EventTracking",
     "RequestType",
     "ScanningBox",
     "ScanningAuthor",

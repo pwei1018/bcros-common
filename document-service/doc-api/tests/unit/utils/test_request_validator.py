@@ -26,6 +26,7 @@ from doc_api.utils.logging import logger
 
 # from registry_schemas import utils as schema_utils
 
+CONTENT_TYPE_INVALID = "application/sql"
 REF_ID1 = "01234567890123456789012345678901234567890123456789"
 REF_ID2 = "01234567890123456789012345678901234567890123456789X"
 TEST_SCAN1 = {
@@ -154,7 +155,7 @@ TEST_DATA_ADD = [
         False,
         RequestTypes.ADD,
         DocumentTypes.CORR,
-        "XXXXX",
+        CONTENT_TYPE_INVALID,
         DocumentClasses.CORP,
         None,
         validator.INVALID_CONTENT_TYPE,
@@ -180,6 +181,7 @@ TEST_DATA_ADD = [
         validator.INVALID_REFERENCE_ID,
     ),
     ("Valid no class", True, RequestTypes.ADD, DocumentTypes.TRAN, model_utils.CONTENT_TYPE_PDF, None, None, None),
+    ("Valid image content", True, RequestTypes.ADD, DocumentTypes.TRAN, model_utils.CONTENT_TYPE_JPEG, None, None, None),
 ]
 # test data pattern is ({description}, {valid}, {filing_date}, {message_content})
 TEST_DATA_ADD_DATES = [
@@ -247,6 +249,7 @@ TEST_DATA_PATCH = [
 # test data pattern is ({description}, {valid}, {payload}, {doc_type}, {content_type}, {doc_class}, {message_content})
 TEST_DATA_REPLACE = [
     ("Valid", True, True, DocumentTypes.CORR, model_utils.CONTENT_TYPE_PDF, DocumentClasses.CORP, None),
+    ("Valid image", True, True, DocumentTypes.CORR, model_utils.CONTENT_TYPE_PNG, DocumentClasses.CORP, None),
     (
         "Invalid missing content",
         False,
@@ -261,7 +264,7 @@ TEST_DATA_REPLACE = [
         False,
         True,
         DocumentTypes.CORR,
-        "*/*",
+        CONTENT_TYPE_INVALID,
         DocumentClasses.CORP,
         validator.INVALID_CONTENT_TYPE,
     ),

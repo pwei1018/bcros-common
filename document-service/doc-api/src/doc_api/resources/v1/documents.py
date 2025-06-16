@@ -22,9 +22,12 @@ from doc_api.models import Document
 from doc_api.models.type_tables import DocumentTypeClass, RequestTypes
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
+from doc_api.resources.v1.pdf_conversions import get_filename, validate_content_type
 from doc_api.services.authz import is_staff
+from doc_api.services.pdf_convert import MediaTypes, PdfConvert
 from doc_api.utils.auth import jwt
 from doc_api.utils.logging import logger
+from doc_api.utils.pdf_clean import clean_pdf
 from doc_api.utils.request_validator import checksum_valid
 
 POST_REQUEST_PATH = "/documents/{doc_class}/{doc_type}"
@@ -54,10 +57,13 @@ def post_documents(doc_class: str, doc_type: str):
             logger.error("User not staff: currently requests are staff only.")
             return resource_utils.unauthorized_error_response(account_id)
         # Additional validation not covered by the schema.
-        extra_validation_msg = resource_utils.validate_request(info)
+        extra_validation_msg = validate_new_doc_request(info)
         if extra_validation_msg != "":
             return resource_utils.extra_validation_error_response(extra_validation_msg)
-        response_json = resource_utils.save_add(info, g.jwt_oidc_token_info, request.get_data())
+        cleaned_data, status, headers = convert_clean(info, request.get_data())
+        if status != HTTPStatus.OK:
+            return cleaned_data, status, headers
+        response_json = resource_utils.save_add(info, g.jwt_oidc_token_info, cleaned_data)
         return jsonify(response_json), HTTPStatus.CREATED
     except DatabaseException as db_exception:
         return resource_utils.db_exception_response(db_exception, account_id, "POST create document id=" + account_id)
@@ -130,10 +136,13 @@ def replace_document(doc_service_id: str):
         )
         info = resource_utils.update_request_info(request, info, doc_service_id, doc_class, is_staff(jwt))
         # Additional validation not covered by the schema.
-        extra_validation_msg = resource_utils.validate_request(info)
+        extra_validation_msg = validate_new_doc_request(info)
         if extra_validation_msg != "":
             return resource_utils.extra_validation_error_response(extra_validation_msg)
-        response_json = resource_utils.save_replace(info, document, g.jwt_oidc_token_info, request.get_data())
+        cleaned_data, status, headers = convert_clean(info, request.get_data())
+        if status != HTTPStatus.OK:
+            return cleaned_data, status, headers
+        response_json = resource_utils.save_replace(info, document, g.jwt_oidc_token_info, cleaned_data)
         return jsonify(response_json), HTTPStatus.OK
     except DatabaseException as db_exception:
         return resource_utils.db_exception_response(db_exception, account_id, "PUT document")
@@ -242,3 +251,27 @@ def get_doc_types():
         return resource_utils.business_exception_response(exception)
     except Exception as default_exception:  # noqa: B902; return nicer default error
         return resource_utils.default_exception_response(default_exception)
+
+
+def validate_new_doc_request(info: RequestInfo) -> str:
+    """Validate a request that includes saving a new document."""
+    extra_validation_msg = resource_utils.validate_request(info)
+    extra_validation_msg += validate_content_type(info.content_type)
+    return extra_validation_msg
+
+
+def convert_clean(info: RequestInfo, in_data: bytes):
+    """Convert non-pdf document file data to pdf, clean the pdf data."""
+    if not in_data:
+        return in_data, HTTPStatus.OK, None
+    if info.content_type == MediaTypes.CONTENT_TYPE_PDF:
+        cleaned_data = clean_pdf(in_data)
+        return cleaned_data, HTTPStatus.OK, None
+    filename = get_filename(info.account_id, info.content_type)
+    pdf_converter: PdfConvert = PdfConvert(in_data, filename, info.content_type)
+    pdf_data, status, headers = pdf_converter.convert()
+    if status != HTTPStatus.OK:
+        return pdf_data, status, headers
+    logger.info(f"Pdf convert successful for file={filename}, data length={len(pdf_data)}, starting pdf clean.")
+    cleaned_pdf = clean_pdf(pdf_data)
+    return cleaned_pdf, status, headers

@@ -314,7 +314,7 @@ def remove_quotes(text: str) -> str:
 def save_to_doc_storage(document: Document, info: RequestInfo, raw_data) -> str:
     """Save request binary data to document storage. Return a download link"""
     storage_type: str = info.document_storage_type
-    content_type = info.content_type
+    content_type = model_utils.CONTENT_TYPE_PDF  # Always save as PDF.
     logger.info(f"Save to storage type={storage_type}, content type={content_type}")
     storage_name: str = model_utils.get_doc_storage_name(document, content_type)
     doc_link = GoogleStorageService.save_document_link(storage_name, raw_data, storage_type, 2, content_type)

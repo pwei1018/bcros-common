@@ -19,7 +19,7 @@ Test-Suite to ensure that the MHR Type Table Models are working as expected.
 import pytest
 
 from doc_api.models import type_tables
-from doc_api.models.type_tables import DocumentClasses, DocumentTypes, ProductCodes, RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentTypes, EventTrackingTypes, ProductCodes, RequestTypes
 
 # from doc_api.utils.logging import logger
 
@@ -95,6 +95,13 @@ TEST_PRODUCT_CODES = [
     (ProductCodes.PPR.value, True),
     (ProductCodes.NRO.value, True),
     (ProductCodes.STRR.value, True),
+]
+# testdata pattern is ({event_type}, {exists})
+TEST_EVENT_TRACKING_TYPES = [
+    ("XXX", False),
+    (EventTrackingTypes.PDF_CONVERT.value, True),
+    (EventTrackingTypes.PDF_CLEAN.value, True),
+    (EventTrackingTypes.DOC_PAYMENT.value, True),
 ]
 
 
@@ -265,5 +272,17 @@ def test_product_code_find(session, product_code, exists):
         assert result
         assert result.product_code == product_code
         assert result.product_code_desc
+    else:
+        assert not result
+
+
+@pytest.mark.parametrize("event_type, exists", TEST_EVENT_TRACKING_TYPES)
+def test_event_tracking_type_find(session, event_type, exists):
+    """Assert that the EventTrackingType.find_by_event_type() works as expected."""
+    result = type_tables.EventTrackingType.find_by_event_type(event_type)
+    if exists:
+        assert result
+        assert result.event_tracking_type == event_type
+        assert result.event_tracking_desc
     else:
         assert not result

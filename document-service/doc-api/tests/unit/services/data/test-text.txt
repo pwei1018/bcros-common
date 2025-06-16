@@ -1,0 +1,53 @@
+Documents: 586MB  PPRSP.PPRJK20.HISTORIC.G0032V00
+
+DCL 1 HIDOC,
+     3 REG#                    CHAR(7)    INIT(' '),
+     3 CURRENT,
+       5 TRANSITION_DOC        CHAR(1)    INIT(' '),
+       5 CONVERTED             CHAR(1)    INIT(' '),
+       5 REG_TYPE              CHAR(2)    INIT(' '),
+     3 REG_DATE                CHAR(8)    INIT(' '),
+     3 VERIFY_DATE             CHAR(8)    INIT(' '),
+     3 DOC#                    CHAR(8)    INIT(' '),
+     3 EXPIRY_DATE             CHAR(8)    INIT(' '),
+     3 LAST_UPDATE,
+       5 RACF_ID             CHAR(7)      INIT(' '),
+     3 FILLER                CHAR(50)     INIT(' ');
+
+Base Document: 286MB PPRSP.PPRJK20.BADOC.G0032V00
+
+DCL 1 HIBADOC,
+     3 REG#ROOT                CHAR(7)    INIT(' '),
+     3 REG#                    CHAR(7)    INIT(' '),
+     3 REGI                    CHAR(7)    INIT(' '),
+     3 CURRENT,
+       5 TRANSITION_DOC        CHAR(1)    INIT(' '),
+       5 CONVERTED             CHAR(1)    INIT(' '),
+       5 REG_TYPE              CHAR(2)    INIT(' '),
+     3 REG_DATE                CHAR(8)    INIT(' '),
+     3 VERIFY_DATE             CHAR(8)    INIT(' '),
+     3 DOC#                    CHAR(8)    INIT(' '),
+     3 EXPIRY_DATE             CHAR(8)    INIT(' '),
+     3 LAST_UPDATE,
+       5 RACF_ID             CHAR(7)      INIT(' '),
+     3 FILLER                CHAR(36)     INIT(' ');
+ 
+
+Change Document: 273MB  PPRSP.PPRJK20.CHDOC.G0032V00
+
+DCL 1 HICHDOC,
+     3 REG#ROOT                CHAR(7)    INIT(' '),
+     3 REG#                    CHAR(7)    INIT(' '),
+     3 REGI                    CHAR(7)    INIT(' '),
+     3 CURRENT,
+       5 TRANSITION_DOC        CHAR(1)    INIT(' '),
+       5 CONVERTED             CHAR(1)    INIT(' '),
+       5 REG_TYPE              CHAR(2)    INIT(' '),
+     3 REG_DATE                CHAR(8)    INIT(' '),
+     3 VERIFY_DATE             CHAR(8)    INIT(' '),
+     3 DOC#                    CHAR(8)    INIT(' '),
+     3 EXPIRY_DATE             CHAR(8)    INIT(' '),
+     3 LAST_UPDATE,
+       5 RACF_ID             CHAR(7)      INIT(' '),
+     3 FILLER                CHAR(36)     INIT(' ');
+	 

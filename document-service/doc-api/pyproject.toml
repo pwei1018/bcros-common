@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "doc-api"
-version = "0.2.0"
+version = "0.3.0"
 description = ""
 authors = ["dlovett <doug@daxiom.com>"]
 license = "BSD 3"
@@ -40,6 +40,7 @@ pytz = "^2022.7.1"
 alembic-utils = "^0.8.3"
 datedelta = "^1.4"
 flask-jwt-oidc = "^0.7.0"
+pymupdf = "^1.26.1"
 
 [tool.poetry.group.test.dependencies]
 psycopg2-binary = "^2.9.9"

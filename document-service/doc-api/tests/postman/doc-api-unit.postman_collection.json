@@ -706,6 +706,453 @@
 			"description": "Submit requests to create new document records with or without a document payload."
 		},
 		{
+			"name": "pdf-convert",
+			"item": [
+				{
+					"name": "Convert JPG",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true,
+							"accept-encoding": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "image/jpeg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-image.jpg"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Convert SVG",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "image/svg+xml",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-image.svg"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Convert GIF",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "image/gif",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-image.gif"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Convert PNG",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "image/png",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-image.png"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Convert TIFF",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "image/tiff",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-image.tif"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Convert TXT",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "text/plain",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-text.txt"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Convert CSV",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "text/csv",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-csv.csv"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Convert DOCX",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-doc.docx"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Convert XLSX",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-xlsx.xlsx"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Convert PPTX",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Documents/doug/registries/projects/doc-api/tests/unit/services/data/test-pptx.pptx"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pdf-conversions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pdf-conversions"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Submit requests to create new document records with or without a document payload."
+		},
+		{
 			"name": "delete_document",
 			"item": [
 				{

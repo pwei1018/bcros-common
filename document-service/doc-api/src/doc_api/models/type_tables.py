@@ -194,6 +194,14 @@ class ProductCodes(BaseEnum):
     STRR = "STRR"
 
 
+class EventTrackingTypes(BaseEnum):
+    """Render an Enum of the event tracking types."""
+
+    PDF_CONVERT = "PDF_CONVERT"
+    PDF_CLEAN = "PDF_CLEAN"
+    DOC_PAYMENT = "DOC_PAYMENT"
+
+
 class RequestType(db.Model):  # pylint: disable=too-few-public-methods
     """This class defines the model for the request_types table."""
 
@@ -415,3 +423,31 @@ class ProductCode(db.Model):  # pylint: disable=too-few-public-methods
         if not product_code or product_code not in ProductCodes:
             return None
         return db.session.query(ProductCode).filter(ProductCode.product_code == product_code).one_or_none()
+
+
+class EventTrackingType(db.Model):  # pylint: disable=too-few-public-methods
+    """This class defines the model for the event_tracking_types table."""
+
+    __tablename__ = "event_tracking_types"
+
+    event_tracking_type = db.mapped_column("event_tracking_type", db.String(20), primary_key=True)
+    event_tracking_desc = db.mapped_column("event_tracking_desc", db.String(100), nullable=False)
+
+    # Relationships - EventTracking
+    event_tracking = db.relationship("EventTracking", back_populates="tracking_type")
+
+    @classmethod
+    def find_all(cls):
+        """Return all the event tracking type records."""
+        return db.session.query(EventTrackingType).all()
+
+    @classmethod
+    def find_by_event_type(cls, event_type: str):
+        """Return a specific record by event tracking type."""
+        if not event_type or event_type not in EventTrackingTypes:
+            return None
+        return (
+            db.session.query(EventTrackingType)
+            .filter(EventTrackingType.event_tracking_type == event_type)
+            .one_or_none()
+        )

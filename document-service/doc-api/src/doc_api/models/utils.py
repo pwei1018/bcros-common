@@ -31,13 +31,17 @@ CONTENT_TYPE_GIF = "image/gif"
 CONTENT_TYPE_JPEG = "image/jpeg"
 CONTENT_TYPE_PNG = "image/png"
 CONTENT_TYPE_TIFF = "image/tiff"
+CONTENT_TYPE_SVG = "image/svg+xml"
 CONTENT_TYPE_PDF = "application/pdf"
+CONTENT_TYPE_PPT = "application/vnd.ms-powerpoint"
+CONTENT_TYPE_PPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 CONTENT_TYPE_EXCEL = "application/vnd.ms-excel"
 CONTENT_TYPE_WORD = "application/msword"
 CONTENT_TYPE_EXCELX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 CONTENT_TYPE_WORDX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 CONTENT_TYPE_ZIP = "application/zip"
-# Map from API search type to DB search type
+CONTENT_TYPE_TEXT = "text/plain"
+# Map from API media type to file type
 TO_FILE_TYPE = {
     CONTENT_TYPE_CSV: "csv",
     CONTENT_TYPE_GIF: "gif",
@@ -57,6 +61,7 @@ TO_FILE_TYPE = {
 DEFAULT_FILE_TYPE = "pdf"
 STORAGE_DOC_NAME = "{doc_type}-{doc_service_id}.{file_type}"
 STORAGE_REPORT_NAME = "{entity_id}-{event_id}-{report_type}.pdf"
+DEFAULT_FILE_EXTENSION = ".pdf"
 
 
 def now_ts():

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Common resource helper class to store new request information."""
 
+from doc_api.models.utils import DEFAULT_FILE_EXTENSION
+
 
 class RequestInfo:
     """Contains parameter values and other common request information."""
@@ -74,4 +76,7 @@ class RequestInfo:
             info["requestData"] = self.request_data
             if self.request_data.get("author"):
                 info["author"] = self.request_data.get("author")
+        # Files are always saved as PDF: using the original file extension may mess up the download.
+        if self.consumer_filename and not self.consumer_filename.lower().endswith(DEFAULT_FILE_EXTENSION):
+            info["consumerFilename"] = self.consumer_filename + DEFAULT_FILE_EXTENSION
         return info

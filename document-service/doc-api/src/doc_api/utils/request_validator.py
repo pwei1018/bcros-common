@@ -28,6 +28,7 @@ from doc_api.models.type_tables import (
     RequestTypes,
 )
 from doc_api.resources.request_info import RequestInfo
+from doc_api.services.pdf_convert import MediaTypes
 from doc_api.utils.logging import logger
 
 REPORT_TYPE_MIN: int = 3
@@ -172,7 +173,7 @@ def validate_add(info: RequestInfo, error_msg: str) -> str:
     try:
         if not info.content_type:
             error_msg += MISSING_CONTENT_TYPE
-        elif not model_utils.TO_FILE_TYPE.get(info.content_type):
+        elif info.content_type not in MediaTypes:
             error_msg += INVALID_CONTENT_TYPE.format(content_type=info.content_type)
         error_msg += validate_filingdate(info)
         error_msg += validate_reference_id(info)
@@ -232,7 +233,7 @@ def validate_put(info: RequestInfo, error_msg: str) -> str:
     try:
         if not info.content_type:
             error_msg += MISSING_CONTENT_TYPE
-        elif not model_utils.TO_FILE_TYPE.get(info.content_type):
+        elif info.content_type not in MediaTypes:
             error_msg += INVALID_CONTENT_TYPE.format(content_type=info.content_type)
         if not info.has_payload:
             error_msg += MISSING_PAYLOAD
