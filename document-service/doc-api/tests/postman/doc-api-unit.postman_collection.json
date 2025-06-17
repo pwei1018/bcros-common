@@ -284,6 +284,55 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Get By Docs and Report by Entity ID",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-reports/history/BUSINESS/BC0650000?includeDocuments=true\n",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-reports",
+								"history",
+								"BUSINESS",
+								"BC0650000"
+							],
+							"query": [
+								{
+									"key": "includeDocuments",
+									"value": "true\n"
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			],
 			"description": "Submit requests to create new document records with or without a document payload."
@@ -2719,11 +2768,11 @@
 	"variable": [
 		{
 			"key": "apikey",
-			"value": "PROVIDE"
+			"value": "provide"
 		},
 		{
 			"key": "account_id",
-			"value": "PROVIDE"
+			"value": "provide"
 		},
 		{
 			"key": "base_url_prism",

@@ -49,6 +49,17 @@ DOC2 = {
     "author": "John Smith",
     "consumerReferenceId": "9014001"
 }
+DOC3 = {
+    "consumerDocumentId": "T0000003",
+    "consumerFilename": "change-address.pdf",
+    "consumerIdentifier": "T0000005",
+    "documentType": "ADDR",
+    "documentClass": "CORP",
+    "consumerFilingDateTime": "2025-06-01T19:00:00+00:00",
+    "description": "A meaningful description of the document.",
+    "author": "John Smith",
+    "consumerReferenceId": "3333001"
+}
 DOC_SCAN = {
     "scanDateTime": "2024-08-15T19:00:00+00:00",
     "accessionNumber": "AN-0002",
@@ -102,6 +113,11 @@ TEST_CONSUMER_ID_DATA = [
     ("T0000001", True, DocumentTypes.CORR.value, DocumentClasses.CORP.value, False),
     ("T0000001", True, DocumentTypes.CORR.value, DocumentClasses.CORP.value, True),
     ("XXXD0000", False, DocumentTypes.CORR.value, DocumentClasses.CORP.value, False),
+]
+# testdata pattern is ({id}, {has_results})
+TEST_HISTORY_CONSUMER_ID_DATA = [
+    ("T0000003", True),
+    ("XXXD0000", False),
 ]
 # testdata pattern is ({has_doc_id}, {doc_type})
 TEST_CREATE_JSON_DATA = [(True, DocumentTypes.CORR.value), (False, DocumentTypes.CORR.value)]
@@ -216,6 +232,36 @@ def test_find_by_consumer_id(session, id, has_results, doc_type, doc_class, quer
         assert doc_json.get("documentClass") == doc_class
         assert doc_json.get("documentTypeDescription")
         assert doc_json.get("description") == DOC1.get("description")
+
+
+@pytest.mark.parametrize("id, has_results", TEST_HISTORY_CONSUMER_ID_DATA)
+def test_find_history_by_consumer_id(session, id, has_results):
+    """Assert that find document history by consumer identifier contains all expected elements."""
+    if not has_results:
+        document: Document = Document.find_by_consumer_id(id)
+        assert not document
+    else:
+        req_json = copy.deepcopy(DOC3)
+        save_doc: Document = Document.create_from_json(req_json, req_json.get("documentType"))
+        save_doc.save()
+        assert save_doc.id
+        assert save_doc.document_service_id
+        assert save_doc.consumer_document_id
+        assert save_doc.consumer_identifier
+        doc_history = Document.find_history_by_consumer_id(save_doc.consumer_identifier)
+        assert doc_history
+        doc_json = doc_history[0]
+        assert doc_json
+        assert doc_json.get("identifier")
+        assert doc_json.get("dateCreated")
+        assert doc_json.get("entityIdentifier")
+        assert doc_json.get("name")
+        assert doc_json.get("eventIdentifier")
+        assert doc_json.get("datePublished")
+        assert doc_json.get("documentType")
+        assert doc_json.get("documentClass")
+        assert doc_json.get("documentTypeDescription")
+        assert doc_json.get("consumerDocumentId")
 
 
 def test_document_json(session):

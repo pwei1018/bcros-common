@@ -18,7 +18,7 @@ from http import HTTPStatus
 from flask import Blueprint, jsonify, request
 
 from doc_api.exceptions import BusinessException, DatabaseException
-from doc_api.models import ApplicationReport
+from doc_api.models import ApplicationReport, Document
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import ProductCodes
 from doc_api.resources import utils as resource_utils
@@ -202,6 +202,7 @@ def get_product_history_reports(prod_code: str, entity_id: str):
             return resource_utils.not_found_error_response(
                 f"GET {prod_code} report information by entity ID", entity_id
             )
+        reports_json = add_documents(request, entity_id, reports_json)
         response_json = get_report_links(reports_json, prod_code)
         return jsonify(response_json), HTTPStatus.OK, CONTENT_JSON
     except DatabaseException as db_exception:
@@ -350,6 +351,31 @@ def get_new_report_params(req: request, request_json: dict) -> dict:
     return request_json
 
 
+def add_documents(req: request, entity_id: str, reports_json: list) -> list:
+    """Conditionally include documents to the entity identifier filing history request."""
+    if not req.args.get("includeDocuments", False):
+        return reports_json
+    docs_json = Document.find_history_by_consumer_id(entity_id)
+    if not docs_json:
+        return reports_json
+    all_json: list = []
+    event_id: int = 0
+    for rep in reports_json:
+        if rep.get("eventIdentifier", 0) < 1 or rep.get("eventIdentifier") == event_id:
+            all_json.append(rep)
+        else:
+            event_id = rep.get("eventIdentifier")
+            for doc in docs_json:
+                if doc.get("eventIdentifier") and doc.get("eventIdentifier") == event_id:
+                    all_json.append(doc)
+            all_json.append(rep)
+    # Append orphaned docs (no event ID)
+    for doc in docs_json:
+        if not doc.get("eventIdentifier") or doc.get("eventIdentifier") < 1:
+            all_json.append(doc)
+    return all_json
+
+
 def save_to_doc_storage(app_report: ApplicationReport, raw_data) -> str:
     """Save request binary data to document storage. Return a download link"""
     storage_type: str = resource_utils.TO_PRODUCT_STORAGE_TYPE.get(app_report.product_code)
@@ -408,7 +434,7 @@ def get_report_links(reports_json: list, product_code: str) -> list:
     for report_json in reports_json:
         storage_name: str = report_json.get("url")
         if storage_name:
-            logger.info(f"getting link for type={storage_type} name={storage_name}...")
+            logger.debug(f"getting link for type={storage_type} name={storage_name}...")
             doc_link = GoogleStorageService.get_document_link(storage_name, storage_type, 2)
             report_json["url"] = doc_link
     return reports_json

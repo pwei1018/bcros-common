@@ -107,6 +107,25 @@ class Document(db.Model):
                 document["scanningInformation"] = scan_json
         return document
 
+    @property
+    def history_json(self) -> dict:
+        """Return the application report information as a json object."""
+        report = {
+            "identifier": self.document_service_id,
+            "dateCreated": model_utils.format_ts(self.add_ts),
+            "entityIdentifier": self.consumer_identifier,
+            "eventIdentifier": int(self.consumer_reference_id) if self.consumer_reference_id else 0,
+            "name": self.consumer_filename if self.consumer_filename else "",
+            "url": self.doc_storage_url if self.doc_storage_url else "",
+            "consumerDocumentId": self.consumer_document_id,
+            "documentType": self.document_type,
+            "documentTypeDescription": self.doc_type.document_type_desc if self.doc_type else "",
+            "documentClass": self.document_class if self.document_class else "",
+        }
+        if self.consumer_filing_date:
+            report["datePublished"] = model_utils.format_ts(self.consumer_filing_date)
+        return report
+
     @classmethod
     def find_by_id(cls, pkey: int = None):
         """Return a document object by primary key."""
@@ -208,6 +227,37 @@ class Document(db.Model):
                 logger.error("Document.find_by_consumer_id exception: " + str(db_exception))
                 raise DatabaseException(db_exception) from db_exception
         return documents
+
+    @classmethod
+    def find_history_by_consumer_id(cls, consumer_id: str):
+        """Return a list of document objects by consumer identifer for entities filing history."""
+        documents = None
+        if not consumer_id:
+            return documents
+        try:
+            logger.info(f"querying by consumer ID {consumer_id}")
+            documents = (
+                db.session.query(Document)
+                .filter(
+                    and_(
+                        Document.consumer_identifier == consumer_id.upper(),
+                        Document.document_class not in (DocumentClasses.MHR, DocumentClasses.NR, DocumentClasses.PPR),
+                    )
+                )
+                .order_by(Document.add_ts)
+                .all()
+            )
+        except Exception as db_exception:  # noqa: B902; return nicer error
+            logger.error("Document.find_history_by_consumer_id exception: " + str(db_exception))
+            raise DatabaseException(db_exception) from db_exception
+        if not documents:
+            return []
+        doc_history = []
+        logger.info(f"history doc count = {len(documents)}")
+        if documents:
+            for doc in documents:
+                doc_history.append(doc.history_json)
+        return doc_history
 
     def get_generated_values(self):
         """Get db generated identifiers that are in more than one table or required up front.

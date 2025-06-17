@@ -16,12 +16,13 @@
 
 Test-Suite to ensure that the /applicaton-reports endpoint is working as expected.
 """
+import copy
 from http import HTTPStatus
 
 import pytest
 from flask import current_app
 
-from doc_api.models import ApplicationReport
+from doc_api.models import ApplicationReport, Document
 from doc_api.models import utils as model_utils
 from doc_api.utils.logging import logger
 from doc_api.services.authz import BC_REGISTRY, COLIN_ROLE, STAFF_ROLE, SYSTEM_ROLE
@@ -36,7 +37,17 @@ USER_ROLES = [BC_REGISTRY]
 PRODUCT_ROLES_SYSTEM = [SYSTEM_ROLE]
 PRODUCT_ROLES_STAFF = [STAFF_ROLE]
 PRODUCT_ROLES_COLIN = [COLIN_ROLE]
-
+TEST_DOC1 = {
+    "consumerDocumentId": "T0000003",
+    "consumerFilename": "change-address.pdf",
+    "consumerIdentifier": "T0000005",
+    "documentType": "ADDR",
+    "documentClass": "CORP",
+    "consumerFilingDateTime": "2025-06-01T19:00:00+00:00",
+    "description": "A meaningful description of the document.",
+    "author": "John Smith",
+    "consumerReferenceId": "3333001"
+}
 TEST_DATAFILE = "tests/unit/services/unit_test.pdf"
 TEST_FILENAME = "updated_name.pdf"
 PARAM_TEST_FILENAME = "?consumerFilename=updated_name.pdf"
@@ -145,13 +156,13 @@ TEST_GET_HISTORY_DATA = [
     ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND),
     ("Valid", "UT-123456", "123456", "FILING", HTTPStatus.OK),
 ]
-# testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status}, {prod_code}, {roles})
+# testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status}, {prod_code}, {roles}, {include_docs})
 TEST_GET_HISTORY_DATA_PRODUCT = [
-    ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND, "BUSINESS", PRODUCT_ROLES_SYSTEM),
-    ("Valid SA", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_SYSTEM),
-    ("Valid staff", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_STAFF),
-    ("Invalid role", "UT-123456", "123456", "FILING", HTTPStatus.UNAUTHORIZED, "BUSINESS", USER_ROLES),
-    ("Invalid product code", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, "XXX", PRODUCT_ROLES_STAFF),
+    ("Invalid not found", "UT-123456", "123456", "FILING", HTTPStatus.NOT_FOUND, "BUSINESS", PRODUCT_ROLES_SYSTEM, False),
+    ("Valid SA", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_SYSTEM, False),
+    ("Valid staff", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_STAFF, False),
+    ("Invalid role", "UT-123456", "123456", "FILING", HTTPStatus.UNAUTHORIZED, "BUSINESS", USER_ROLES, True),
+    ("Invalid product code", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, "XXX", PRODUCT_ROLES_STAFF, False),
 ]
 
 
@@ -288,8 +299,8 @@ def test_get_product_event_id(session, client, jwt, desc, entity_id, event_id, r
         assert response.json
 
 
-@pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,prod_code,roles", TEST_GET_HISTORY_DATA_PRODUCT)
-def test_get_product_entity_id(session, client, jwt, desc, entity_id, event_id, report_type, status, prod_code, roles):
+@pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,prod_code,roles,include_docs", TEST_GET_HISTORY_DATA_PRODUCT)
+def test_get_product_entity_id(session, client, jwt, desc, entity_id, event_id, report_type, status, prod_code, roles, include_docs):
     """Assert that a request to get report information by a product entity ID works as expected."""
     # setup
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
@@ -300,6 +311,13 @@ def test_get_product_entity_id(session, client, jwt, desc, entity_id, event_id, 
     else:
         headers = create_header_account(jwt, roles, "UT-TEST", "PS12345")
     req_path = HISTORY_PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id)
+    if include_docs:
+        req_path += "?includeDocuments=True"
+        doc_json = copy.deepcopy(TEST_DOC1)
+        doc_json["consumerIdentifier"] = entity_id
+        doc_json["consumerReferenceId"] = event_id
+        save_doc: Document = Document.create_from_json(doc_json, doc_json.get("documentType"))
+        save_doc.save()
     if status == HTTPStatus.OK:  # Create.
         raw_data = None
         with open(TEST_DATAFILE, "rb") as data_file:
@@ -316,6 +334,8 @@ def test_get_product_entity_id(session, client, jwt, desc, entity_id, event_id, 
     assert response.status_code == status
     if status == HTTPStatus.OK:
         assert response.json
+        if include_docs:
+            assert len(response.json) > 1
 
 
 @pytest.mark.parametrize("desc,entity_id,event_id,report_type,status", TEST_CREATE_DATA)
