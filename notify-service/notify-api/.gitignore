@@ -123,3 +123,6 @@ venv.bak/
 
 # Notebooks
 tests/**/*setup*.ipynb
+
+# GCP sa credentials
+*.json

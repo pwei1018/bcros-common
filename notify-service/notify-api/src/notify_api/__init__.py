@@ -43,6 +43,7 @@ class DBConfig:
     database: str
     user: str
     ip_type: str
+    schema: str
 
 
 def getconn(db_config: DBConfig) -> object:
@@ -62,8 +63,13 @@ def getconn(db_config: DBConfig) -> object:
             user=db_config.user,
             ip_type=db_config.ip_type,
             driver="pg8000",
-            enable_iam_auth=True,
+            enable_iam_auth=True
         )
+
+        cursor = conn.cursor()
+        cursor.execute(f"SET search_path TO {db_config.schema}")
+        cursor.close()
+
         return conn
 
 
@@ -81,6 +87,7 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
             database=app.config["DB_NAME"],
             user=app.config["DB_USER"],
             ip_type="private",
+            schema=app.config.get("DB_SCHEMA", "public"),
         )
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": lambda: getconn(db_config)}
 

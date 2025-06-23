@@ -37,16 +37,15 @@ class Config:  # pylint: disable=too-few-public-methods
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ALEMBIC_INI = "migrations/alembic.ini"
     NOTIFY_DATABASE_OWNER = os.getenv("NOTIFY_DATABASE_OWNER", "notifyuser")
+    DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
+    DB_SCHEMA = os.getenv("NOTIFY_DATABASE_SCHEMA", "public")
+    DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
 
     # POSTGRESQL
     if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
-        DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
-        DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
         SQLALCHEMY_DATABASE_URI = "postgresql+pg8000://"
     else:
-        DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
         DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
-        DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
         DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
         DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
         SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
@@ -110,14 +109,14 @@ class MigrationConfig:  # pylint: disable=too-few-public-methods
     DEVELOPMENT = False
     DEBUG = True
 
+    DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
+    DB_SCHEMA = os.getenv("NOTIFY_DATABASE_SCHEMA", "public")
+    DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
+
     if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
-        DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
-        DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
         SQLALCHEMY_DATABASE_URI = "postgresql+pg8000://"
     else:
-        DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
         DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
-        DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
         DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
         DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
         SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
