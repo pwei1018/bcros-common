@@ -41,15 +41,15 @@ TEST_DATA_PAGE_SIZE = [
     (2, search_utils.SEARCH_PAGE_SIZE),
     (5, 4 * search_utils.SEARCH_PAGE_SIZE)
 ]
-# testdata pattern is ({doc_class}, {doc_type}, {start_date}, {end_date}, {cons_id}, {doc_id}, {filename})
+# testdata pattern is ({doc_class}, {doc_type}, {start_date}, {end_date}, {cons_id}, {doc_id}, {filename}, {from_ui})
 TEST_DATA_SEARCH_FILTER = [
-    (None, None, None, None, None, None, None),
-    ('PPR', None, None, None, None, None, None),
-    ('PPR', 'PPRS', None, None, None, None, None),
-    ('CORP', None, None, None, 'BC0700', None, None),
-    ('CORP', None, None, None, None, '2143', None),
-    ('SOCIETY', None, '2024-09-01', '2024-09-02', None, '2143', None),
-    ('CORP', None, None, None, None, None, 'change of add')
+    (None, None, None, None, None, None, None, True),
+    ('PPR', None, None, None, None, None, None, True),
+    ('PPR', 'PPRS', None, None, None, None, None, True),
+    ('CORP', None, None, None, 'BC0700', None, None, True),
+    ('CORP', None, None, None, None, '2143', None, True),
+    ('SOCIETY', None, '2024-09-01', '2024-09-02', None, '2143', None, True),
+    ('CORP', None, None, None, None, None, 'change of add', True)
 ]
 
 
@@ -63,8 +63,8 @@ def test_page_clause(session, page_num, expected_offset):
     assert clause == test_clause
 
 
-@pytest.mark.parametrize("doc_class,doc_type,start_dt,end_dt,cons_id,doc_id,filename", TEST_DATA_SEARCH_FILTER)
-def test_build_search_filter(session, doc_class, doc_type, start_dt, end_dt, cons_id, doc_id, filename):
+@pytest.mark.parametrize("doc_class,doc_type,start_dt,end_dt,cons_id,doc_id,filename,from_ui", TEST_DATA_SEARCH_FILTER)
+def test_build_search_filter(session, doc_class, doc_type, start_dt, end_dt, cons_id, doc_id, filename, from_ui):
     """Assert that building the search base query from search parameters works as expected."""
     req_info: RequestInfo = RequestInfo(None, None, doc_type, None)
     req_info.document_class = doc_class
@@ -73,6 +73,7 @@ def test_build_search_filter(session, doc_class, doc_type, start_dt, end_dt, con
     req_info.consumer_identifier = cons_id
     req_info.consumer_doc_id = doc_id
     req_info.consumer_filename = filename
+    req_info.from_ui = from_ui
     query: str = search_utils.build_filter_clause(req_info)
     if doc_class:
         assert query.find(' AND d.document_class = ') != -1
@@ -100,8 +101,8 @@ def test_build_search_filter(session, doc_class, doc_type, start_dt, end_dt, con
         assert query.find(' AND LOWER(d.consumer_filename) LIKE ') == -1
 
 
-@pytest.mark.parametrize("doc_class,doc_type,start_dt,end_dt,cons_id,doc_id,filename", TEST_DATA_SEARCH_FILTER)
-def test_search_count(session, doc_class, doc_type, start_dt, end_dt, cons_id, doc_id, filename):
+@pytest.mark.parametrize("doc_class,doc_type,start_dt,end_dt,cons_id,doc_id,filename,from_ui", TEST_DATA_SEARCH_FILTER)
+def test_search_count(session, doc_class, doc_type, start_dt, end_dt, cons_id, doc_id, filename, from_ui):
     """Assert that executing the search count query from search parameters works as expected."""
     req_info: RequestInfo = RequestInfo(None, None, doc_type, None)
     req_info.document_class = doc_class
@@ -110,13 +111,14 @@ def test_search_count(session, doc_class, doc_type, start_dt, end_dt, cons_id, d
     req_info.consumer_identifier = cons_id
     req_info.consumer_doc_id = doc_id
     req_info.consumer_filename = filename
+    req_info.from_ui = from_ui
     filter_clause: str = search_utils.build_filter_clause(req_info)
     search_count: int = search_utils.get_search_count(filter_clause)
     assert search_count >= 0
 
 
-@pytest.mark.parametrize("doc_class,doc_type,start_dt,end_dt,cons_id,doc_id,filename", TEST_DATA_SEARCH_FILTER)
-def test_search_docs(session, doc_class, doc_type, start_dt, end_dt, cons_id, doc_id, filename):
+@pytest.mark.parametrize("doc_class,doc_type,start_dt,end_dt,cons_id,doc_id,filename,from_ui", TEST_DATA_SEARCH_FILTER)
+def test_search_docs(session, doc_class, doc_type, start_dt, end_dt, cons_id, doc_id, filename, from_ui):
     """Assert that executing the search from search parameters works as expected."""
     req_info: RequestInfo = RequestInfo(None, None, doc_type, None)
     req_info.document_class = doc_class
@@ -125,6 +127,7 @@ def test_search_docs(session, doc_class, doc_type, start_dt, end_dt, cons_id, do
     req_info.consumer_identifier = cons_id
     req_info.consumer_doc_id = doc_id
     req_info.consumer_filename = filename
+    req_info.from_ui = from_ui
     search_results = search_utils.get_search_docs(req_info)
     assert search_results
     assert 'resultCount' in search_results

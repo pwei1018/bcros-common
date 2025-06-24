@@ -98,18 +98,19 @@ TEST_SEARCH_DATA_CLASS = [
     ("Valid doc service ID", PARAM_DOC_SERVICE_ID, STAFF_ROLES, "UT1234", DOC_CLASS1, HTTPStatus.OK),
 ]
 
-# testdata pattern is ({description}, {params}, {roles}, {account}, {status})
+# testdata pattern is ({description}, {params}, {roles}, {account}, {status}, {from_ui})
 TEST_SEARCH_DATA = [
-    ("Invalid doc class", PARAM_CLASS_INVALID, STAFF_ROLES, "UT1234", HTTPStatus.BAD_REQUEST),
-    ("Invalid date params", PARAMS_DATE_INVALID, STAFF_ROLES, "UT1234", HTTPStatus.BAD_REQUEST),
-    ("Staff missing account", PARAM_CONSUMER_ID, STAFF_ROLES, None, HTTPStatus.BAD_REQUEST),
-    ("Invalid role", PARAM_CONSUMER_ID, INVALID_ROLES, "UT1234", HTTPStatus.UNAUTHORIZED),
-    ("Valid no params", None, STAFF_ROLES, "UT1234", HTTPStatus.OK),
-    ("Valid date params", PARAMS_DATE_VALID, STAFF_ROLES, "UT1234", HTTPStatus.OK),
-    ("Valid all params", PARAMS_ALL_VALID, STAFF_ROLES, "UT1234", HTTPStatus.OK),
-    ("Valid consumer ID no results", PARAM_CONSUMER_ID_NONE, STAFF_ROLES, "UT1234", HTTPStatus.OK),
-    ("Valid consumer ID", PARAM_CONSUMER_ID, STAFF_ROLES, "UT1234", HTTPStatus.OK),
-    ("Valid document ID", PARAM_CONSUMER_DOC_ID, STAFF_ROLES, "UT1234", HTTPStatus.OK)
+    ("Invalid doc class", PARAM_CLASS_INVALID, STAFF_ROLES, "UT1234", HTTPStatus.BAD_REQUEST, True),
+    ("Invalid date params", PARAMS_DATE_INVALID, STAFF_ROLES, "UT1234", HTTPStatus.BAD_REQUEST, True),
+    ("Staff missing account", PARAM_CONSUMER_ID, STAFF_ROLES, None, HTTPStatus.BAD_REQUEST, True),
+    ("Invalid role", PARAM_CONSUMER_ID, INVALID_ROLES, "UT1234", HTTPStatus.UNAUTHORIZED, True),
+    ("Valid no params", None, STAFF_ROLES, "UT1234", HTTPStatus.OK, True),
+    ("Valid date params", PARAMS_DATE_VALID, STAFF_ROLES, "UT1234", HTTPStatus.OK, True),
+    ("Valid all params", PARAMS_ALL_VALID, STAFF_ROLES, "UT1234", HTTPStatus.OK, True),
+    ("Valid consumer ID no results", PARAM_CONSUMER_ID_NONE, STAFF_ROLES, "UT1234", HTTPStatus.OK, True),
+    ("Valid consumer ID", PARAM_CONSUMER_ID, STAFF_ROLES, "UT1234", HTTPStatus.OK, True),
+    ("Valid document ID", PARAM_CONSUMER_DOC_ID, STAFF_ROLES, "UT1234", HTTPStatus.OK, True),
+    ("Valid document ID not UI", PARAM_CONSUMER_DOC_ID, STAFF_ROLES, "UT1234", HTTPStatus.OK, False)
 ]
 
 
@@ -155,8 +156,8 @@ def test_class_searches(session, client, jwt, desc, params, roles, account, doc_
             assert doc_json.get("documentClass")
 
 
-@pytest.mark.parametrize("desc,params,roles,account,status", TEST_SEARCH_DATA)
-def test_searches(session, client, jwt, desc, params, roles, account, status):
+@pytest.mark.parametrize("desc,params,roles,account,status,from_ui", TEST_SEARCH_DATA)
+def test_searches(session, client, jwt, desc, params, roles, account, status, from_ui):
     """Assert that a documents search request by any search parameter works as expected."""
     # setup
     current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
@@ -168,6 +169,8 @@ def test_searches(session, client, jwt, desc, params, roles, account, status):
     req_path = GET_PATH_ANY
     if params:
         req_path += params
+        if from_ui:
+            req_path += "&fromUI=true"
 
     if status == HTTPStatus.OK and desc != "Valid consumer ID no results":  # Create.
         response = client.post(

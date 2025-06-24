@@ -163,12 +163,9 @@ def get_search_count(filter_clause: str) -> int:
     return result_count
 
 
-def get_search_results(request_info: RequestInfo, filter_clause: str) -> int:
+def get_search_results(request_info: RequestInfo, filter_clause: str) -> list:
     """Build search results based on the request parameters."""
     results = []
-    temp_results = {}
-
-    doc_ids = []
     try:
         query_filter_doc_id = SEARCH_FILTER_BASE + filter_clause + build_page_clause(request_info)
         query_text: str = (
@@ -180,22 +177,14 @@ def get_search_results(request_info: RequestInfo, filter_clause: str) -> int:
         logger.info(f"get_search_results executing query doc id filter {query_filter_doc_id}")
         qresults = db.session.execute(query)
         rows = qresults.fetchall()
-        if rows is not None:
-            for row in rows:
-                result_json = build_result_json(row, True)
-                temp_key = result_json.get("consumerDocumentId") + "-" + result_json.get("documentClass")
-                if not temp_results or not temp_results.get(temp_key):
-                    temp_results[temp_key] = result_json
-                    doc_ids.append(temp_key)
-                elif result_json.get("consumerFilenames") and temp_results.get(temp_key):
-                    temp_results[temp_key]["consumerFilenames"].append(result_json["consumerFilenames"][0])
-                elif result_json.get("consumerFilename") and temp_results.get(temp_key):
-                    if not temp_results[temp_key].get("otherDocuments"):
-                        temp_results[temp_key]["otherDocuments"] = []
-                    temp_results[temp_key]["otherDocuments"].append(result_json)
-        logger.info(f"get_search_results doc id length={len(doc_ids)}")
-        for doc_id in doc_ids:
-            results.append(temp_results.get(doc_id))
+        if rows is None:
+            return results
+        if request_info.from_ui:
+            return get_ui_search_results(rows)
+        for row in rows:
+            result_json = build_result_json(row, False)
+            results.append(result_json)
+        logger.info(f"get_search_results length={len(results)}")
         return results
     except Exception as db_exception:  # noqa: B902; return nicer error
         current_app.logger.error("get_search_results exception: " + str(db_exception))
@@ -265,4 +254,29 @@ def get_docs_by_date_range(doc_class: str, start_date: str, end_date: str, doc_t
         logger.info(f"get_docs_by_date_range returning {len(results)} results.")
     else:
         logger.info("get_docs_by_date_range no results found.")
+    return results
+
+
+def get_ui_search_results(rows) -> list:
+    """Build the UI view of the search results with a single item per document ID."""
+    if rows is None:
+        return []
+    results = []
+    temp_results = {}
+    doc_ids = []
+    for row in rows:
+        result_json = build_result_json(row, True)
+        temp_key = result_json.get("consumerDocumentId") + "-" + result_json.get("documentClass")
+        if not temp_results or not temp_results.get(temp_key):
+            temp_results[temp_key] = result_json
+            doc_ids.append(temp_key)
+        elif result_json.get("consumerFilenames") and temp_results.get(temp_key):
+            temp_results[temp_key]["consumerFilenames"].append(result_json["consumerFilenames"][0])
+        elif result_json.get("consumerFilename") and temp_results.get(temp_key):
+            if not temp_results[temp_key].get("otherDocuments"):
+                temp_results[temp_key]["otherDocuments"] = []
+            temp_results[temp_key]["otherDocuments"].append(result_json)
+    logger.info(f"get_ui_search_results doc id length={len(doc_ids)}")
+    for doc_id in doc_ids:
+        results.append(temp_results.get(doc_id))
     return results
