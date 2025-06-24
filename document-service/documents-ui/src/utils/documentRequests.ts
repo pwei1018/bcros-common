@@ -43,6 +43,8 @@ export async function getDocuments(params: DocumentRequestIF): Promise<ApiRespon
   if (queryStartDate) queryParams.append('queryStartDate', queryStartDate)
   if (queryEndDate) queryParams.append('queryEndDate', queryEndDate)
   if (pageNumber) queryParams.append('pageNumber', pageNumber.toString())
+  // if fromUI is true, a single item with multiple file names is returned for each document ID
+  queryParams.append('fromUI', String(true))
 
   // Build the full URL
   const url = `${baseURL}/searches?${queryParams.toString()}`

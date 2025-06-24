@@ -93,9 +93,7 @@ export const useDocumentSearch = () => {
           documentUrls: [documentURL],
           ...rest,
         })
-      }
-
-      if (map.get(docKey)) {
+      } else {
         const existingDoc = map.get(docKey)
         if (consumerFilename) {
           existingDoc.consumerFilenames.push(consumerFilename)
