@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from flask import Flask
 from google.cloud.sql.connector import Connector
 from notify_api.models import db
+from sqlalchemy import event
 from structured_logging import StructuredLogging
 
 from notify_delivery.config import config
@@ -41,6 +42,8 @@ class DBConfig:
     database: str
     user: str
     ip_type: str
+    schema: str
+
 
 
 def getconn(connector: Connector, db_config: DBConfig) -> object:
@@ -53,7 +56,7 @@ def getconn(connector: Connector, db_config: DBConfig) -> object:
     Returns:
         object: A connection object to the database.
     """
-    return connector.connect(
+    conn = connector.connect(
         instance_connection_string=db_config.instance_name,
         db=db_config.database,
         user=db_config.user,
@@ -62,11 +65,20 @@ def getconn(connector: Connector, db_config: DBConfig) -> object:
         enable_iam_auth=True,
     )
 
+    if db_config.schema:
+        cursor = conn.cursor()
+        cursor.execute(f"SET search_path TO {db_config.schema},public")
+        cursor.execute(f"SET LOCAL search_path TO {db_config.schema}, public;")
+        cursor.close()
+
+    return conn
+
 
 def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
     """Return a configured Flask App using the Factory method."""
     app = Flask(__name__)
     app.config.from_object(config[run_mode])
+    schema = app.config.get("DB_SCHEMA", None)
 
     if app.config["DB_INSTANCE_CONNECTION_NAME"]:
         connector = Connector(refresh_strategy="lazy")
@@ -75,10 +87,19 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
             database=app.config["DB_NAME"],
             user=app.config["DB_USER"],
             ip_type=app.config["DB_IP_TYPE"],
+            schema=schema
         )
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": lambda: getconn(connector, db_config)}
 
     db.init_app(app)
+
+    with app.app_context():
+        engine = db.engine
+        @event.listens_for(engine, "checkout")
+        def set_search_path_on_checkout(dbapi_connection, connection_record, connection_proxy):
+            cursor = dbapi_connection.cursor()
+            cursor.execute(f"SET search_path TO {schema},public")
+            cursor.close()
 
     queue.init_app(app)
 

@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from flask import Flask
 from flask_cors import CORS
 from google.cloud.sql.connector import Connector
+from sqlalchemy import event
 from structured_logging import StructuredLogging
 
 from notify_api import models
@@ -50,7 +51,6 @@ def getconn(db_config: DBConfig) -> object:
     """Create a database connection.
 
     Args:
-        connector (Connector): The Google Cloud SQL connector instance.
         db_config (DBConfig): The database configuration.
 
     Returns:
@@ -66,9 +66,11 @@ def getconn(db_config: DBConfig) -> object:
             enable_iam_auth=True
         )
 
-        cursor = conn.cursor()
-        cursor.execute(f"SET search_path TO {db_config.schema}")
-        cursor.close()
+        if db_config.schema:
+            cursor = conn.cursor()
+            cursor.execute(f"SET search_path TO {db_config.schema},public")
+            cursor.execute(f"SET LOCAL search_path TO {db_config.schema}, public;")
+            cursor.close()
 
         return conn
 
@@ -81,17 +83,33 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
 
     CORS(app, resources="*")
 
+    schema = app.config.get("DB_SCHEMA", "public")
+
     if app.config["DB_INSTANCE_CONNECTION_NAME"]:
         db_config = DBConfig(
             instance_name=app.config["DB_INSTANCE_CONNECTION_NAME"],
             database=app.config["DB_NAME"],
             user=app.config["DB_USER"],
             ip_type="private",
-            schema=app.config.get("DB_SCHEMA", "public"),
+            schema=schema if run_mode != "migration" else None
         )
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": lambda: getconn(db_config)}
+
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "creator": lambda: getconn(db_config),
+            "pool_pre_ping": True,
+            "pool_recycle": 300
+        }
 
     db.init_app(app)
+
+    if run_mode != "migration":
+        with app.app_context():
+            engine = db.engine
+            @event.listens_for(engine, "checkout")
+            def set_search_path_on_checkout(dbapi_connection, connection_record, connection_proxy):
+                cursor = dbapi_connection.cursor()
+                cursor.execute(f"SET search_path TO {schema},public")
+                cursor.close()
 
     if run_mode == "migration":
         from flask_migrate import Migrate, upgrade

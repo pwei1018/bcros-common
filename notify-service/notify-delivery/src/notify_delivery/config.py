@@ -34,16 +34,15 @@ class Config:
     DEPLOYMENT_PLATFORM = os.getenv("DEPLOYMENT_PLATFORM", "GCP")
     DEPLOYMENT_ENV= os.getenv("DEPLOYMENT_ENV", "production")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
+    DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
+    DB_SCHEMA = os.getenv("NOTIFY_DATABASE_SCHEMA", "public")
 
     # POSTGRESQL
     if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
-        DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
-        DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
         SQLALCHEMY_DATABASE_URI = "postgresql+pg8000://"
     else:
-        DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
         DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
-        DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
         DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
         DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
         SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
