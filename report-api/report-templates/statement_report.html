@@ -385,7 +385,7 @@
   </style>
 </head>
 <body>
-  {% for data in grouped_invoices %}
+  {% for data in groupedInvoices %}
     {% set payment_method = data.payment_method %}
     {% set transactions = data.transactions %}
     {% set total_paid = data.total_paid %}
@@ -403,7 +403,7 @@
     {% include 'report-templates/statement_details.html' with context %}
     {% include 'report-templates/statement_transactions.html' with context %}
   {% endfor %}
-  {% if not grouped_invoices %}
+  {% if not groupedInvoices %}
     <div class="page-break-before">
       {% include 'report-templates/statement_header.html' %}
     </div>
@@ -412,7 +412,7 @@
   {% endif %}
 
   <!-- EFT Instructions -->
-  {% if has_payment_instructions %}
+  {% if hasPaymentInstructions %}
     {% set payment_method = 'EFT' %}
     {% set is_payment_instructions = true %}
     <div class="inner-wrap page-break-before">
