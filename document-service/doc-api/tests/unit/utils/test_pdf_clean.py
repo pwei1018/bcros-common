@@ -31,6 +31,8 @@ CLEAN_TEST_JPG = "tests/unit/services/data/test-image.jpg"
 CLEAN_TEST_JPG_OUT = "tests/unit/services/data/test-image-jpg-clean.pdf"
 CLEAN_TEST_PPTX = "tests/unit/services/data/test-pptx.pptx"
 CLEAN_TEST_PPTX_OUT = "tests/unit/services/data/test-pptx-clean.pdf"
+CLEAN_TEST_PDF_REPORT = "tests/unit/services/data/test-in-pdf-report.pdf"
+CLEAN_TEST_PDF_REPORT_OUT = "tests/unit/services/data/test-out-pdf-report.pdf"
 
 
 def test_clean_pdf(session, client, jwt):
@@ -53,6 +55,16 @@ def test_clean_pdf_form(session, client, jwt):
     cleaned_pdf = clean_pdf(doc_data)
     # verify
     check_response(cleaned_pdf, CLEAN_TEST_PDF_FORM_OUT)
+
+
+def test_clean_pdf_report(session, client, jwt):
+    """Assert that cleaning a test generated pdf report file is as expected."""
+    # setup
+    doc_data = get_file(CLEAN_TEST_PDF_REPORT)
+    # test
+    cleaned_pdf = clean_pdf(doc_data)
+    # verify
+    check_response(cleaned_pdf, CLEAN_TEST_PDF_REPORT_OUT)
 
 
 def test_clean_pdf_image(session, client, jwt):

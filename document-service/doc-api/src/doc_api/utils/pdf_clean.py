@@ -41,9 +41,14 @@ def clean_pdf(pdf_data: bytes) -> bytes:
     try:
         doc = pymupdf.Document(stream=pdf_data)
         logger.info(f"clean_pdf Document opened, scrubbing in data length={len(pdf_data)}")
+        for xref in range(1, doc.xref_length()):
+            try:
+                doc.xref_object(xref)
+            except Exception:
+                doc.update_object(xref, "<<>>")
         doc.scrub()
         logger.info("clean_pdf Document scrubbed, compressing content")
-        cleaned_pdf = doc.tobytes(garbage=0, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
+        cleaned_pdf = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
         doc.close()
         logger.info(f"clean_pdf completed out data length={len(cleaned_pdf)}")
         return cleaned_pdf
