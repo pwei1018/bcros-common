@@ -46,6 +46,16 @@ TEST_DOCUMENT = Document(
     description="Original",
     consumer_reference_id = "800000"
 )
+TEST_APP_DOCUMENT = Document(
+    id=200000000,
+    document_service_id="UT9999998",
+    document_type=DocumentTypes.APP_FILE.value,
+    document_class=DocumentClasses.OTHER.value,
+    add_ts=model_utils.now_ts(),
+    consumer_document_id="TA0000001",
+    consumer_filename="test.pdf",
+    consumer_filing_date=model_utils.ts_from_iso_date_noon("2024-07-01"),
+)
 TEST_TOKEN = {
     "username": "username_TEST1",
     "firstname": "given_name_TEST1",
@@ -81,6 +91,10 @@ UPDATE_DOC = {
     "consumerFilingDateTime": "2024-08-01T19:00:00+00:00",
     "description": "Updated description of the document.",
     "consumerReferenceId": "800001"
+}
+UPDATE_APP_DOC = {
+    "name": "test-update.pdf",
+    "datePublished": "2024-08-01T19:00:00+00:00"
 }
 REMOVE_DOC = {
     "removed": True
@@ -179,6 +193,10 @@ TEST_UPDATE_DATA = [
     (TEST_DOCUMENT, TEST_TOKEN, DocumentClasses.PPR.value, DOC_SCAN, None, False),
     (TEST_DOCUMENT, TEST_TOKEN, DocumentClasses.PPR.value, None, UPDATE_DOC_SCAN, False),
     (TEST_DOCUMENT, TEST_TOKEN, DocumentClasses.PPR.value, DOC_SCAN, UPDATE_DOC_SCAN, True)
+]
+# testdata pattern is ({document}, {token}, {update_filename}, {user})
+TEST_UPDATE_DATA_APP = [
+    (TEST_APP_DOCUMENT, TEST_TOKEN, "test-update.pdf", TEST_USER),
 ]
 # testdata pattern is ({document}, {token}, {filename})
 TEST_REPLACE_DATA = [(TEST_DOCUMENT, TEST_TOKEN, TEST_FILENAME)]
@@ -318,7 +336,7 @@ def test_save_update(session, document, token, doc_class, scan_info,  update_sca
     info.consumer_filename = request_data.get("consumerFilename")
     info.consumer_filedate = request_data.get("consumerFilingDateTime")
     info.description = request_data.get("description")
-    logger.info(info.request_data)
+    # logger.info(info.request_data)
     result = resource_utils.save_update(info, doc, token)
     assert result.get("documentServiceId")
     assert result.get("createDateTime")
@@ -352,6 +370,39 @@ def test_save_update(session, document, token, doc_class, scan_info,  update_sca
     else:
         assert not result.get("scanningInformation")
     assert result.get("consumerReferenceId") == request_data.get("consumerReferenceId")
+
+
+@pytest.mark.parametrize("document,token,update_filename,user", TEST_UPDATE_DATA_APP)
+def test_save_update_app(session, document, token, update_filename, user):
+    """Assert that patch request resource_utils.save_update_app works as expected."""
+    doc: Document = copy.deepcopy(document)
+    doc.save()
+    doc_request: DocumentRequest = DocumentRequest(
+        request_ts=model_utils.now_ts(),
+        account_id="1234",
+        username=user.username if user else "",
+        request_type=RequestTypes.ADD.value,
+        status=200,
+        document_id=doc.id,
+    )
+    doc_request.save()
+    doc.doc_requests = [doc_request]
+    info: RequestInfo = RequestInfo(RequestTypes.UPDATE.value, None, doc.document_type, None)
+    request_data = copy.deepcopy(UPDATE_APP_DOC)
+    if update_filename:
+        request_data["name"] = update_filename
+    info.request_data = request_data
+    info.account_id = "1234"
+    info.document_class = doc.document_class
+    info.consumer_filename = request_data.get("name")
+    info.consumer_filedate = request_data.get("datePublished")
+    # logger.info(info.request_data)
+    result = resource_utils.save_update_app(info, doc, token)
+    assert result.get("identifier")
+    assert result.get("dateCreated")
+    assert result.get("name") == request_data.get("name")
+    assert result.get("datePublished") == request_data.get("datePublished")
+    assert not result.get("url")
 
 
 @pytest.mark.parametrize("document,token,scan_info", TEST_REMOVE_DATA)

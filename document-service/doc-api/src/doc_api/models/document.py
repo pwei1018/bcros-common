@@ -126,6 +126,27 @@ class Document(db.Model):
             report["datePublished"] = model_utils.format_ts(self.consumer_filing_date)
         return report
 
+    @property
+    def app_json(self) -> dict:
+        """Return the public https://schema.org/DigitalDocument information as a json object."""
+        doc = {}
+        if not self.doc_requests or len(self.doc_requests) < 2:
+            doc = {
+                "identifier": self.document_service_id,
+                "dateCreated": model_utils.format_ts(self.add_ts),
+                "name": self.consumer_filename if self.consumer_filename else "",
+                "url": self.doc_storage_url if self.doc_storage_url else "",
+            }
+        else:
+            doc = self.doc_requests[0].request_data
+            doc["identifier"] = self.document_service_id
+            doc["dateCreated"] = model_utils.format_ts(self.add_ts)
+            doc["name"] = self.consumer_filename if self.consumer_filename else ""
+            doc["url"] = self.doc_storage_url if self.doc_storage_url else ""
+        if self.consumer_filing_date:
+            doc["datePublished"] = model_utils.format_ts(self.consumer_filing_date)
+        return doc
+
     @classmethod
     def find_by_id(cls, pkey: int = None):
         """Return a document object by primary key."""

@@ -16,6 +16,7 @@ from .constants import EndpointVersionPath
 from .meta import meta_bp
 from .ops import ops_bp
 from .v1 import (
+    app_document_bp,
     app_report_bp,
     business_bp,
     callback_bp,
@@ -40,6 +41,7 @@ v1_endpoint = VersionEndpoint(  # pylint: disable=invalid-name
     name="API_V1",
     path=EndpointVersionPath.API_V1,
     bps=[
+        app_document_bp,
         app_report_bp,
         business_bp,
         callback_bp,

@@ -338,6 +338,197 @@
 			"description": "Submit requests to create new document records with or without a document payload."
 		},
 		{
+			"name": "application_documents",
+			"item": [
+				{
+					"name": "Upload App Document",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/pdf",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/Users/douglovett/Downloads/Form 3 - Osoyoos.pdf"
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-documents?name=ut-test-1.pdf&datePublished=2025-06-19T07%3A00%3A00.000-07%3A00",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-documents"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "ut-test-1.pdf"
+								},
+								{
+									"key": "datePublished",
+									"value": "2025-06-19T07%3A00%3A00.000-07%3A00"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get By DRS ID Link",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true,
+						"disabledSystemHeaders": {
+							"accept": true
+						}
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-documents/DS0000101261",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-documents",
+								"DS0000101261"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get By DRS ID Document Data",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true,
+						"disabledSystemHeaders": {
+							"accept": true
+						}
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/pdf",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-documents/DS0000101261",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-documents",
+								"DS0000101261"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update App Document Info",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Account-Id",
+								"value": "{{account_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"test-update.pdf\",\n  \"datePublished\": \"2024-09-01\",\n  \"alternativeHeadline\": \"headline\",\n  \"contentRating\": \"general\",\n  \"correction\": \"fixed date\",\n  \"position\": 1\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/application-documents/DS0000101261",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"application-documents",
+								"DS0000101261"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Submit requests to create new document records with or without a document payload."
+		},
+		{
 			"name": "business",
 			"item": [
 				{
@@ -2768,11 +2959,11 @@
 	"variable": [
 		{
 			"key": "apikey",
-			"value": "provide"
+			"value": "PROVIDE"
 		},
 		{
 			"key": "account_id",
-			"value": "provide"
+			"value": "PROVIDE"
 		},
 		{
 			"key": "base_url_prism",

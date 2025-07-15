@@ -40,6 +40,7 @@ TEST_DOC_TYPES = [
     (DocumentTypes.REG_103E.value, DocumentClasses.MHR.value, True),
     (DocumentTypes.CANCEL_PERMIT.value, DocumentClasses.MHR.value, True),
     (DocumentTypes.AMEND_PERMIT.value, DocumentClasses.MHR.value, True),
+    (DocumentTypes.APP_FILE.value, DocumentClasses.OTHER.value, True),
 ]
 # testdata pattern is ({doc_class}, {doc_type}, {has_results}, {type_exists})
 TEST_DOC_TYPE_CLASSES = [

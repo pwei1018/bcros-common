@@ -276,7 +276,7 @@ def get_request_info(req: request, info: RequestInfo, staff: bool = False) -> Re
 def update_request_info(
     req: request, info: RequestInfo, doc_service_id: str, doc_class: str, staff: bool = False
 ) -> RequestInfo:
-    """Extract header and from the request and update parameters from the request payload."""
+    """Extract properties from the request headers and update properties from the request payload."""
     info.from_ui = req.args.get(PARAM_FROM_UI, False)
     info.account_id = req.headers.get(PARAM_ACCOUNT_ID)
     info.document_service_id = doc_service_id
@@ -300,6 +300,27 @@ def update_request_info(
         info.consumer_filename = req.args.get(PARAM_CONSUMER_FILENAME)
     if info.request_type == RequestTypes.REPLACE and request.get_data():
         info.has_payload = True
+    return info
+
+
+def update_request_info_app(
+    req: request, info: RequestInfo, doc_service_id: str, doc_class: str, staff: bool = False
+) -> RequestInfo:
+    """Extract properties from the request headers and update properties from the request payload."""
+    info.from_ui = req.args.get(PARAM_FROM_UI, False)
+    info.account_id = req.headers.get(PARAM_ACCOUNT_ID)
+    info.document_service_id = doc_service_id
+    info.document_class = doc_class
+    request_json = req.get_json(silent=True)
+    if request_json and request_json.get("name"):
+        info.consumer_filename = request_json.get("name")
+    if request_json and request_json.get("datePublished"):
+        info.consumer_filedate = request_json.get("datePublished")
+    info.request_data = request_json
+    info.staff = staff
+    info.content_type = req.headers.get(PARAM_CONTENT_TYPE)
+    if info.content_type:
+        info.content_type = info.content_type.lower()
     return info
 
 
@@ -369,6 +390,32 @@ def save_add(info: RequestInfo, token, raw_data) -> dict:
     if doc_link:
         doc_json["documentURL"] = doc_link
     logger.info("save_add completed...")
+    return doc_json
+
+
+def save_add_app(info: RequestInfo, token, raw_data) -> dict:
+    """Save application document request binary data to document storage. Return a download link"""
+    request_json = info.json
+    logger.info(f"save_add_app starting raw data size={len(raw_data)}, getting user from token...")
+    user: User = User.get_or_create_user_by_jwt(token, info.account_id)
+    logger.info("save_add_app building Document model...")
+    document: Document = Document.create_from_json(request_json, info.document_type)
+    doc_link: str = None
+    if raw_data:
+        logger.info("save_add_app saving file data to doc storage...")
+        doc_link = save_to_doc_storage(document, info, raw_data)
+    else:
+        logger.info("save_add_app no payload file to save to doc storage...")
+        info.request_type = RequestTypes.PENDING.value
+    logger.info("save_add_app building doc request model and saving...")
+    doc_request: DocumentRequest = build_doc_request(info, user, document.id)
+    db.session.add(document)
+    db.session.add(doc_request)
+    db.session.commit()
+    doc_json = document.app_json
+    if doc_link:
+        doc_json["url"] = doc_link
+    logger.info("save_add_app completed...")
     return doc_json
 
 
@@ -446,6 +493,29 @@ def save_update(info: RequestInfo, document: Document, token) -> dict:
     if doc_json.get("documentURL"):
         del doc_json["documentURL"]
     logger.info("save_update completed...")
+    return doc_json
+
+
+def save_update_app(info: RequestInfo, document: Document, token) -> dict:
+    """Save updated application document information. Return the updated information."""
+    logger.info("save_update_app starting, getting user from token...")
+    user: User = User.get_or_create_user_by_jwt(token, info.account_id)
+    doc_request: DocumentRequest = build_doc_request(info, user, document.id)
+    if info.consumer_filename != document.consumer_filename or info.consumer_filedate:
+        document.consumer_filename = info.consumer_filename
+        document.consumer_filing_date = model_utils.ts_from_iso_date_noon(info.consumer_filedate)
+        db.session.add(document)
+        logger.info("save_update_app saving updated document model...")
+    first_request: DocumentRequest = document.doc_requests[0]
+    first_request.request_data = info.request_data
+    db.session.add(first_request)
+    db.session.add(doc_request)
+    logger.info("save_update_app saving document_request...")
+    db.session.commit()
+    doc_json = document.app_json
+    if doc_json.get("url"):
+        del doc_json["url"]
+    logger.info("save_update_app completed...")
     return doc_json
 
 

@@ -71,7 +71,10 @@ TEST_DOC_UPDATE7 = {"description": "A meaningful description of the document."}
 TEST_DOC_UPDATE8 = {"description": "UPDATED"}
 TEST_DOC_UPDATE9 = {"author": "John Smith"}
 TEST_DOC_UPDATE10 = {"author": "John David Smith"}
-
+TEST_PATCH_PAYLOAD_APP = {
+    "name": "test_patch.pdf",
+    "datePublished": "2024-08-08",
+}
 # test data pattern is ({description}, {valid}, {payload}, {new}, {cons_doc_id}, {doc_class}, {message_content})
 TEST_DATA_SCANNING = [
     ("Valid new", True, TEST_SCAN1, True, "UT000001", DocumentClasses.CORP, None),
@@ -183,6 +186,18 @@ TEST_DATA_ADD = [
     ("Valid no class", True, RequestTypes.ADD, DocumentTypes.TRAN, model_utils.CONTENT_TYPE_PDF, None, None, None),
     ("Valid image content", True, RequestTypes.ADD, DocumentTypes.TRAN, model_utils.CONTENT_TYPE_JPEG, None, None, None),
 ]
+# test data pattern is ({description}, {valid}, {content_type}, {filename}, {filedate}, {message_content}, {payload})
+TEST_DATA_ADD_APP = [
+    ("Valid image content", True, model_utils.CONTENT_TYPE_JPEG, "testing.pdf", "2024-07-31", None, "TEST"),
+    ("Valid no filedate", True, model_utils.CONTENT_TYPE_JPEG, "testing.pdf", None, None, "TEST"),
+    ("Invalid image content", False, CONTENT_TYPE_INVALID, "testing.pdf", None,
+     validator.INVALID_CONTENT_TYPE.format(content_type=CONTENT_TYPE_INVALID), "TEST"),
+    ("Invalid missing content", False, None, "testing.pdf", None, validator.MISSING_CONTENT_TYPE, "TEST"),
+    ("Invalid filename", False, model_utils.CONTENT_TYPE_JPEG, "t", None, validator.INVALID_FILENAME.format(filename="t"), "TEST"),
+    ("Invalid no payload", False, model_utils.CONTENT_TYPE_JPEG, "testing.pdf", "2024-07-31", validator.MISSING_PAYLOAD_APP, None),
+    ("Invalid filedate", False, model_utils.CONTENT_TYPE_JPEG, "test..pdf", "January 12, 2022",
+     validator.INVALID_FILING_DATE_APP.format(param_date="January 12, 2022"), "TEST"),
+]
 # test data pattern is ({description}, {valid}, {filing_date}, {message_content})
 TEST_DATA_ADD_DATES = [
     ("Valid no dates", True, None, None),
@@ -245,6 +260,14 @@ TEST_DATA_PATCH = [
     ("Invalid ref id", False, None, None, None, None, None, REF_ID2, validator.INVALID_REFERENCE_ID),
     ("Invalid doc type", False, "ADDR", None, None, None, None, None,
      validator.INVALID_DOC_CLASS_TYPE.format(doc_type="ADDR", doc_class="MHR")),
+]
+# test data pattern is ({description},{valid},{filename},{filing_date},{message_content}, {payload})
+TEST_DATA_PATCH_APP = [
+    ("Valid", True, "test-update.pdf", "2024-07-31", None, TEST_PATCH_PAYLOAD_APP),
+    ("Invalid no payload", False, "test-update.pdf", "2024-07-31", validator.MISSING_PAYLOAD_APP, None),
+    ("Invalid filename", False, "t", None, validator.INVALID_FILENAME.format(filename="t"),TEST_PATCH_PAYLOAD_APP),
+    ("Invalid filedate", False, "test.pdf", "January 12, 2022",
+     validator.INVALID_FILING_DATE_APP.format(param_date="January 12, 2022"), TEST_PATCH_PAYLOAD_APP),
 ]
 # test data pattern is ({description}, {valid}, {payload}, {doc_type}, {content_type}, {doc_class}, {message_content})
 TEST_DATA_REPLACE = [
@@ -605,6 +628,43 @@ def test_validate_add(session, desc, valid, req_type, doc_type, content_type, do
             elif desc == "Invalid doc class - type":
                 err_msg = validator.INVALID_DOC_CLASS_TYPE.format(doc_class=doc_class, doc_type=doc_type)
             assert error_msg.find(err_msg) != -1
+
+
+@pytest.mark.parametrize("desc,valid,content_type,filename,filedate,message_content,payload", TEST_DATA_ADD_APP)
+def test_validate_add_app(session, desc, valid, content_type, filename, filedate, message_content, payload):
+    """Assert that new add apllication document request validation works as expected."""
+    # setup
+    info: RequestInfo = RequestInfo(RequestTypes.ADD, "NA", DocumentTypes.APP_FILE.value, "NA")
+    info.content_type = content_type
+    info.account_id = "NA"
+    info.document_class = DocumentClasses.OTHER.value
+    info.consumer_filename = filename
+    info.consumer_filedate = filedate
+    if not payload:
+        info.has_payload = False
+    else:
+        info.has_payload = True
+    error_msg = validator.validate_request(info)
+    if valid:
+        assert error_msg == ""
+    else:
+        assert error_msg.find(message_content) != -1
+
+
+@pytest.mark.parametrize("desc,valid,filename,filedate,message_content,payload", TEST_DATA_PATCH_APP)
+def test_validate_patch_app(session, desc, valid, filename, filedate, message_content, payload):
+    """Assert that patch application document request validation works as expected."""
+    info: RequestInfo = RequestInfo(RequestTypes.UPDATE, "NA", DocumentTypes.APP_FILE.value, "NA")
+    info.account_id = "NA"
+    info.document_class = DocumentClasses.OTHER.value
+    info.consumer_filename = filename
+    info.consumer_filedate = filedate
+    info.request_data = payload
+    error_msg = validator.validate_request(info)
+    if valid:
+        assert error_msg == ""
+    else:
+        assert error_msg.find(message_content) != -1
 
 
 @pytest.mark.parametrize("desc,valid,doc_type,cons_id,filename,filing_date,description,ref_id,message_content", TEST_DATA_PATCH)

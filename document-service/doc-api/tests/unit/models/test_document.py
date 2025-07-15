@@ -27,6 +27,13 @@ from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, DocumentType, DocumentTypes
 from doc_api.utils.logging import logger
 
+APP_DOC1 = {
+    "name": "test.pdf",
+    "identifier": "1",
+    "dateCreated": "2024-07-10T19:00:00+00:00",
+    "datePublished": "2024-07-01T19:00:00+00:00",
+    "url": ""
+}
 DOC1 = {
     "consumerDocumentId": "T0000001",
     "consumerFilename": "test.pdf",
@@ -91,6 +98,16 @@ TEST_DOCUMENT = Document(
     description="A meaningful description of the document.",
     author = "John Smith",
     consumer_reference_id = "9014001"
+)
+TEST_APP_DOCUMENT = Document(
+    id=1,
+    document_service_id="1",
+    document_type=DocumentTypes.APP_FILE.value,
+    document_class=DocumentClasses.OTHER.value,
+    add_ts=model_utils.now_ts(),
+    consumer_document_id="T0000001",
+    consumer_filename="test.pdf",
+    consumer_filing_date=model_utils.ts_from_iso_date_noon("2024-07-01")
 )
 
 # testdata pattern is ({id}, {has_results}, {doc_type), {doc_class})
@@ -275,6 +292,16 @@ def test_document_json(session):
     test_json["documentClass"] = doc_json.get("documentClass")
     test_json["documentTypeDescription"] = doc_json.get("documentTypeDescription")
     test_json["documentURL"] = doc_json.get("documentURL")
+    assert doc_json == test_json
+
+
+def test_app_document_json(session):
+    """Assert that the document model renders to a application document json format correctly."""
+    document: Document = TEST_APP_DOCUMENT
+    document.doc_type = DocumentType.find_by_doc_type(document.document_type)
+    doc_json = document.app_json
+    test_json = copy.deepcopy(APP_DOC1)
+    test_json["dateCreated"] = doc_json.get("dateCreated")
     assert doc_json == test_json
 
 

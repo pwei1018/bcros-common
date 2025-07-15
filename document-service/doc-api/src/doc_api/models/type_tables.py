@@ -179,6 +179,7 @@ class DocumentTypes(BaseEnum):
     INV = "INV"
     NATB = "NATB"
     NWP = "NWP"
+    APP_FILE = "APP_FILE"
 
 
 class ProductCodes(BaseEnum):

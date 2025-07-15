@@ -70,6 +70,8 @@ INVALID_REPORT_UPDATE = "PATCH update report record payload no properties found 
 INVALID_DOC_CLASS_UPDATE = "Request invalid: document class may not be updated. "
 MISSING_EXISTING_SCAN = "Request invalid: no document scanning information exists to update. "
 INVALID_PRODUCT_CODE = "Request invalid: unknown product code {product_code}. "
+MISSING_PAYLOAD_APP = "Request invalid: add application document missing required payload. "
+INVALID_FILING_DATE_APP = "Request invalid: datePublished format invalid {param_date}. "
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -85,6 +87,8 @@ def validate_request(info: RequestInfo) -> str:
     if not info.document_class:
         error_msg += get_doc_class(info)
     if info.request_type and info.request_type == RequestTypes.ADD:
+        if info.document_type and info.document_type == DocumentTypes.APP_FILE.value:
+            return validate_add_app(info, error_msg)
         if info.request_data and info.request_data.get("async"):
             return error_msg
         return validate_add(info, error_msg)
@@ -183,6 +187,31 @@ def validate_add(info: RequestInfo, error_msg: str) -> str:
     return error_msg
 
 
+def validate_add_app(info: RequestInfo, error_msg: str) -> str:
+    """Validate the add application document request."""
+    try:
+        if not info.content_type:
+            error_msg += MISSING_CONTENT_TYPE
+        elif info.content_type not in MediaTypes:
+            error_msg += INVALID_CONTENT_TYPE.format(content_type=info.content_type)
+        if not info.has_payload:
+            error_msg += MISSING_PAYLOAD_APP
+        filename = info.consumer_filename
+        if filename and (len(filename) < FILENAME_MIN or len(filename) > FILENAME_MAX):
+            error_msg += INVALID_FILENAME.format(filename=filename)
+        if info.consumer_filedate:
+            try:
+                test_date = model_utils.ts_from_iso_date_noon(info.consumer_filedate)
+                if not test_date:
+                    error_msg = INVALID_FILING_DATE_APP.format(param_date=info.consumer_filedate)
+            except Exception:  # noqa: B902; eat all errors
+                error_msg = INVALID_FILING_DATE_APP.format(param_date=info.consumer_filedate)
+    except Exception as validation_exception:  # noqa: B902; eat all errors
+        logger.error(f"validate_add exception: {validation_exception}")
+        error_msg += VALIDATOR_ERROR
+    return error_msg
+
+
 def validate_get(info: RequestInfo, error_msg: str) -> str:
     """Validate the get request."""
     try:
@@ -207,6 +236,8 @@ def validate_get(info: RequestInfo, error_msg: str) -> str:
 def validate_patch(info: RequestInfo, error_msg: str) -> str:
     """Validate the patch request."""
     try:
+        if info.document_type and info.document_type == DocumentTypes.APP_FILE.value:
+            return validate_patch_app(info, error_msg)
         if info.request_data and info.request_data.get("removed"):
             return error_msg
         if not is_document_modified(info) and not is_scanning_modified(info):
@@ -224,6 +255,27 @@ def validate_patch(info: RequestInfo, error_msg: str) -> str:
         error_msg += validate_reference_id(info)
     except Exception as validation_exception:  # noqa: B902; eat all errors
         logger.error("validate_patch exception: " + str(validation_exception))
+        error_msg += VALIDATOR_ERROR
+    return error_msg
+
+
+def validate_patch_app(info: RequestInfo, error_msg: str) -> str:
+    """Validate the application document patch request."""
+    try:
+        if not info.request_data:
+            error_msg += MISSING_PAYLOAD_APP
+        filename = info.consumer_filename
+        if filename and (len(filename) < FILENAME_MIN or len(filename) > FILENAME_MAX):
+            error_msg += INVALID_FILENAME.format(filename=filename)
+        if info.consumer_filedate:
+            try:
+                test_date = model_utils.ts_from_iso_date_noon(info.consumer_filedate)
+                if not test_date:
+                    error_msg = INVALID_FILING_DATE_APP.format(param_date=info.consumer_filedate)
+            except Exception:  # noqa: B902; eat all errors
+                error_msg = INVALID_FILING_DATE_APP.format(param_date=info.consumer_filedate)
+    except Exception as validation_exception:  # noqa: B902; eat all errors
+        logger.error(f"validate_patch exception: {validation_exception}")
         error_msg += VALIDATOR_ERROR
     return error_msg
 
