@@ -26,6 +26,6 @@ bp = Blueprint("EMAIL_VALIDATION", __name__, url_prefix="/email_validation")
 @bp.route("/", methods=["GET", "OPTIONS"])
 # @jwt.requires_auth
 @validate()
-def email_validation(query: EmailValidator):  # pylint: disable=unused-argument
+def email_validation(query: EmailValidator):  # noqa: ARG001
     """Get notification endpoint by id."""
     return {}, HTTPStatus.OK

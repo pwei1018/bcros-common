@@ -18,12 +18,9 @@ The service worker for applying payments, receipts and account balance to paymen
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
+from cloud_sql_connector import DBConfig, setup_search_path_event_listener
 from flask import Flask
-from google.cloud.sql.connector import Connector
 from notify_api.models import db
-from sqlalchemy import event
 from structured_logging import StructuredLogging
 
 from notify_delivery.config import config
@@ -34,72 +31,46 @@ from notify_delivery.services.gcp_queue import queue
 logger = StructuredLogging.get_logger()
 
 
-@dataclass
-class DBConfig:
-    """Database configuration settings."""
-
-    instance_name: str
-    database: str
-    user: str
-    ip_type: str
-    schema: str
-
-
-
-def getconn(connector: Connector, db_config: DBConfig) -> object:
-    """Create a database connection.
-
-    Args:
-        connector (Connector): The Google Cloud SQL connector instance.
-        db_config (DBConfig): The database configuration.
-
-    Returns:
-        object: A connection object to the database.
-    """
-    conn = connector.connect(
-        instance_connection_string=db_config.instance_name,
-        db=db_config.database,
-        user=db_config.user,
-        ip_type=db_config.ip_type,
-        driver="pg8000",
-        enable_iam_auth=True,
-    )
-
-    if db_config.schema:
-        cursor = conn.cursor()
-        cursor.execute(f"SET search_path TO {db_config.schema},public")
-        cursor.execute(f"SET LOCAL search_path TO {db_config.schema}, public;")
-        cursor.close()
-
-    return conn
-
-
-def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
+def create_app(run_mode: str = APP_RUNNING_ENVIRONMENT) -> Flask:
     """Return a configured Flask App using the Factory method."""
     app = Flask(__name__)
     app.config.from_object(config[run_mode])
-    schema = app.config.get("DB_SCHEMA", None)
 
-    if app.config["DB_INSTANCE_CONNECTION_NAME"]:
-        connector = Connector(refresh_strategy="lazy")
+    db_user = app.config["DB_USER"]
+    logger.info(db_user)
+
+    db_instance_connection_name = app.config.get("DB_INSTANCE_CONNECTION_NAME")
+    logger.info(f"DB_INSTANCE_CONNECTION_NAME: {db_instance_connection_name}")
+
+    if db_instance_connection_name:
         db_config = DBConfig(
             instance_name=app.config["DB_INSTANCE_CONNECTION_NAME"],
             database=app.config["DB_NAME"],
             user=app.config["DB_USER"],
             ip_type=app.config["DB_IP_TYPE"],
-            schema=schema
+            enable_iam_auth=True,
+            driver="pg8000",
+            # Connection pool configuration
+            pool_size=10,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=300,
+            pool_use_lifo=True,
+            pool_pre_ping=True,
         )
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": lambda: getconn(connector, db_config)}
+
+        # Use the cloud-sql-connector's built-in engine options
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = db_config.get_engine_options()
 
     db.init_app(app)
 
     with app.app_context():
         engine = db.engine
-        @event.listens_for(engine, "checkout")
-        def set_search_path_on_checkout(dbapi_connection, connection_record, connection_proxy):
-            cursor = dbapi_connection.cursor()
-            cursor.execute(f"SET search_path TO {schema},public")
-            cursor.close()
+
+        # Use the cloud-sql-connector's search path event listener
+        schema = app.config.get("DB_SCHEMA", "public")
+        if schema and app.config["DB_INSTANCE_CONNECTION_NAME"]:
+            setup_search_path_event_listener(engine, schema)
 
     queue.init_app(app)
 

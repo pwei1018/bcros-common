@@ -14,3 +14,5 @@
 """Exposes all of the resource endpoints mounted in Flask-Blueprints."""
 
 from .meta import bp as meta_bp
+
+__all__ = ["meta_bp"]

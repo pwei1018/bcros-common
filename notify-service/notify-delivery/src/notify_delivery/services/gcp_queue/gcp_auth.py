@@ -5,6 +5,7 @@
 
 import functools
 from http import HTTPStatus
+from typing import Any, Callable, Optional, Tuple
 
 import google.oauth2.id_token as id_token
 from cachecontrol import CacheControl
@@ -16,7 +17,7 @@ from structured_logging import StructuredLogging
 logger = StructuredLogging.get_logger()
 
 
-def verify_jwt(session):
+def verify_jwt(session: Session) -> Optional[Tuple[str, int]]:
     """Check token is valid with the correct audience and email claims for configured email address."""
     try:
         jwt_token = request.headers.get("Authorization", "").split()[1]
@@ -32,11 +33,11 @@ def verify_jwt(session):
     return None
 
 
-def ensure_authorized_queue_user(f):
+def ensure_authorized_queue_user(f: Callable) -> Callable:
     """Ensures the user is authorized to use the queue."""
 
     @functools.wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
         # Use CacheControl to avoid re-fetching certificates for every request.
         if current_app.config.get("DEBUG_REQUEST") is True:
             logger.info(f"Headers: {request.headers}")

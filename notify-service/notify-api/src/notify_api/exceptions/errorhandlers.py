@@ -20,7 +20,7 @@ http://flask.pocoo.org/docs/1.0/patterns/apierrors/
 
 import traceback
 
-from flask import jsonify, request
+from flask import request
 from flask_jwt_oidc import AuthError
 from flask_pydantic.exceptions import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -40,32 +40,37 @@ class ExceptionHandler:
         if app:
             self.init_app(app)
 
-    def auth_handler(self, error):  # pylint: disable=useless-option-value
+    @staticmethod
+    def auth_handler(error):  # pylint: disable=useless-option-value
         """Handle AuthError."""
         logger.warning(error.error)
+        logger.warning(
+            "Authentication Error: %s. Authorization Header: %s",
+            error.error,
+            request.headers.get("Authorization"),
+        )
         return error.error, error.status_code, RESPONSE_HEADERS
 
-    def db_handler(self, error):  # pylint: disable=useless-option-value
+    @staticmethod
+    def db_handler(error):  # pylint: disable=useless-option-value
         """Handle Database error."""
         stack_trace = traceback.format_exc()
         message_text = str(error.__dict__["orig"]) if "orig" in error.__dict__ else "Internal server error"
         error_message = f"{{error: {message_text}, stack_trace: {stack_trace}}}"
-        logger.exception(error_message)
+        logger.error(error_message)
         error_text = error.__dict__["code"] if hasattr(error.__dict__, "code") else ""
         status_code = error.status_code if hasattr(error, "status_code") else 500
         return {"error": f"{error_text}", "message": f"{message_text}"}, status_code, RESPONSE_HEADERS
 
-    def validation_handler(self, error):
+    @staticmethod
+    def validation_handler(error):
         """Handle pydantic validation error."""
         error_message = f"{{error: 'Validation Error' {error.body_params}}}"
         logger.warning(error_message)
-        return (
-            jsonify({"error": f"{error.body_params[0]['msg']}"}),
-            400,
-            RESPONSE_HEADERS,
-        )
+        return {"error": f"{error.body_params[0]['msg']}"}, 400, RESPONSE_HEADERS
 
-    def std_handler(self, error):  # pylint: disable=useless-option-value
+    @staticmethod
+    def std_handler(error):  # pylint: disable=useless-option-value
         """Handle standard exception."""
         if isinstance(error, HTTPException):
             error_message = (
@@ -81,7 +86,7 @@ class ExceptionHandler:
         else:
             stack_trace = traceback.format_exc()
             error_message = f"{{error: {error}, stack_trace: {stack_trace}}}"
-            logger.exception(error_message)
+            logger.error(error_message)
             message = {"message": "Internal server error"}
 
         return message, error.code if isinstance(error, HTTPException) else 500, RESPONSE_HEADERS

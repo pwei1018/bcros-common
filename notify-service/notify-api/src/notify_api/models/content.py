@@ -70,9 +70,7 @@ class Content(db.Model):
         content_json = {"id": self.id, "subject": self.subject}
 
         if self.attachments:
-            attachment_list = []
-            for attachment in self.attachments:
-                attachment_list.append(attachment.json)
+            attachment_list = [attachment.json for attachment in self.attachments]
 
             content_json["attachments"] = attachment_list
 

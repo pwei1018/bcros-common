@@ -21,4 +21,5 @@ app = create_app()  # pylint: disable=invalid-name
 
 if __name__ == "__main__":
     server_port = os.environ.get("PORT", "5000")
-    app.run(debug=False, threaded=False, port=server_port, host="0.0.0.0")
+    # Note: Using 0.0.0.0 for containerized environments - ensure proper firewall rules
+    app.run(debug=False, threaded=False, port=server_port, host="0.0.0.0")  # noqa: S104

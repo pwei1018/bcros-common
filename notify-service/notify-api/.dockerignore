@@ -1,16 +1,56 @@
+# Build context optimization
 Dockerfile
 .dockerignore
+
+# Development and testing
 .pytest_cache
-__pycache__
-venv
+tests/
+coverage.xml
+htmlcov/
+.ruff_cache
+
+# Python cache and build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+
+# Environment files
 .env
 .env*
-.eggs
-.devcontainer
-.history
-.vscode
+!.env.example
+
+# Development files
+.git/
+.gitignore
+.vscode/
+LOCAL_DEVELOPMENT.md
+run_local.sh
+
+# Deployment and infrastructure
+k8s/
 Makefile
-devops
-k8s
-requirements
-tests
+manage.py
+requirements/
+
+# Documentation (keep README.md)
+*.md
+!README.md
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+.tmp/
+
+# OS files
+.DS_Store
+Thumbs.db

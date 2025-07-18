@@ -1,27 +1,45 @@
-[tool.poetry]
+[project]
 name = "notify-delivery"
-version = "2.0.2"
+version = "3.0.0"
 description = "This module is the service worker for delivery emails."
-authors = ["pwei1018 <patrick.wei@gov.bc.ca>"]
-license = "BSD-3-Clause"
+authors = [{ name = "pwei1018", email = "patrick.wei@gov.bc.ca" }]
+license = { text = "BSD-3-Clause" }
 readme = "README.md"
-packages = [{include = "notify_delivery", from = "src"}]
+requires-python = ">=3.12"
+dependencies = [
+    "notify-api",
+    "cloud-sql-connector",
+    "gunicorn"
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-notify-api = { git = "https://github.com/bcgov/bcros-common.git", subdirectory = "notify-service/notify-api",  branch = "feature-schema-follow-up" }
+[dependency-groups]
+dev = [
+  {include-group = "lint"},
+  {include-group = "testing"}
+]
+lint = [
+   "ruff"
+]
+testing = [
+   "pytest",
+   "pytest-cov",
+   "pytest-mock",
+   "pytest-html",
+   "pytest-xdist",
+   "requests-mock",
+   "faker",
+   "freezegun",
+   "aiohttp",
+]
 
-[tool.poetry.group.test.dependencies]
-pytest = "^8.2.2"
-pytest-cov = "^5.0.0"
-pytest-mock = "^3.14.0"
-requests-mock = "^1.12.1"
-faker = "^25.9.2"
-freezegun = "^1.5.1"
-aiohttp = "^3.11.15"
+[tool.uv]
+managed = true
+default-groups = ["dev"]
 
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.11.2"
+[tool.uv.sources]
+notify-api = { git = "https://github.com/pwei1018/bcros-common.git", subdirectory = "notify-service/notify-api", branch = "main" }
+cloud-sql-connector = { git = "https://github.com/bcgov/sbc-connect-common.git", subdirectory = "python/cloud-sql-connector", branch = "main" }
+
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -104,25 +122,80 @@ known-first-party = ["notify_delivery"]
 docstring-quotes = "double"
 
 [tool.pytest.ini_options]
-minversion = "2.0"
+# Enhanced pytest configuration for notify-api testing
+minversion = "6.0"
 testpaths = [
-   "tests",
+   "tests/unit",
 ]
-addopts = "--verbose --strict -p no:warnings --cov=src --cov-report html:htmlcov --cov-report xml:coverage.xml"
+pythonpath = [
+   "src"
+]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+    "--disable-warnings",
+    "--color=yes",
+    "--durations=10",
+    "--cov=src",
+    "--cov-report=xml",
+    "--cov-report=term",
+]
 python_files = [
-   "test*.py"
+   "test_*.py"
+]
+python_classes = [
+   "Test*"
+]
+python_functions = [
+   "test_*"
 ]
 norecursedirs = [
-   ".git", ".tox", "venv*", "requirements*", "build",
+   ".git",
+   ".tox",
+   "dist",
+   "build",
+   "*.egg",
+   ".venv",
+   "__pycache__",
+   "node_modules",
+   ".pytest_cache",
+   "htmlcov"
 ]
 log_cli = true
 log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 filterwarnings = [
-   "ignore::UserWarning"
+   "ignore::DeprecationWarning",
+   "ignore::PendingDeprecationWarning",
+   "ignore::UserWarning:flask_sqlalchemy",
+   "ignore::UserWarning:sqlalchemy",
+   "ignore::RuntimeWarning",
+   "error::FutureWarning"
 ]
 markers = [
-   "slow",
-   "serial",
+   "unit: Unit tests with mocked dependencies",
+   "integration: Integration tests requiring external services",
+   "api: API endpoint tests",
+   "services: Service layer tests",
+   "models: Database model tests",
+   "mock: Tests using comprehensive mocking",
+   "slow: Tests that take longer than normal to run",
+   "concurrent: Tests that simulate concurrent operations",
+   "validation: Input validation tests",
+   "error_handling: Error handling and edge case tests",
+   "auth: Authentication and authorization tests",
+   "rate_limiting: Rate limiting tests",
+   "performance: Performance-focused tests",
+   "serial: Tests that must run in serial"
+]
+required_plugins = [
+   "pytest-cov",
+   "pytest-mock",
+   "pytest-html",
+   "pytest-xdist"
 ]
 
 [tool.coverage.run]
@@ -136,6 +209,7 @@ omit = [
 ]
 
 [tool.coverage.report]
+fail_under = 80
 exclude_lines = [
    "pragma: no cover",
    "from",
@@ -150,5 +224,5 @@ exclude_lines = [
 ]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build >= 0.7.19, <0.9.0"]
+build-backend = "uv_build"

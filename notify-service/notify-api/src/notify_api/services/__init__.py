@@ -13,7 +13,7 @@
 # limitations under the License.
 """Services."""
 
-from .gcp_queue import GcpQueue
+from .gcp_queue import GcpQueue as GcpQueue
 from .notify_service import NotifyService
 
 notify = NotifyService()

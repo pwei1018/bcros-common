@@ -1,41 +1,135 @@
+# BC Registries Notify Delivery
 
-# Application Name
+BC Registries Notify Delivery service for sending notifications via multiple providers.
 
-BC Registries Notification Delivery Services
+## Background
+
+This service provides a unified API for sending notifications through various providers including:
+
+- GC Notify for standard email notifications
+- SMTP for HTML emails and large attachments (>6MB)
+- Housing service for STRR-specific notifications
 
 ## Technology Stack Used
-* GCP pubsub
-* Python, Flask
 
-## Project Status
-
-## Documentation
+- Python 3.12, Flask
+- PostgreSQL with SQLAlchemy, pg8000 & alembic
+- uv for dependency management
+- Google Cloud Pub/Sub for message queuing
+- Docker for containerization
 
 ## Security
 
-## Getting Help or Reporting an Issue
+This application follows BC Government security standards and best practices.
 
-To report bugs/issues/feature requests, please file an [issue](../../issues).
+## Files in this repository
 
-## How to Contribute
+```bash
+notify-delivery/
+├── src/notify_delivery/     # Main application code
+├── tests/                   # Test suite
+├── devops/                  # Deployment configurations
+├── pyproject.toml           # Project configuration and dependencies
+├── Dockerfile               # Container definition
+└── README.md                # This file
+```
 
-If you would like to contribute, please see our [CONTRIBUTING](./CONTRIBUTING.md) guidelines.
+## Environment Variables
 
-Please note that this project is released with a [Contributor Code of Conduct](./CODE_OF_CONDUCT.md).
-By participating in this project you agree to abide by its terms.
+Copy '.env.sample' to '.env' and replace the values with your configuration.
 
-## License
+## Development Setup
 
-    Copyright 2020 Province of British Columbia
+### Prerequisites
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+- Python 3.12+
+- uv
 
-       http://www.apache.org/licenses/LICENSE-2.0
+### Quick Setup with uv
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+```bash
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+## Development Commands
+
+### Using uv
+
+```bash
+# Install/update dependencies
+uv sync  # This will install all dependencies defined in pyproject.toml
+uv sync --no-default-groups # Production environment, no dev dependencies
+
+# Add new dependency
+uv add <package-name>
+uv add --testing <package-name>  # For development testing dependencies
+
+```
+
+### Linting
+
+```bash
+# Run linting
+uv run ruff check .
+
+# Format code
+uv run ruff format .
+
+```
+
+### Running Unit Tests
+
+```bash
+# All tests
+uv run pytest -v
+
+# Specific file
+uv run pytest -v tests/unit/api/test_filename.py
+
+# Specific test
+uv run pytest -v tests/unit/api/test_filename.py::test_case_name
+
+# With coverage
+uv run pytest --cov=src/notify_api --cov-report=html --cov-report=term-missing
+```
+
+### Run the application in local
+
+```bash
+./run_local.sh
+```
+
+## Database Operations
+
+### Running Database Migrations
+
+```bash
+export DEPLOYMENT_ENV=migration
+
+# Create new migration
+uv run flask db revision -m "description of changes"
+
+# Apply migrations
+uv run flask db upgrade
+
+# Rollback migrations
+uv run flask db downgrade
+```
+
+## CI/CD
+
+See <https://github.com/bcgov/bcros-common/blob/main/.github/workflows/notify-api-ci.yaml>
+See <https://github.com/bcgov/bcros-common/blob/main/.github/workflows/notify-api-cd.yaml>
+
+## License1
+
+Copyright 2025 Province of British Columbia
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+3. Neither the name of the Province of British Columbia nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR

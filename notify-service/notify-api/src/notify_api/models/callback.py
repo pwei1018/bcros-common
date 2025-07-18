@@ -57,7 +57,7 @@ class Callback(db.Model):
     @property
     def json(self) -> dict:
         """Return a dict of this object, with keys in JSON format."""
-        callback_json = {
+        return {
             "notify_id": self.id,
             "to": self.to,
             "status": self.status,
@@ -68,8 +68,6 @@ class Callback(db.Model):
             "sent_at": self.sent_at,
             "notification_type": self.notification_type,
         }
-
-        return callback_json
 
     @classmethod
     def save(cls, callback: CallbackRequest):

@@ -18,11 +18,8 @@ import urllib.request
 
 def download_file(url: str) -> bytes:
     """Download file from url."""
-    file_contents = None
     with urllib.request.urlopen(url) as response:
-        file_contents = response.read()
-
-    return file_contents
+        return response.read()
 
 
 def to_camel(string: str) -> str:

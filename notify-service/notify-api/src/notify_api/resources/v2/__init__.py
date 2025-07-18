@@ -17,3 +17,5 @@ from .callback import bp as callback_bp_v2
 from .email_validation import bp as email_validation_bp_v2
 from .resend import bp as resend_bp_v2
 from .safe_list import bp as safe_list_bp_v2
+
+__all__ = ["callback_bp_v2", "email_validation_bp_v2", "resend_bp_v2", "safe_list_bp_v2"]

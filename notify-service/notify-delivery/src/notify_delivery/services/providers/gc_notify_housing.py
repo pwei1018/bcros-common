@@ -14,6 +14,7 @@
 """This provides send email through GC Notify Service."""
 
 from flask import current_app
+from notifications_python_client import NotificationsAPIClient
 from notify_api.models import Notification
 from structured_logging import StructuredLogging
 
@@ -25,15 +26,47 @@ logger = StructuredLogging.get_logger()
 class GCNotifyHousing(GCNotify):
     """Send notification via GC Notify service for Housing."""
 
+    HOUSING_CONFIG_KEYS = {
+        "api_key": "GC_NOTIFY_HOUSING_API_KEY",
+        "template_id": "GC_NOTIFY_HOUSING_TEMPLATE_ID",
+        "reply_to_id": "GC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID",
+    }
+
     def __init__(self, notification: Notification):
         # Initialize parent to set all attributes from default config keys
         super().__init__(notification)
 
-        # Override specific config values with Housing-specific keys
-        self.api_key = current_app.config.get("GC_NOTIFY_HOUSING_API_KEY")
-        self.gc_notify_template_id = current_app.config.get(
-            "GC_NOTIFY_HOUSING_TEMPLATE_ID"
+        # Apply housing-specific configuration
+        self._apply_housing_config()
+
+        # Initialize the client
+        self._initialize_client()
+
+    def _apply_housing_config(self):
+        """Apply housing-specific configuration overrides."""
+        config = current_app.config
+
+        # Override with housing-specific values if they exist and are not empty
+        self.api_key = self._get_config_value(config, "api_key", self.api_key)
+        self.gc_notify_template_id = self._get_config_value(config, "template_id", self.gc_notify_template_id)
+        self.gc_notify_email_reply_to_id = self._get_config_value(
+            config, "reply_to_id", self.gc_notify_email_reply_to_id
         )
-        self.gc_notify_email_reply_to_id = current_app.config.get(
-            "GC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID"
-        )
+
+    def _get_config_value(self, config, key_type, default_value):
+        """Get configuration value with fallback to default."""
+        housing_key = self.HOUSING_CONFIG_KEYS[key_type]
+        housing_value = config.get(housing_key)
+
+        # Use housing value if it exists, is not None, and is not just whitespace
+        if housing_value and housing_value.strip():
+            return housing_value
+        return default_value
+
+    def _initialize_client(self):
+        """Initialize the notifications client with current configuration."""
+        if self.api_key:
+            self.client = NotificationsAPIClient(api_key=self.api_key, base_url=self.gc_notify_url)
+        else:
+            self.client = None
+            logger.warning("No API key available for GC Notify Housing service")
