@@ -14,3 +14,5 @@
 """Exposes all of the resource endpoints mounted in Flask-Blueprints."""
 
 from .notify import bp as notify_bp
+
+__all__ = ["notify_bp"]

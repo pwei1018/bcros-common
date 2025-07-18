@@ -22,6 +22,8 @@ or by accessing this configuration directly.
 
 import os
 
+from cloud_sql_connector import DBConfig
+
 
 class Config:
     """Config object."""
@@ -32,20 +34,33 @@ class Config:
 
     PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
     DEPLOYMENT_PLATFORM = os.getenv("DEPLOYMENT_PLATFORM", "GCP")
-    DEPLOYMENT_ENV= os.getenv("DEPLOYMENT_ENV", "production")
+    DEPLOYMENT_ENV = os.getenv("DEPLOYMENT_ENV", "production")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
     DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
     DB_SCHEMA = os.getenv("NOTIFY_DATABASE_SCHEMA", "public")
 
-    # POSTGRESQL
+    # POSTGRESQL - using cloud-sql-connector
     if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
+        # Cloud SQL connection using cloud-sql-connector
+        db_config = DBConfig(
+            instance_name=DB_INSTANCE_CONNECTION_NAME,
+            database=DB_NAME,
+            user=DB_USER,
+            ip_type="private" if DEPLOYMENT_PLATFORM == "GCP" else "public",
+            schema=DB_SCHEMA,
+            enable_iam_auth=True,
+            driver="pg8000",
+        )
         SQLALCHEMY_DATABASE_URI = "postgresql+pg8000://"
+        SQLALCHEMY_ENGINE_OPTIONS = db_config.get_engine_options()
     else:
+        # Direct connection fallback
         DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
         DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
         DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
         SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        SQLALCHEMY_ENGINE_OPTIONS = {}
 
     if DEPLOYMENT_PLATFORM == "OCP":
         DB_IP_TYPE = "public"
@@ -63,7 +78,6 @@ class Config:
         DB_IP_TYPE = "private"
 
         # GC Notify
-        GC_NOTIFY_ENABLE = os.getenv("GC_NOTIFY_ENABLE", "True")
         GC_NOTIFY_API_URL = os.getenv("GC_NOTIFY_API_URL", "")
         GC_NOTIFY_API_KEY = os.getenv("GC_NOTIFY_API_KEY", "")
         GC_NOTIFY_TEMPLATE_ID = os.getenv("GC_NOTIFY_TEMPLATE_ID", "")
@@ -117,13 +131,14 @@ class UnitTestingConfig(Config):  # pylint: disable=too-few-public-methods
     DEBUG = True
     DEPLOYMENT_PLATFORM = "GCP"
 
-    # POSTGRESQL
+    # POSTGRESQL - direct connection for testing
     DB_USER = os.getenv("DATABASE_TEST_USERNAME", "")
     DB_PASSWORD = os.getenv("DATABASE_TEST_PASSWORD", "")
     DB_NAME = os.getenv("DATABASE_TEST_NAME", "")
     DB_HOST = os.getenv("DATABASE_TEST_HOST", "")
     DB_PORT = os.getenv("DATABASE_TEST_PORT", "5432")
     SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{int(DB_PORT)}/{DB_NAME}"
+    SQLALCHEMY_ENGINE_OPTIONS = {}
 
 
 class UnitTestingSMTPConfig(Config):  # pylint: disable=too-few-public-methods
@@ -134,13 +149,14 @@ class UnitTestingSMTPConfig(Config):  # pylint: disable=too-few-public-methods
     DEBUG = True
     DEPLOYMENT_PLATFORM = "OCP"
 
-    # POSTGRESQL
+    # POSTGRESQL - direct connection for testing
     DB_USER = os.getenv("DATABASE_TEST_USERNAME", "")
     DB_PASSWORD = os.getenv("DATABASE_TEST_PASSWORD", "")
     DB_NAME = os.getenv("DATABASE_TEST_NAME", "")
     DB_HOST = os.getenv("DATABASE_TEST_HOST", "")
     DB_PORT = os.getenv("DATABASE_TEST_PORT", "5432")
     SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{int(DB_PORT)}/{DB_NAME}"
+    SQLALCHEMY_ENGINE_OPTIONS = {}
 
 
 config = {

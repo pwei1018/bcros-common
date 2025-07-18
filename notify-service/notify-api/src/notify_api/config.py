@@ -138,7 +138,7 @@ class UnitTestingConfig(Config):  # pylint: disable=too-few-public-methods
     SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
     LD_SDK_KEY = os.getenv("LD_SDK_KEY", None)
-    SECRET_KEY = "a secret"
+    SECRET_KEY = os.getenv("SECRET_KEY", "a-secret-key-for-development-only")  # noqa: S105
 
     # JWT OIDC settings
     # JWT_OIDC_TEST_MODE will set jwt_manager to use
