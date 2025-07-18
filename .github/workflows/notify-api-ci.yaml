@@ -2,6 +2,7 @@ name: Notify API CI
 
 on:
   pull_request_target:
+    types: [opened, synchronize]
     paths:
       - "notify-service/notify-api/**"
   workflow_dispatch:
