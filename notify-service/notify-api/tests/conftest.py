@@ -15,6 +15,7 @@
 
 import datetime
 from contextlib import contextmanager
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -60,7 +61,7 @@ def app():
         yield _app
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def client(app):  # pylint: disable=redefined-outer-name
     """Return a session-wide Flask test client."""
     return app.test_client()
@@ -86,7 +87,7 @@ def db(app, request):  # pylint: disable=redefined-outer-name
     return _db
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def session(db, request):  # pylint: disable=redefined-outer-name
     """Return a function-scoped session."""
     db.session.begin_nested()
@@ -105,3 +106,294 @@ def session(db, request):  # pylint: disable=redefined-outer-name
 
     request.addfinalizer(teardown)
     return db.session
+
+
+# Enhanced fixtures for comprehensive testing with mocks
+@pytest.fixture
+def mock_db_session():
+    """Mock database session for enhanced testing."""
+    mock_session = Mock()
+    mock_session.add = Mock()
+    mock_session.commit = Mock()
+    mock_session.rollback = Mock()
+    mock_session.query = Mock()
+    mock_session.flush = Mock()
+    mock_session.delete = Mock()
+
+    with patch("notify_api.models.db.session", mock_session):
+        yield mock_session
+
+
+@pytest.fixture
+def standalone_mock_db_session():
+    """Standalone mock database session for testing without context manager."""
+    mock_session = Mock()
+
+    # Setup common mock returns
+    mock_session.add.return_value = None
+    mock_session.commit.return_value = None
+    mock_session.delete.return_value = None
+    mock_session.flush.return_value = None
+    mock_session.refresh.return_value = None
+    mock_session.rollback.return_value = None
+
+    # Mock query operations
+    mock_query = Mock()
+    mock_session.query.return_value = mock_query
+
+    return mock_session
+
+
+@pytest.fixture
+def mock_notification_model():
+    """Mock Notification model class for enhanced testing."""
+    with patch("notify_api.models.Notification") as mock_model:
+        mock_instance = Mock()
+        mock_instance.id = 1
+        mock_instance.recipients = "test@example.com"
+        mock_instance.status_code = "PENDING"
+        mock_instance.provider_code = "GC_NOTIFY"
+        mock_instance.request_date = datetime.datetime.now(datetime.UTC)
+        mock_instance.request_by = "test_user"
+        mock_instance.type_code = "EMAIL"
+        mock_instance.json = {"id": 1, "recipients": "test@example.com", "status": "PENDING"}
+
+        mock_model.return_value = mock_instance
+        mock_model.find_notification_by_id.return_value = mock_instance
+        mock_model.find_notifications_by_status.return_value = [mock_instance]
+        mock_model.query.filter.return_value.all.return_value = [mock_instance]
+        yield mock_model
+
+
+@pytest.fixture
+def mock_content_model():
+    """Mock Content model class for enhanced testing."""
+    with patch("notify_api.models.Content") as mock_model:
+        mock_instance = Mock()
+        mock_instance.id = 1
+        mock_instance.subject = "Test Subject"
+        mock_instance.body = "Test body content"
+        mock_instance.attachments = []
+        mock_instance.attachment_name = None
+        mock_instance.notification_id = 1
+        mock_instance.json = {"id": 1, "subject": "Test Subject", "body": "Test body content"}
+
+        mock_model.return_value = mock_instance
+        yield mock_model
+
+
+@pytest.fixture
+def mock_notify_service():
+    """Mock NotifyService for comprehensive testing."""
+    with patch("notify_api.services.notify_service.NotifyService") as mock_service_class:
+        mock_service = Mock()
+
+        # Mock service methods
+        mock_service.get_provider.return_value = "GC_NOTIFY"
+        mock_service.send_notification.return_value = {"id": 1, "status": "QUEUED"}
+        mock_service.validate_email.return_value = True
+        mock_service.get_notification_by_id.return_value = None
+        mock_service.get_notifications_by_status.return_value = []
+
+        mock_service_class.return_value = mock_service
+        yield mock_service
+
+
+@pytest.fixture
+def mock_database():
+    """Mock database operations."""
+    with patch("notify_api.models.db.session") as mock_session:
+        mock_session.add = Mock()
+        mock_session.commit = Mock()
+        mock_session.rollback = Mock()
+        mock_session.query = Mock()
+        yield mock_session
+
+
+@pytest.fixture
+def mock_providers():
+    """Mock notification providers."""
+    providers = {"gc_notify": Mock(), "smtp": Mock(), "housing": Mock()}
+
+    for provider in providers.values():
+        provider.send.return_value = {"success": True, "id": "mock-123"}
+
+    with patch.dict("notify_api.services.providers", providers):
+        yield providers
+
+
+@pytest.fixture
+def sample_notification_data():
+    """Sample notification data for testing."""
+    return {
+        "recipients": "test@example.com",
+        "requestBy": "test_user",
+        "content": {"subject": "Test Subject", "body": "Test body content", "attachments": []},
+        "notifyType": "EMAIL",
+    }
+
+
+@pytest.fixture
+def sample_content_data():
+    """Sample content data for testing."""
+    return {"subject": "Test Email Subject", "body": "This is test email content", "attachments": []}
+
+
+@pytest.fixture
+def mock_safe_list():
+    """Mock SafeList model."""
+    with patch("notify_api.models.SafeList") as mock_safe_list_class:
+        mock_safe_list = Mock()
+        mock_safe_list.is_in_safe_list.return_value = True
+        mock_safe_list.email = "safe@example.com"
+        mock_safe_list_class.return_value = mock_safe_list
+        mock_safe_list_class.find_by_email.return_value = mock_safe_list
+        yield mock_safe_list
+
+
+@pytest.fixture
+def mock_notification():
+    """Mock Notification model."""
+    with patch("notify_api.models.Notification") as mock_notification_class:
+        mock_notification = Mock()
+        mock_notification.id = 1
+        mock_notification.recipients = "test@example.com"
+        mock_notification.status_code = "PENDING"
+        mock_notification.provider_code = "GC_NOTIFY"
+        mock_notification_class.return_value = mock_notification
+        mock_notification_class.find_notification_by_id.return_value = mock_notification
+        yield mock_notification
+
+
+@pytest.fixture
+def fully_mocked_environment(mock_database, mock_providers, mock_safe_list):
+    """Comprehensive mock environment for integration testing."""
+    return {"database": mock_database, "providers": mock_providers, "safe_list": mock_safe_list}
+
+
+@pytest.fixture
+def sample_safe_list_emails():
+    """Sample safe list emails for testing."""
+    return ["safe1@example.com", "safe2@example.com", "admin@test.com"]
+
+
+@pytest.fixture
+def sample_html_notification_data():
+    """Sample HTML notification data for testing."""
+    return {
+        "recipients": "test@example.com",
+        "requestBy": "test_user",
+        "content": {"subject": "HTML Test Subject", "body": "<p>This is <b>HTML</b> content</p>", "attachments": []},
+        "notifyType": "EMAIL",
+    }
+
+
+# Additional comprehensive fixtures for enhanced testing
+
+
+@pytest.fixture
+def mock_attachment_model():
+    """Mock Attachment model for testing."""
+    with patch("notify_api.models.Attachment") as mock_model:
+        mock_instance = Mock()
+        mock_instance.id = 1
+        mock_instance.file_name = "test.pdf"
+        mock_instance.file_bytes = b"test content"
+        mock_instance.attach_order = 1
+        mock_instance.content_id = 1
+
+        mock_model.return_value = mock_instance
+        yield mock_model
+
+
+@pytest.fixture
+def mock_notification_history_model():
+    """Mock NotificationHistory model for testing."""
+    with patch("notify_api.models.NotificationHistory") as mock_model:
+        mock_instance = Mock()
+        mock_instance.id = 1
+        mock_instance.recipients = "test@example.com"
+        mock_instance.subject = "Test Subject"
+        mock_instance.type_code = "EMAIL"
+        mock_instance.status_code = "DELIVERED"
+        mock_instance.provider_code = "GC_NOTIFY"
+        mock_instance.sent_date = datetime.datetime.now(datetime.UTC)
+        mock_instance.request_date = datetime.datetime.now(datetime.UTC)
+        mock_instance.gc_notify_response_id = "gc_123"
+
+        mock_model.return_value = mock_instance
+        yield mock_model
+
+
+@pytest.fixture
+def mock_gcp_queue():
+    """Mock GCP Queue operations."""
+    with patch("notify_api.services.gcp_queue.publisher.GcpQueuePublisher") as mock_publisher:
+        mock_instance = Mock()
+        mock_instance.publish.return_value = "publish_future_mock"
+        mock_publisher.return_value = mock_instance
+        yield mock_instance
+
+
+@pytest.fixture
+def mock_current_app():
+    """Mock Flask current_app."""
+    with patch("notify_api.services.notify_service.current_app") as mock_app:
+        mock_app.config.get.side_effect = lambda key, default=None: {
+            "DEVELOPMENT": True,
+            "DELIVERY_GCNOTIFY_TOPIC": "test-gc-topic",
+            "DELIVERY_SMTP_TOPIC": "test-smtp-topic",
+            "DELIVERY_GCNOTIFY_HOUSING_TOPIC": "test-housing-topic",
+        }.get(key, default)
+        yield mock_app
+
+
+@pytest.fixture
+def sample_attachment_data():
+    """Sample attachment data for testing."""
+    return {
+        "file_name": "document.pdf",
+        "file_bytes": b"fake_pdf_content",
+        "attach_order": 1,
+        "content_id": 1,
+    }
+
+
+@pytest.fixture
+def mock_email_validator():
+    """Mock email validation functions."""
+    min_email_length = 5
+
+    def validate_email(email):
+        return "@" in email and "." in email and len(email) > min_email_length
+
+    return validate_email
+
+
+@pytest.fixture
+def mock_html_detector():
+    """Mock HTML content detection."""
+
+    def is_html_content(content):
+        if not content:
+            return False
+        return any(tag in content.lower() for tag in ["<p>", "<div>", "<html>", "<body>", "<script>"])
+
+    return is_html_content
+
+
+@pytest.fixture
+def performance_test_data():
+    """Generate test data for performance testing."""
+    return {
+        "batch_size": 100,
+        "notifications": [{"id": i, "recipients": f"user{i}@example.com", "status": "PENDING"} for i in range(100)],
+        "expected_processing_time": 1.0,  # seconds
+    }
+
+
+@pytest.fixture
+def mock_logger():
+    """Mock logger for testing logging functionality."""
+    with patch("notify_api.services.notify_service.logger") as mock_log:
+        yield mock_log

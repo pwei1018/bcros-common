@@ -56,23 +56,31 @@ def getconn(db_config: DBConfig) -> object:
     Returns:
         object: A connection object to the database.
     """
-    with Connector(refresh_strategy="lazy") as connector:
-        conn = connector.connect(
-            instance_connection_string=db_config.instance_name,
-            db=db_config.database,
-            user=db_config.user,
-            ip_type=db_config.ip_type,
-            driver="pg8000",
-            enable_iam_auth=True
-        )
+    try:
+        with Connector(refresh_strategy="lazy") as connector:
+            conn = connector.connect(
+                instance_connection_string=db_config.instance_name,
+                db=db_config.database,
+                user=db_config.user,
+                ip_type=db_config.ip_type,
+                driver="pg8000",
+                enable_iam_auth=True,
+            )
 
-        if db_config.schema:
-            cursor = conn.cursor()
-            cursor.execute(f"SET search_path TO {db_config.schema},public")
-            cursor.execute(f"SET LOCAL search_path TO {db_config.schema}, public;")
-            cursor.close()
+            if db_config.schema:
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute(f"SET search_path TO {db_config.schema},public")
+                    cursor.execute(f"SET LOCAL search_path TO {db_config.schema}, public;")
+                    cursor.close()
+                except Exception as schema_error:
+                    logger.warning(f"Failed to set schema search path: {schema_error}")
+                    # Continue with connection even if schema setting fails
 
-        return conn
+            return conn
+    except Exception as conn_error:
+        logger.error(f"Database connection failed: {conn_error}")
+        raise
 
 
 def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
@@ -91,13 +99,18 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
             database=app.config["DB_NAME"],
             user=app.config["DB_USER"],
             ip_type="private",
-            schema=schema if run_mode != "migration" else None
+            schema=schema if run_mode != "migration" else None,
         )
 
+        # Improved connection pool configuration for Cloud SQL
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
             "creator": lambda: getconn(db_config),
             "pool_pre_ping": True,
-            "pool_recycle": 300
+            "pool_recycle": 3600,  # Increased from 300 to 1800 seconds (30 minutes)
+            "pool_size": 10,  # Explicit pool size
+            "max_overflow": 10,  # Maximum overflow connections
+            "pool_timeout": 30,  # Timeout for getting connection from pool
+            "connect_args": {"check_same_thread": False, "connect_timeout": 60},
         }
 
     db.init_app(app)
@@ -105,11 +118,14 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
     if run_mode != "migration":
         with app.app_context():
             engine = db.engine
+
             @event.listens_for(engine, "checkout")
-            def set_search_path_on_checkout(dbapi_connection, connection_record, connection_proxy):
-                cursor = dbapi_connection.cursor()
-                cursor.execute(f"SET search_path TO {schema},public")
-                cursor.close()
+            def set_search_path_on_checkout(dbapi_connection, _connection_record, _connection_proxy):
+                # Only set search path for PostgreSQL, not SQLite
+                if hasattr(dbapi_connection, "cursor") and "postgresql" in str(engine.url):
+                    cursor = dbapi_connection.cursor()
+                    cursor.execute(f"SET search_path TO {schema},public")
+                    cursor.close()
 
     if run_mode == "migration":
         from flask_migrate import Migrate, upgrade

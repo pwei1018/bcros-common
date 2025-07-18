@@ -47,4 +47,4 @@ class EmailValidator(BaseModel):
         except EmailNotValidError as error_msg:
             raise ValueError(f"Invalid: {value} {error_msg}") from error_msg
 
-        return True
+        return value

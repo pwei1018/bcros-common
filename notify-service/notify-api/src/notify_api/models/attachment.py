@@ -66,9 +66,7 @@ class Attachment(db.Model):
     @property
     def json(self) -> dict:
         """Return a dict of this object, with keys in JSON format."""
-        attachment_json = {"id": self.id, "fileName": self.file_name, "attachOrder": self.attach_order}
-
-        return attachment_json
+        return {"id": self.id, "fileName": self.file_name, "attachOrder": self.attach_order}
 
     @classmethod
     def create_attachment(cls, attachment: AttachmentRequest, content_id: int):

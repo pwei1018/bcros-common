@@ -39,7 +39,7 @@ class NotificationHistory(db.Model):
     @property
     def json(self) -> dict:
         """Return a dict of this object, with keys in JSON format."""
-        history_json = {
+        return {
             "id": self.id,
             "recipients": self.recipients,
             "requestDate": self.request_date.isoformat(),
@@ -52,8 +52,6 @@ class NotificationHistory(db.Model):
             "gc_notify_response_id": self.gc_notify_response_id,
             "gc_notify_status": self.gc_notify_status,
         }
-
-        return history_json
 
     @classmethod
     def create_history(cls, notification: Notification, recipient: str | None = None, response_id: str | None = None):
