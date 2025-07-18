@@ -22,4 +22,19 @@ from .notification import Notification, NotificationRequest, NotificationSendRes
 from .notification_history import NotificationHistory
 from .safe_list import SafeList, SafeListRequest
 
-__all__ = ("attachment", "callback", "content", "db", "email", "notification", "notification_history", "safe_list")
+__all__ = (
+    "Attachment",
+    "Callback",
+    "CallbackRequest",
+    "Content",
+    "ContentRequest",
+    "EmailValidator",
+    "Notification",
+    "NotificationRequest",
+    "NotificationSendResponse",
+    "NotificationSendResponses",
+    "NotificationHistory",
+    "SafeList",
+    "SafeListRequest",
+    "db",
+)

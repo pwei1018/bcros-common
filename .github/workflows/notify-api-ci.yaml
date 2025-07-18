@@ -13,8 +13,8 @@ defaults:
 
 jobs:
   notify-api-ci:
-    uses: bcgov/bcregistry-sre/.github/workflows/backend-ci.yaml@main
+    uses: pwei1018/bcregistry-sre/.github/workflows/backend-ci.yaml@main
     with:
       app_name: "notify-api"
       working_directory: "./notify-service/notify-api"
-      codecov_flag: "notifyapi"
+      coverage_threshold: "80"

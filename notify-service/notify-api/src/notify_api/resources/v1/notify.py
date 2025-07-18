@@ -58,15 +58,13 @@ def find_notification(notification_id: str):
 @jwt.has_one_of_roles([Role.SYSTEM.value, Role.JOB.value])
 def find_notifications(notification_status: str):
     """Get pending or failure notifications."""
-    if notification_status.upper() not in [
+    if notification_status.upper() not in {
         Notification.NotificationStatus.PENDING.name,
         Notification.NotificationStatus.FAILURE.name,
-    ]:
+    }:
         return {"error": "Requires a valid notification status (PENDING, FAILURE)."}, HTTPStatus.BAD_REQUEST
 
     notifications = Notification.find_notifications_by_status(notification_status.upper())
 
-    response_list = []
-    for notification in notifications:
-        response_list.append(notification.json)
+    response_list = [notification.json for notification in notifications]
     return jsonify(notifications=response_list), HTTPStatus.OK

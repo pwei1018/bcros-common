@@ -23,6 +23,7 @@ from email.mime.text import MIMEText
 
 from flask import current_app
 from notify_api.models import (
+    Content,
     Notification,
     NotificationSendResponse,
     NotificationSendResponses,
@@ -35,25 +36,36 @@ logger = StructuredLogging.get_logger()
 class EmailSMTP:
     """Send emails via SMTP."""
 
-    def __init__(self, notification: Notification):
+    def __init__(self, notification: Notification) -> None:
         """Construct object."""
-        self.mail_server = current_app.config.get("MAIL_SERVER")
-        self.mail_port = current_app.config.get("MAIL_PORT")
-        self.mail_from_id = current_app.config.get("MAIL_FROM_ID")
+        config = current_app.config
+        self.mail_server = config.get("MAIL_SERVER")
+        self.mail_port = config.get("MAIL_PORT")
+        self.mail_from_id = config.get("MAIL_FROM_ID")
         self.notification = notification
 
-    def send(self):
-        """Send message."""
+    def _prepare_subject(self, subject: str) -> str:
+        """Prepare email subject with environment prefix if needed."""
+        deployment_env = current_app.config.get("DEPLOYMENT_ENV")
+
+        if deployment_env is None:
+            # When deployment env is not configured, treat as unknown rather than production
+            env_name = "UNKNOWN"
+            return f"{subject} - from {env_name} environment"
+
+        deployment_env = deployment_env.lower()
+        if deployment_env == "production":
+            return subject
+        else:
+            env_name = deployment_env.upper() if deployment_env else "UNKNOWN"
+            return f"{subject} - from {env_name} environment"
+
+    def _prepare_message(self, content: Content) -> MIMEMultipart:
+        """Prepare the email message with content and attachments."""
         encoding = "utf-8"
         message = MIMEMultipart()
 
-        deployment_env = current_app.config.get("DEPLOYMENT_ENV", "production").lower()
-        content = self.notification.content[0]
-        subject = content.subject
-
-        if deployment_env != "production":
-            subject += f" - from {deployment_env.upper()} environment"
-
+        subject = self._prepare_subject(content.subject)
         message["Subject"] = subject
         message["From"] = self.mail_from_id
         message["To"] = self.notification.recipients
@@ -69,21 +81,41 @@ class EmailSMTP:
                 filename = re.sub(r"[\s]+", " ", filename).strip().encode("ascii", "ignore").decode("ascii")
 
                 part.add_header("Content-Disposition", "attachment; filename=" + filename)
-
                 message.attach(part)
 
+        return message
+
+    def send(self) -> NotificationSendResponses:
+        """Send message."""
+        # Validate notification content exists and is not empty
+        if not self.notification.content:
+            logger.error("No message content available for notification")
+            return None
+            return NotificationSendResponses(recipients=[])
+
+        content = self.notification.content[0]
+
+        # Additional content validation
+        if not all(hasattr(content, attr) for attr in ["subject", "body"]):
+            logger.error("Invalid message content structure - missing subject or body")
+            return NotificationSendResponses(recipients=[])
+
+        message = self._prepare_message(content)
         response_list: list[NotificationSendResponse] = []
+        recipients = [r.strip() for r in self.notification.recipients.split(",") if r.strip()]
 
         try:
             with smtplib.SMTP(host=self.mail_server, port=self.mail_port) as server:
-                for email in message["To"].split(","):
+                for recipient in recipients:
                     try:
-                        server.sendmail(message["From"], [email], message.as_string())
-                        sent_response = NotificationSendResponse(response_id=None, recipient=email)
+                        server.sendmail(message["From"], [recipient], message.as_string())
+                        sent_response = NotificationSendResponse(response_id=None, recipient=recipient)
                         response_list.append(sent_response)
                     except Exception as e:
-                        logger.error(f"Error sending email to {email}: {e}")
+                        logger.error(f"Error sending email to {recipient}: {e}")
         except smtplib.SMTPException as e:
             logger.error(f"Error connecting to SMTP server: {e}")
+        except Exception as e:
+            logger.error(f"An unexpected error occurred when connecting to SMTP server: {e}")
 
         return NotificationSendResponses(recipients=response_list)

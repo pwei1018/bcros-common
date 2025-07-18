@@ -7,4 +7,4 @@ error - a description of the error {code / description: classname / full text}
 status_code - where possible use HTTP Error Codes
 """
 
-from notify_api.exceptions.errorhandlers import ExceptionHandler
+from notify_api.exceptions.errorhandlers import ExceptionHandler as ExceptionHandler

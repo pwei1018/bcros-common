@@ -15,10 +15,10 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class EndpointVersionPath(str, Enum):
+class EndpointVersionPath(StrEnum):
     """Enumerate the endpoint mounts used in the system."""
 
     META = "/meta"

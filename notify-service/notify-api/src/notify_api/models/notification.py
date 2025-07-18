@@ -16,8 +16,8 @@
 from datetime import UTC, datetime
 from enum import auto
 
-import phonenumbers
 from email_validator import EmailNotValidError, validate_email
+import phonenumbers
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from notify_api.utils.base import BaseEnum
@@ -135,7 +135,7 @@ class Notification(db.Model):
         """Return a Notification by the id."""
         notification = None
         if identifier:
-            notification = cls.query.get(identifier)
+            notification = db.session.get(cls, identifier)
 
         return notification
 
@@ -156,8 +156,7 @@ class Notification(db.Model):
             Notification.NotificationStatus.FAILURE.value,
         )
 
-        notifications = cls.query.filter(Notification.status_code.in_(resend_statuses)).all()
-        return notifications
+        return cls.query.filter(Notification.status_code.in_(resend_statuses)).all()
 
     @classmethod
     def create_notification(cls, notification: NotificationRequest, recipient: str = ""):

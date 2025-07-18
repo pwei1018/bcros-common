@@ -14,3 +14,5 @@
 """Exposes all of the resource endpoints mounted in Flask-Blueprints."""
 
 from .ops import bp as ops_bp
+
+__all__ = ["ops_bp"]
