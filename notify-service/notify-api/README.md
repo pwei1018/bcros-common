@@ -66,7 +66,7 @@ By participating in this project you agree to abide by its terms.
 
 ## License
 
-    Copyright 2021 Province of British Columbia
+    Copyright 2025 Province of British Columbia
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
