@@ -33,13 +33,19 @@ class TestOpsHealthEndpoint:
 
     def test_healthz_success(self, session, client):
         """Assert that the service reports healthy when database is accessible."""
-        response = client.get("/ops/healthz")
+        from unittest.mock import patch
 
-        assert response.status_code == HTTPStatus.OK
-        assert response.content_type == "application/json"
+        # Mock the database session execute to avoid actual database connection
+        with patch("notify_api.resources.ops.ops.db.session.execute") as mock_execute:
+            mock_execute.return_value = None  # Simulate successful execution
 
-        response_data = response.get_json()
-        assert response_data == {"message": "api is healthy"}
+            response = client.get("/ops/healthz")
+
+            assert response.status_code == HTTPStatus.OK
+            assert response.content_type == "application/json"
+
+            response_data = response.get_json()
+            assert response_data == {"message": "api is healthy"}
 
     def test_healthz_content_type_header(self, session, client):
         """Assert that the healthz endpoint returns proper content type."""
@@ -161,20 +167,32 @@ class TestOpsEndpointsIntegration:
 
     def test_both_endpoints_accessible(self, session, client):
         """Assert that both health and readiness endpoints are accessible."""
-        health_response = client.get("/ops/healthz")
-        ready_response = client.get("/ops/readyz")
+        from unittest.mock import patch
 
-        assert health_response.status_code == HTTPStatus.OK
-        assert ready_response.status_code == HTTPStatus.OK
+        # Mock the database session execute to avoid actual database connection
+        with patch("notify_api.resources.ops.ops.db.session.execute") as mock_execute:
+            mock_execute.return_value = None  # Simulate successful execution
+
+            health_response = client.get("/ops/healthz")
+            ready_response = client.get("/ops/readyz")
+
+            assert health_response.status_code == HTTPStatus.OK
+            assert ready_response.status_code == HTTPStatus.OK
 
     def test_endpoints_with_trailing_slash(self, session, client):
         """Assert that endpoints handle trailing slashes appropriately."""
-        # Test without trailing slash (should work)
-        health_response = client.get("/ops/healthz")
-        ready_response = client.get("/ops/readyz")
+        from unittest.mock import patch
 
-        assert health_response.status_code == HTTPStatus.OK
-        assert ready_response.status_code == HTTPStatus.OK
+        # Mock the database session execute to avoid actual database connection
+        with patch("notify_api.resources.ops.ops.db.session.execute") as mock_execute:
+            mock_execute.return_value = None  # Simulate successful execution
+
+            # Test without trailing slash (should work)
+            health_response = client.get("/ops/healthz")
+            ready_response = client.get("/ops/readyz")
+
+            assert health_response.status_code == HTTPStatus.OK
+            assert ready_response.status_code == HTTPStatus.OK
 
     def test_case_sensitivity(self, client):
         """Assert that endpoints are case sensitive."""

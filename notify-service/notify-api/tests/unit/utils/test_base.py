@@ -395,7 +395,7 @@ class TestConfigMissingCoverage:
 
         # Test testing-specific configurations
         assert config.TESTING is True
-        assert "sqlite" in config.SQLALCHEMY_DATABASE_URI.lower()
+        assert "postgresql+pg8000" in config.SQLALCHEMY_DATABASE_URI
 
     def test_config_production_settings(self):
         """Test config production settings."""

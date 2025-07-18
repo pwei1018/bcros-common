@@ -129,25 +129,13 @@ class UnitTestingConfig(Config):  # pylint: disable=too-few-public-methods
     TESTING = True
     DEBUG = True
 
-    # Use SQLite for testing to avoid external database dependencies
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-
-    # Keep PostgreSQL config for when external DB is available
-    DB_USER = os.getenv("DATABASE_TEST_USERNAME", "test_user")
-    DB_PASSWORD = os.getenv("DATABASE_TEST_PASSWORD", "test_password")
-    DB_NAME = os.getenv("DATABASE_TEST_NAME", "test_notify")
-    DB_HOST = os.getenv("DATABASE_TEST_HOST", "localhost")
+    # POSTGRESQL
+    DB_USER = os.getenv("DATABASE_TEST_USERNAME", "")
+    DB_PASSWORD = os.getenv("DATABASE_TEST_PASSWORD", "")
+    DB_NAME = os.getenv("DATABASE_TEST_NAME", "")
+    DB_HOST = os.getenv("DATABASE_TEST_HOST", "")
     DB_PORT = os.getenv("DATABASE_TEST_PORT", "5432")
-
-    # Override with PostgreSQL if all test DB env vars are set
-    if (
-        all([DB_USER, DB_PASSWORD, DB_NAME, DB_HOST])
-        and os.getenv("DATABASE_TEST_USERNAME")
-        and os.getenv("DATABASE_TEST_PASSWORD")
-        and os.getenv("DATABASE_TEST_NAME")
-        and os.getenv("DATABASE_TEST_HOST")
-    ):
-        SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
     LD_SDK_KEY = os.getenv("LD_SDK_KEY", None)
     SECRET_KEY = "a secret"

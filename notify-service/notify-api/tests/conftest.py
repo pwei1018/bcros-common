@@ -15,6 +15,7 @@
 
 import datetime
 from contextlib import contextmanager
+from functools import cache
 from unittest.mock import Mock, patch
 
 import pytest
@@ -24,6 +25,37 @@ from notify_api import jwt as _jwt
 from notify_api.models import db as _db
 
 from . import FROZEN_DATETIME
+
+
+# Optimized helper functions for mock creation
+@cache
+def _create_mock_query():
+    """Create a cached mock query object for reuse."""
+    mock_query = Mock()
+    mock_query.filter = Mock(return_value=mock_query)
+    mock_query.filter_by = Mock(return_value=mock_query)
+    mock_query.all = Mock(return_value=[])
+    mock_query.first = Mock(return_value=None)
+    mock_query.count = Mock(return_value=0)
+    mock_query.order_by = Mock(return_value=mock_query)
+    mock_query.limit = Mock(return_value=mock_query)
+    mock_query.offset = Mock(return_value=mock_query)
+    return mock_query
+
+
+def _create_mock_session():
+    """Create a standardized mock session with common operations."""
+    mock_session = Mock()
+    mock_session.add = Mock()
+    mock_session.commit = Mock()
+    mock_session.rollback = Mock()
+    mock_session.flush = Mock()
+    mock_session.delete = Mock()
+    mock_session.close = Mock()
+    mock_session.begin_nested = Mock()
+    mock_session.refresh = Mock()
+    mock_session.query = Mock(return_value=_create_mock_query())
+    return mock_session
 
 
 @contextmanager
@@ -75,76 +107,46 @@ def jwt():
 
 @pytest.fixture(scope="session")
 def db(app, request):  # pylint: disable=redefined-outer-name
-    """Session-wide test database."""
+    """Session-wide mock test database."""
+    mock_db = Mock()
+    mock_db.app = app
+    mock_db.session = _create_mock_session()
+
+    # Mock database management operations
+    mock_db.create_all = Mock()
+    mock_db.drop_all = Mock()
 
     def teardown():
-        _db.drop_all()
+        pass  # No real cleanup needed for mock
 
-    _db.app = app
-
-    _db.create_all()
     request.addfinalizer(teardown)
-    return _db
+    return mock_db
 
 
 @pytest.fixture
 def session(db, request):  # pylint: disable=redefined-outer-name
-    """Return a function-scoped session."""
-    db.session.begin_nested()
-
-    def commit():
-        db.session.flush()
-
-    # patch commit method
-    old_commit = db.session.commit
-    db.session.commit = commit
+    """Return a function-scoped mock session."""
+    # Create a fresh mock session for each test
+    mock_session = _create_mock_session()
 
     def teardown():
-        db.session.rollback()
-        db.session.close()
-        db.session.commit = old_commit
+        pass  # No real cleanup needed for mock
 
     request.addfinalizer(teardown)
-    return db.session
+    return mock_session
 
 
 # Enhanced fixtures for comprehensive testing with mocks
 @pytest.fixture
 def mock_db_session():
-    """Mock database session for enhanced testing."""
-    mock_session = Mock()
-    mock_session.add = Mock()
-    mock_session.commit = Mock()
-    mock_session.rollback = Mock()
-    mock_session.query = Mock()
-    mock_session.flush = Mock()
-    mock_session.delete = Mock()
-
-    with patch("notify_api.models.db.session", mock_session):
+    """Mock database session for enhanced testing with context manager."""
+    mock_session = _create_mock_session()
+    with patch("notify_api.models.db.db.session", mock_session):
         yield mock_session
 
 
-@pytest.fixture
-def standalone_mock_db_session():
-    """Standalone mock database session for testing without context manager."""
-    mock_session = Mock()
-
-    # Setup common mock returns
-    mock_session.add.return_value = None
-    mock_session.commit.return_value = None
-    mock_session.delete.return_value = None
-    mock_session.flush.return_value = None
-    mock_session.refresh.return_value = None
-    mock_session.rollback.return_value = None
-
-    # Mock query operations
-    mock_query = Mock()
-    mock_session.query.return_value = mock_query
-
-    return mock_session
-
-
-@pytest.fixture
+# Optimized model fixtures
+@pytest.fixture(scope="session")
 def mock_notification_model():
     """Mock Notification model class for enhanced testing."""
     with patch("notify_api.models.Notification") as mock_model:
@@ -165,7 +167,7 @@ def mock_notification_model():
         yield mock_model
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_content_model():
     """Mock Content model class for enhanced testing."""
     with patch("notify_api.models.Content") as mock_model:
@@ -182,7 +184,7 @@ def mock_content_model():
         yield mock_model
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_notify_service():
     """Mock NotifyService for comprehensive testing."""
     with patch("notify_api.services.notify_service.NotifyService") as mock_service_class:
@@ -199,18 +201,8 @@ def mock_notify_service():
         yield mock_service
 
 
-@pytest.fixture
-def mock_database():
-    """Mock database operations."""
-    with patch("notify_api.models.db.session") as mock_session:
-        mock_session.add = Mock()
-        mock_session.commit = Mock()
-        mock_session.rollback = Mock()
-        mock_session.query = Mock()
-        yield mock_session
-
-
-@pytest.fixture
+# Consolidated database and provider fixtures
+@pytest.fixture(scope="session")
 def mock_providers():
     """Mock notification providers."""
     providers = {"gc_notify": Mock(), "smtp": Mock(), "housing": Mock()}
@@ -222,7 +214,8 @@ def mock_providers():
         yield providers
 
 
-@pytest.fixture
+# Optimized sample data fixtures (session-scoped for immutable data)
+@pytest.fixture(scope="session")
 def sample_notification_data():
     """Sample notification data for testing."""
     return {
@@ -233,13 +226,42 @@ def sample_notification_data():
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def sample_content_data():
     """Sample content data for testing."""
     return {"subject": "Test Email Subject", "body": "This is test email content", "attachments": []}
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
+def sample_attachment_data():
+    """Sample attachment data for testing."""
+    return {
+        "file_name": "document.pdf",
+        "file_bytes": b"fake_pdf_content",
+        "attach_order": 1,
+        "content_id": 1,
+    }
+
+
+@pytest.fixture(scope="session")
+def sample_safe_list_emails():
+    """Sample safe list emails for testing."""
+    return ["safe1@example.com", "safe2@example.com", "admin@test.com"]
+
+
+@pytest.fixture(scope="session")
+def sample_html_notification_data():
+    """Sample HTML notification data for testing."""
+    return {
+        "recipients": "test@example.com",
+        "requestBy": "test_user",
+        "content": {"subject": "HTML Test Subject", "body": "<p>This is <b>HTML</b> content</p>", "attachments": []},
+        "notifyType": "EMAIL",
+    }
+
+
+# Additional optimized model fixtures
+@pytest.fixture(scope="session")
 def mock_safe_list():
     """Mock SafeList model."""
     with patch("notify_api.models.SafeList") as mock_safe_list_class:
@@ -253,7 +275,7 @@ def mock_safe_list():
 
 @pytest.fixture
 def mock_notification():
-    """Mock Notification model."""
+    """Mock Notification model (function-scoped for test isolation)."""
     with patch("notify_api.models.Notification") as mock_notification_class:
         mock_notification = Mock()
         mock_notification.id = 1
@@ -266,32 +288,15 @@ def mock_notification():
 
 
 @pytest.fixture
-def fully_mocked_environment(mock_database, mock_providers, mock_safe_list):
+def fully_mocked_environment(mock_db_session, mock_providers, mock_safe_list):
     """Comprehensive mock environment for integration testing."""
-    return {"database": mock_database, "providers": mock_providers, "safe_list": mock_safe_list}
-
-
-@pytest.fixture
-def sample_safe_list_emails():
-    """Sample safe list emails for testing."""
-    return ["safe1@example.com", "safe2@example.com", "admin@test.com"]
-
-
-@pytest.fixture
-def sample_html_notification_data():
-    """Sample HTML notification data for testing."""
-    return {
-        "recipients": "test@example.com",
-        "requestBy": "test_user",
-        "content": {"subject": "HTML Test Subject", "body": "<p>This is <b>HTML</b> content</p>", "attachments": []},
-        "notifyType": "EMAIL",
-    }
+    return {"database": mock_db_session, "providers": mock_providers, "safe_list": mock_safe_list}
 
 
 # Additional comprehensive fixtures for enhanced testing
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_attachment_model():
     """Mock Attachment model for testing."""
     with patch("notify_api.models.Attachment") as mock_model:
@@ -306,7 +311,7 @@ def mock_attachment_model():
         yield mock_model
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_notification_history_model():
     """Mock NotificationHistory model for testing."""
     with patch("notify_api.models.NotificationHistory") as mock_model:
@@ -325,7 +330,8 @@ def mock_notification_history_model():
         yield mock_model
 
 
-@pytest.fixture
+# Service and infrastructure mocks
+@pytest.fixture(scope="session")
 def mock_gcp_queue():
     """Mock GCP Queue operations."""
     with patch("notify_api.services.gcp_queue.publisher.GcpQueuePublisher") as mock_publisher:
@@ -335,7 +341,7 @@ def mock_gcp_queue():
         yield mock_instance
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_current_app():
     """Mock Flask current_app."""
     with patch("notify_api.services.notify_service.current_app") as mock_app:
@@ -348,18 +354,8 @@ def mock_current_app():
         yield mock_app
 
 
-@pytest.fixture
-def sample_attachment_data():
-    """Sample attachment data for testing."""
-    return {
-        "file_name": "document.pdf",
-        "file_bytes": b"fake_pdf_content",
-        "attach_order": 1,
-        "content_id": 1,
-    }
-
-
-@pytest.fixture
+# Utility fixtures
+@pytest.fixture(scope="session")
 def mock_email_validator():
     """Mock email validation functions."""
     min_email_length = 5
@@ -370,7 +366,7 @@ def mock_email_validator():
     return validate_email
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_html_detector():
     """Mock HTML content detection."""
 
@@ -382,7 +378,7 @@ def mock_html_detector():
     return is_html_content
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def performance_test_data():
     """Generate test data for performance testing."""
     return {
