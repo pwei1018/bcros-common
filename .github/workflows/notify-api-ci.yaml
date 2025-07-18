@@ -17,4 +17,4 @@ jobs:
     with:
       app_name: "notify-api"
       working_directory: "./notify-service/notify-api"
-      codecov_flag: "notifyapi"
+      coverage_threshold: "80"

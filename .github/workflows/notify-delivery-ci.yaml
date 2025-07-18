@@ -17,4 +17,4 @@ jobs:
     with:
       app_name: "notify-delivery"
       working_directory: "./notify-service/notify-delivery"
-      codecov_flag: "notifydelivery"
+      coverage_threshold: "80"
