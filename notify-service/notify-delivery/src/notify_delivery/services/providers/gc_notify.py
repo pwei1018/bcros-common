@@ -36,19 +36,26 @@ class GCNotify:
         self.api_key = current_app.config.get("GC_NOTIFY_API_KEY")
         self.gc_notify_url = current_app.config.get("GC_NOTIFY_API_URL")
         self.gc_notify_template_id = current_app.config.get("GC_NOTIFY_TEMPLATE_ID")
-        self.gc_notify_email_reply_to_id = current_app.config.get(
-            "GC_NOTIFY_EMAIL_REPLY_TO_ID"
-        )
+        self.gc_notify_email_reply_to_id = current_app.config.get("GC_NOTIFY_EMAIL_REPLY_TO_ID")
         self.notification = notification
 
     def send(self) -> NotificationSendResponses:
         """Send email through GC Notify."""
-        client = NotificationsAPIClient(
-            api_key=self.api_key, base_url=self.gc_notify_url
-        )
+        # Validate notification content exists and is not empty
+        if not self.notification.content or len(self.notification.content) == 0:
+            logger.error("No message content available for notification")
+            return NotificationSendResponses(recipients=[])
+
+        client = NotificationsAPIClient(api_key=self.api_key, base_url=self.gc_notify_url)
 
         deployment_env = current_app.config.get("DEPLOYMENT_ENV", "production").lower()
         content = self.notification.content[0]
+
+        # Additional content validation
+        if not hasattr(content, "subject") or not hasattr(content, "body"):
+            logger.error("Invalid message content structure - missing subject or body")
+            return NotificationSendResponses(recipients=[])
+
         subject = content.subject
 
         if deployment_env != "production":
@@ -68,9 +75,7 @@ class GCNotify:
                         "filename": attachment.file_name,
                         "sending_method": "attach",
                     }
-                    for idx, attachment in enumerate(
-                        content.attachments
-                    )
+                    for idx, attachment in enumerate(content.attachments)
                 }
             )
 
@@ -84,11 +89,7 @@ class GCNotify:
                     personalisation=email_content,
                     email_reply_to_id=self.gc_notify_email_reply_to_id,
                 )
-                response_list.append(
-                    NotificationSendResponse(
-                        response_id=response["id"], recipient=recipient
-                    )
-                )
+                response_list.append(NotificationSendResponse(response_id=response["id"], recipient=recipient))
             except (HTTPError, Exception) as e:
                 logger.error(f"Error sending email to {recipient}: {e}")
 

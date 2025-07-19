@@ -39,14 +39,21 @@ def worker():
 
     try:
         logger.info(f"Event Message Received: {ce}")
-        if ce.type == "bc.registry.notify.gc_notify":
+
+        # Validate event type
+        expected_type = "bc.registry.notify.gc_notify"
+        if ce.type == expected_type:
             process_message(ce.data)
         else:
-            logger.error("Invalid queue message type")
+            logger.error(f"Invalid queue message type: expected '{expected_type}', got '{ce.type}'")
             return {}, HTTPStatus.BAD_REQUEST
 
         logger.info(f"Event Message Processed: {ce.id}")
         return {}, HTTPStatus.OK
+    except ValueError as ve:
+        # Handle validation errors (missing content, unknown notifications, etc.)
+        logger.error(f"Validation error processing queue message: {ve}")
+        return {}, HTTPStatus.BAD_REQUEST
     except Exception as e:
         logger.error(f"Failed to process queue message: {e}")
         return {}, HTTPStatus.INTERNAL_SERVER_ERROR
@@ -56,11 +63,27 @@ def process_message(data: dict) -> NotificationHistory | Notification:
     """Delivery message through GC Notify service."""
     history: NotificationHistory = None
 
+    # Validate input data
+    if not data or "notificationId" not in data:
+        logger.error("No message content or missing notificationId in queue data")
+        raise ValueError("Invalid queue message data - missing notificationId")
+
     notification_id = data["notificationId"]
-    notification: Notification = Notification.find_notification_by_id(notification_id)
+
+    try:
+        notification: Notification = Notification.find_notification_by_id(notification_id)
+    except Exception as e:
+        logger.error(f"Database error while fetching notification {notification_id}: {e}")
+        raise ValueError(f"Failed to fetch notification for notificationId {notification_id}") from e
 
     if notification is None:
+        logger.error(f"Unknown notification for notificationId {notification_id}")
         raise ValueError(f"Unknown notification for notificationId {notification_id}")
+
+    # Validate notification has content before processing
+    if not notification.content or len(notification.content) == 0:
+        logger.error(f"No message content for notificationId {notification_id}")
+        raise ValueError(f"No message content for notificationId {notification_id}")
 
     gc_notify_provider = GCNotify(notification)
 

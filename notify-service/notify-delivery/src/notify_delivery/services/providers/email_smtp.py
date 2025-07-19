@@ -44,17 +44,29 @@ class EmailSMTP:
 
     def send(self):
         """Send message."""
+        # Validate notification content exists and is not empty
+        if not self.notification.content or len(self.notification.content) == 0:
+            logger.error("No message content available for notification")
+            return None
+
         encoding = "utf-8"
         message = MIMEMultipart()
 
-        deployment_env = current_app.config.get("DEPLOYMENT_ENV", "production").lower()
+        deployment_env = current_app.config.get("DEPLOYMENT_ENV", "").lower()
         content = self.notification.content[0]
+
+        # Additional content validation
+        if not hasattr(content, "subject") or not hasattr(content, "body"):
+            logger.error("Invalid message content structure - missing subject or body")
+            return None
+
         subject = content.subject
 
-        if deployment_env != "production":
-            subject += f" - from {deployment_env.upper()} environment"
-
-        message["Subject"] = subject
+        if deployment_env == "production":
+            message["Subject"] = subject
+        else:
+            env_name = deployment_env.upper() if deployment_env else "UNKNOWN"
+            message["Subject"] = f"{subject} - from {env_name} environment"
         message["From"] = self.mail_from_id
         message["To"] = self.notification.recipients
         message.attach(MIMEText(content.body, "html", encoding))

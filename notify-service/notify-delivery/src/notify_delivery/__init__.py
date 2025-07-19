@@ -18,6 +18,7 @@ The service worker for applying payments, receipts and account balance to paymen
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from flask import Flask
@@ -43,7 +44,6 @@ class DBConfig:
     user: str
     ip_type: str
     schema: str
-
 
 
 def getconn(connector: Connector, db_config: DBConfig) -> object:
@@ -87,19 +87,35 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
             database=app.config["DB_NAME"],
             user=app.config["DB_USER"],
             ip_type=app.config["DB_IP_TYPE"],
-            schema=schema
+            schema=schema,
         )
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": lambda: getconn(connector, db_config)}
+
+        # Improved connection pool configuration for Cloud SQL
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "creator": lambda: getconn(connector, db_config),
+            "pool_pre_ping": True,
+            "pool_recycle": 3600,  # Increased from 300 to 1800 seconds (30 minutes)
+            "pool_size": 10,  # Explicit pool size
+            "max_overflow": 10,  # Maximum overflow connections
+            "pool_timeout": 30,  # Timeout for getting connection from pool
+            "connect_args": {"check_same_thread": False, "connect_timeout": 60},
+        }
 
     db.init_app(app)
 
     with app.app_context():
         engine = db.engine
+
         @event.listens_for(engine, "checkout")
         def set_search_path_on_checkout(dbapi_connection, connection_record, connection_proxy):
-            cursor = dbapi_connection.cursor()
-            cursor.execute(f"SET search_path TO {schema},public")
-            cursor.close()
+            try:
+                cursor = dbapi_connection.cursor()
+                cursor.execute(f"SET search_path TO {schema},public")
+                cursor.close()
+            except Exception as e:
+                logger.error(f"Failed to set search path on database checkout: {e}")
+                # Re-raise to let SQLAlchemy handle connection retry
+                raise
 
     queue.init_app(app)
 
