@@ -393,6 +393,7 @@
     {% set due_date = data.due_date if 'due_date' in data else None %}
     {% set eft_payment = payment_method == 'EFT' %}
     {% set statement_header_text = data.statement_header_text %}
+    {% set include_service_provided = data.include_service_provided %}
     
     <div class="page-break-before">
       {% set is_index_0 = data.is_index_0 %}
