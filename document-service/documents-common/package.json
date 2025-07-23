@@ -1,0 +1,32 @@
+{
+  "name": "@bcros-common/documents-common-layer",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "nuxt generate",
+    "build-check": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview --port 3000",
+    "generate": "nuxt generate",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@iconify-json/mdi": "^1.2.2",
+    "@nuxt/image": "1.10.0",
+    "@nuxt/ui": "^3.1.1",
+    "@nuxtjs/i18n": "^10.0.0",
+    "@pinia/nuxt": "^0.11.0",
+    "@sbc-connect/nuxt-core-layer-beta": "0.0.12",
+    "dompurify": "^3.2.5",
+    "keycloak-js": "^26.2.0",
+    "launchdarkly-vue-client-sdk": "^2.3.1",
+    "maska": "^3.1.1",
+    "pinia": "^3.0.2",
+    "tailwindcss": "^4.1.7",
+    "vue": "^3.5.17",
+    "@types/vue": "^2.0.0",
+    "nuxt": "^3.16.0",
+    "typescript": "^5.8.3",
+    "v-calendar": "^3.1.2"
+  }
+}
