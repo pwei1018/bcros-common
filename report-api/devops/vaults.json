@@ -5,11 +5,5 @@
             "jwt-base",
             "account-services-account"
         ]
-    },
-    {
-        "vault": "sentry",
-        "application": [
-            "relationship-api"
-        ]
     }
 ]
