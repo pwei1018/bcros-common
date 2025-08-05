@@ -19,6 +19,7 @@ import base64
 from dateutil import parser
 from flask import url_for
 from jinja2 import Environment, FileSystemLoader, Template
+from jinja2.sandbox import SandboxedEnvironment
 from weasyprint import HTML
 from weasyprint.formatting_structure.boxes import InlineBox
 
@@ -68,7 +69,10 @@ class ReportService:
                                     generate_page_number: bool = False):
         """Create a report from a json template."""
         template_decoded = base64.b64decode(template_string).decode('utf-8')
-        template_ = Template(template_decoded, autoescape=True)
+        # Use a sandboxed environment for user-supplied templates
+        sandbox_env = SandboxedEnvironment(autoescape=True)
+        sandbox_env.filters['format_datetime'] = format_datetime
+        template_ = sandbox_env.from_string(template_decoded)
         html_out = template_.render(template_args)
         return ReportService.generate_pdf(html_out, generate_page_number)
 
