@@ -41,6 +41,11 @@ TEST_DOC_TYPES = [
     (DocumentTypes.CANCEL_PERMIT.value, DocumentClasses.MHR.value, True),
     (DocumentTypes.AMEND_PERMIT.value, DocumentClasses.MHR.value, True),
     (DocumentTypes.APP_FILE.value, DocumentClasses.OTHER.value, True),
+    (DocumentTypes.AGMAM.value, DocumentClasses.CORP.value, True),
+    (DocumentTypes.CHANGE_NAME.value, DocumentClasses.CORP.value, True),
+    (DocumentTypes.DISS_VOL.value, DocumentClasses.CORP.value, True),
+    (DocumentTypes.NOALA.value, DocumentClasses.CORP.value, True),
+    (DocumentTypes.TRANSITION.value, DocumentClasses.CORP.value, True),
 ]
 # testdata pattern is ({doc_class}, {doc_type}, {has_results}, {type_exists})
 TEST_DOC_TYPE_CLASSES = [
@@ -59,6 +64,11 @@ TEST_DOC_TYPE_CLASSES = [
     (DocumentClasses.DELETED.value, DocumentTypes.DELETED.value, False, False),
     (DocumentClasses.COOP.value, DocumentTypes.COOP_RULES.value, True, True),
     (DocumentClasses.CORP.value, DocumentTypes.DIRECTOR_AFFIDAVIT.value, True, True),
+    (DocumentClasses.CORP.value, DocumentTypes.CHANGE_OFF.value, True, True),
+    (DocumentClasses.CORP.value, DocumentTypes.AGMLC.value, True, True),
+    (DocumentClasses.CORP.value, DocumentTypes.RECV_APPOINT.value, True, True),
+    (DocumentClasses.CORP.value, DocumentTypes.INTENT_LIQ.value, True, True),
+    (DocumentClasses.CORP.value, DocumentTypes.REG_BUS.value, True, True),
 ]
 # testdata pattern is ({doc_class}, {exists})
 TEST_DOC_CLASSES = [
