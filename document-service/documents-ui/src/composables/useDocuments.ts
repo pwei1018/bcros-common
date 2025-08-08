@@ -317,14 +317,21 @@ export const useDocuments = () => {
 
     // Update Document Files
     if (hasDocumentFileChanges.value && !!document.size) {
-      if(!!documentRecord.value.documentServiceId && !documentRecord.value.consumerFilename) {
-        await putDocument(
+      // If the record does not have a document, the first request should use PUT. 
+      // All subsequent requests should use POST.
+      if (!!documentRecord.value.documentServiceId && documentRecord.value.consumerFilenames.length === 0) {
+        const response = await putDocument(
           {
             consumerFilename: document.name,
             documentServiceId: documentRecord.value.documentServiceId
           },
           document
         )
+
+        // Update the filing name list so that subsequent requests can be sent using POST.
+        if (response.status === 'success') {
+          documentRecord.value.consumerFilenames.push(response.data.consumerFilename)
+        }
       } else {
         await postDocument(
           {
