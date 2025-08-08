@@ -4,12 +4,13 @@ import { useFileHandler } from '~/composables/useFileHandler'
 
 /**
  * FileUpload component for handling file uploads with validation.
- * It supports multiple files, drag-and-drop, and displays upload progress.
+ * Supports multiple files, drag-and-drop, and displays upload progress.
  *
  * Props:
- * - maxFileSize: Maximum file size in bytes (default: 3MB)
- * - minDimensions: Minimum dimensions for image files (default: { width: 300, height: 300 })
- * - maxDimensions: Maximum dimensions for image files (default: { width: 2048, height: 2048 })
+ * - validate: boolean — Whether to enable validation (default: false)
+ * - uploadLabel: string — Label for the upload button (default: 'Upload Files')
+ * - multipleFiles: boolean — Allow multiple file selection (default: true)
+ * - maxFileSize: number — Maximum file size in bytes (default: 3MB)
  * - acceptedFileTypes: Array of accepted image MIME types (default: [
  *   'application/msword',
  *   'application/vnd.ms-powerpoint',
@@ -28,12 +29,11 @@ import { useFileHandler } from '~/composables/useFileHandler'
  * ])
  */
 const props = defineProps({
+  validate: { type: Boolean, default: false },
   uploadLabel: { type: String, default: 'Upload Files' },
   multipleFiles: { type: Boolean, default: true },
   maxFileSize: { type: Number, default: 3 * 1024 * 1024 }, // 3MB
-  minDimensions: { type: Object, default: () => ({ width: 300, height: 300 }) },
-  maxDimensions: { type: Object, default: () => ({ width: 2048, height: 2048 }) },
-  acceptedFileTypes: { type: Array, default: () => ['application/pdf', 'image/jpeg', 'image/png', 'image/gif'] },
+  acceptedFileTypes: { type: Array<string>, default: () => ['application/pdf', 'image/jpeg', 'image/png', 'image/gif'] },
 })
 
 /** Emits an event when files are converted */
@@ -44,15 +44,12 @@ const emit = defineEmits<{
 /** Reactive state and methods for file handling */
 const {
   state,
-  schema,
   formatBytes,
   removeFile,
   getObjectURL,
   fileHandler
 } = useFileHandler({
   maxFileSize: props.maxFileSize,
-  minDimensions: props.minDimensions,
-  maxDimensions: props.maxDimensions,
   acceptedFileTypes: props.acceptedFileTypes,
   onConverted: (files) => emit('converted-files', files)
 })
@@ -60,24 +57,49 @@ const {
 /** Label for the file upload component */
 const uploadDescription = computed(() =>
   `Accepted file types: ${props.acceptedFileTypes.map(type => '.' + type.split('/').pop()).join(', ')}.
-  Max file size ${formatBytes(props.maxFileSize, 0)}.`
+   Max file size ${formatBytes(props.maxFileSize, 0)}.`
+)
+
+/**
+ * Computed property to check if there is at least one valid uploaded file.
+ * A file is considered valid if it has the `uploaded` property set to true and no `errorMsg`.
+ */
+const hasValidUploadedFile = computed(() =>
+  Array.isArray(state.files) &&
+  state.files.some(file => file.uploaded && !file.errorMsg)
+)
+
+/**
+ * Computed property to determine if a validation error should be shown.
+ * Returns true if validation is required and there are no valid uploaded files.
+ */
+const showValidationError = computed(() =>
+  props.validate && !hasValidUploadedFile.value
 )
 </script>
 
 <template>
-  <UForm :schema="schema" :state="state" class="w-full" >
+  <UForm :state="state" class="w-full" >
     <UFormField name="image">
       <UFileUpload
         v-model="state.files"
         :label="uploadLabel"
-        :description="uploadDescription"
         layout="list"
         :multiple="multipleFiles"
         :interactive="false"
         class="w-full"
         @update:model-value="fileHandler"
+        :ui="showValidationError ? { label: 'text-red-600', base: 'border-red-600' } : {}"
       >
         <template #leading>{{ null }}</template>
+        <template #description>
+          <div class="grid">
+            <span v-if="showValidationError" class="text-red-600">
+              No documents have been uploaded. Please upload the required document.
+            </span>
+            {{ uploadDescription }}
+          </div>
+        </template>
         <template #actions="{ open }">
           <div class="flex items-center">
             <UButton
@@ -97,9 +119,10 @@ const uploadDescription = computed(() =>
               v-if="file?.uploaded"
               :source="getObjectURL(file?.document)"
               :page="[1]"
-              :height="100"
+              :width="105"
+              :key="file?.document?.name"
             />
-            <div v-else class="w-20 h-17 rounded bg-gray-100 flex items-center">
+            <div v-else class="w-[105px] h-20 rounded bg-gray-100 flex items-center">
               <UIcon
                 name="i-mdi-image-outline"
                 class="w-7 h-7 m-auto"
@@ -107,14 +130,19 @@ const uploadDescription = computed(() =>
             </div>
           </div>
 
-          <div class="w-full ml-2">
+          <div class="w-full ml-4">
             <template v-if="file.errorMsg">
-              {{file.errorMsg}}
+              <div class="flex items-center">
+                <UIcon name="i-mdi-close-circle" class="text-red-600 w-5 h-5" />
+                <span class="ml-2 text-red-600 text-[14px] italic">
+                  Upload of {{file.document?.name}} failed. {{file.errorMsg}}
+                </span>
+              </div>
             </template>
             <template v-else-if="file?.uploaded">
               <div class="flex items-center">
                 <UIcon name="i-mdi-check-circle" class="text-green-700 w-5 h-5" />
-                <span class="ml-1">{{ file?.document.name }}</span>
+                <span class="ml-2 text-[16px] italic">{{ file?.document.name }}</span>
               </div>
               <div class="ml-6">
                 {{ formatBytes(file?.document.size, 0) }}

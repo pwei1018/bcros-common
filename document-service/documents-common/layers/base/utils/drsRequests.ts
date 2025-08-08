@@ -1,4 +1,3 @@
-import type { AxiosError } from 'axios'
 import type {
   ApiResponseOrError,
   RequestDataIF
@@ -32,17 +31,11 @@ export async function pdfConversion(document: RequestDataIF)
   }
 
   const url = `${baseURL}/pdf-conversions`
+  let response
   try {
-    const response = await $fetch(url, options)
-    if (!(response instanceof Blob)) {
-      throw { message: 'No PDF blob returned', status: 'error' }
-    }
+    response = await $fetch(url, options)
     return response
-  } catch (error) {
-    return {
-      message: (error as Error).message,
-      status: (error as AxiosError)?.response?.status || 'error',
-      statusText: 'Error occurred while converting document to PDF'
-    }
+  } catch (fetchError) {
+    throw new Error('Failed to convert file to PDF. No Blob returned.')
   }
 }

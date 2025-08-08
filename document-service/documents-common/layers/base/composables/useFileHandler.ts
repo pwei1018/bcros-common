@@ -10,11 +10,8 @@ import type { FileHandlerOptionsIF } from '~/interfaces/file-interfaces'
  * @returns {object} File handler state, schema, and utility methods.
  */
 export function useFileHandler(options: FileHandlerOptionsIF = {}) {
-  // Destructure options
   const {
     maxFileSize,
-    minDimensions,
-    maxDimensions,
     acceptedFileTypes,
   } = options
 
@@ -34,40 +31,25 @@ export function useFileHandler(options: FileHandlerOptionsIF = {}) {
   }
 
   /**
-   * Zod schema for file validation.
+   * Zod schema for file validation (pre-upload, no size or dimension checks).
    */
-  const schema = z.object({
+  const preConversionSchema = z.object({
     file: z
-      .instanceof(File, { message: 'Please select a file.' })
-      .refine((file) => file.size <= maxFileSize, {
-        message: `The file is too large. Please choose an image smaller than ${formatBytes(maxFileSize)}.`
+      .custom<File>((file) => file instanceof File, { message: 'Please select a file.' })
+      .refine((file) => Array.isArray(acceptedFileTypes) && acceptedFileTypes.includes(file.type), {
+        message: `Please upload a valid file (${(acceptedFileTypes ?? []).map(type => type.split('/').pop()?.toUpperCase()).join(', ')}).`
       })
-      .refine((file) => acceptedFileTypes.includes(file.type), {
-        message: `Please upload a valid file
-        (${acceptedFileTypes.map(type => type.split('/').pop()?.toUpperCase()).join(', ')}).`
+  })
+
+  /**
+   * Zod schema for file validation (post-upload, only size check).
+   */
+  const postConversionSchema = z.object({
+    file: z
+      .custom<File>((file) => file instanceof File, { message: 'Please select a file.' })
+      .refine((file) => typeof maxFileSize === 'undefined' || file.size <= maxFileSize, {
+        message: `The file is too large. Please choose a file smaller than ${formatBytes(maxFileSize ?? 0)}.`
       })
-      .refine(
-        (file) =>
-          new Promise((resolve) => {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-              const img = new Image()
-              img.onload = () => {
-                const meetsDimensions =
-                  img.width >= minDimensions.width &&
-                  img.height >= minDimensions.height &&
-                  img.width <= maxDimensions.width &&
-                  img.height <= maxDimensions.height
-                resolve(meetsDimensions)
-              }
-              img.src = e.target?.result as string
-            }
-            reader.readAsDataURL(file)
-          }),
-        {
-          message: `The image dimensions are invalid. Please upload an image between ${minDimensions.width}x${minDimensions.height} and ${maxDimensions.width}x${maxDimensions.height} pixels.`
-        }
-      )
   })
 
   /** Reactive state for file handling. */
@@ -96,9 +78,8 @@ export function useFileHandler(options: FileHandlerOptionsIF = {}) {
    */
   const convertPdf = async (file: File) => {
     const blobResponse = await pdfConversion(file)
-    if (blobResponse.status === 'error') {
+    if (!blobResponse || blobResponse.status === 'error') {
       throw new Error('Failed to convert file to PDF. No Blob returned.')
-      return
     }
     return new File(
       [blobResponse],
@@ -119,30 +100,63 @@ export function useFileHandler(options: FileHandlerOptionsIF = {}) {
    * @param {File[]} files - Array of files to handle.
    */
   const fileHandler = async (files: File[]) => {
+    // Check if already processing to prevent multiple uploads at once
     if (isProcessing.value) return
     isProcessing.value = true
+
+    // Initialize state.files if not already an array: handle both single file and multiple files
     const fileArray = Array.isArray(files) ? files : [files]
     if (!Array.isArray(state.files)) state.files = state.files ? [state.files] : []
+
+    // Add new files to the state
     try {
       for (const [index, file] of fileArray.entries()) {
-        // Only process files that haven't been uploaded yet
-        if (!file.uploaded) {
-          try {
-            const document = await convertPdf(file)
+        // Skip files that have already been uploaded
+        if (state.files && (state.files[index]?.uploaded || !!state.files[index]?.errorMsg)) {
+          continue
+        }
+
+        // Pre-upload validation
+        const preResult = await preConversionSchema.safeParseAsync({ file })
+        if (!preResult.success) {
+          state.files[index] = {
+            document: file,
+            uploaded: false,
+            errorMsg: preResult.error.errors.map((e: any) => e.message).join(', '),
+            index
+          }
+          continue // Skip conversion if pre-upload validation fails
+        }
+
+        try {
+          const document = await convertPdf(file)
+          // Post-upload validation
+          const postResult = await postConversionSchema.safeParseAsync({ file: document })
+          if (!postResult.success) {
             state.files[index] = {
               document,
-              uploaded: true,
+              uploaded: false,
+              errorMsg: postResult.error.errors.map((e: any) => e.message).join(', '),
               index
             }
+            continue
+          }
+          state.files[index] = {
+            document,
+            uploaded: true,
+            index
+          }
 
-            // Call emit event with the updated files
-            options.onConverted(state.files.map(f => f.document))
-          } catch (error) {
-            console.error(`Error converting file at index ${index}:`, error)
-            state.files[index] = {
-              uploaded: false,
-              errorMsg: 'Failed to convert file to PDF.'
-            }
+          // Call emit event with the uploaded files
+          if (state.files[index]?.uploaded) {
+            options.onConverted?.(state.files.filter(f => f.uploaded).map(f => f.document))
+          }
+        } catch (error) {
+          state.files[index] = {
+            document: file,
+            uploaded: false,
+            errorMsg: 'Failed to convert file to PDF.',
+            index
           }
         }
       }
@@ -153,7 +167,6 @@ export function useFileHandler(options: FileHandlerOptionsIF = {}) {
 
   return {
     state,
-    schema,
     isProcessing,
     formatBytes,
     removeFile,
