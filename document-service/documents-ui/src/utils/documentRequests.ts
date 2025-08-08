@@ -147,21 +147,19 @@ export async function putDocument(params: DocumentRequestIF, document: RequestDa
   // Build the full URL
   const url = `${baseURL}/documents/${documentServiceId}?${queryParams.toString()}`
 
-  try {
-    await useBcrosDocFetch<ApiResponseIF>(url, options).then((response) => {
-      return {
-        data: response.data,
-        status: response.status
-      }
-    })
-  } catch (error) {
+  return useBcrosDocFetch<ApiResponseIF>(url, options).then(response => {
+    return {
+      data: response.data.value,
+      status: response.status.value
+    }
+  }).catch(error => {
     const axiosError = error as AxiosError
     return {
       message: axiosError.message,
       status: axiosError.response?.status,
       statusText: axiosError.response?.statusText,
     }
-  }
+  })
 }
 
 /**

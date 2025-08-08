@@ -9,8 +9,7 @@ const {
   isEditing,
   isEditingReview,
   validateRecordEdit,
-  isError,
-  searchDocumentId
+  isError
 } = storeToRefs(useBcrosDocuments())
 
 const showDialog = ref(false)
