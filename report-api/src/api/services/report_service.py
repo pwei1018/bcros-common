@@ -17,11 +17,12 @@
 import base64
 
 from dateutil import parser
-from flask import url_for
+from flask import current_app, url_for
 from jinja2 import Environment, FileSystemLoader, Template
 from weasyprint import HTML
-from weasyprint.formatting_structure.boxes import InlineBox
 
+from api.services.page_info import populate_page_count, populate_page_info  # noqa: F401
+from api.services.streaming_report_service import StreamingReportService
 from api.utils.util import TEMPLATE_FOLDER_PATH
 
 
@@ -53,15 +54,46 @@ ENV.filters['format_datetime'] = format_datetime
 class ReportService:
     """Service for all template related operations."""
 
+    @staticmethod
+    def _finalize_pdf(
+        template_name: str,
+        template_args: object,
+        html_out: str,
+        generate_page_number: bool,
+    ) -> bytes:
+        """Route to streaming only when statement_report has groupedInvoices; else render directly."""
+        is_statement = 'statement_report' in (template_name or '')
+        has_grouped_invoices = bool((template_args or {}).get('groupedInvoices'))
+        if is_statement and has_grouped_invoices:
+            return StreamingReportService.create_streaming_report(
+                template_name,
+                template_args,
+                generate_page_number,
+            )
+        return ReportService.generate_pdf(html_out, generate_page_number)
+
     @classmethod
-    def create_report_from_stored_template(cls, template_name: str, template_args: object,
-                                           generate_page_number: bool = False):
+    def create_report_from_stored_template(
+        cls,
+        template_name: str,
+        template_args: object,
+        generate_page_number: bool = False,
+    ):
         """Create a report from a stored template."""
         template = ENV.get_template(f'{TEMPLATE_FOLDER_PATH}/{template_name}.html')
         bc_logo_url = url_for('static', filename='images/bcgov-logo-vert.jpg')
         registries_url = url_for('static', filename='images/reg_logo.png')
-        html_out = template.render(template_args, bclogoUrl=bc_logo_url, registriesurl=registries_url)
-        return ReportService.generate_pdf(html_out, generate_page_number)
+        html_out = template.render(
+            template_args, bclogoUrl=bc_logo_url, registriesurl=registries_url
+        )
+
+        # Finalize via shared helper (streaming when name contains 'statement_report')
+        return ReportService._finalize_pdf(
+            template_name,
+            template_args,
+            html_out,
+            generate_page_number,
+        )
 
     @classmethod
     def create_report_from_template(cls, template_string: str, template_args: object,
@@ -70,37 +102,32 @@ class ReportService:
         template_decoded = base64.b64decode(template_string).decode('utf-8')
         template_ = Template(template_decoded, autoescape=True)
         html_out = template_.render(template_args)
-        return ReportService.generate_pdf(html_out, generate_page_number)
+
+        report_name = (template_args or {}).get('reportName', '')
+        return ReportService._finalize_pdf(
+            template_name=report_name,
+            template_args=template_args,
+            html_out=html_out,
+            generate_page_number=generate_page_number,
+        )
 
     @staticmethod
     def generate_pdf(html_out, generate_page_number: bool = False):
         """Generate pdf out of the html."""
         html = HTML(string=html_out).render(optimize_size=('fonts', 'images',))
         if generate_page_number:
-            html = ReportService.populate_page_info(html)
+            html = populate_page_info(html)
 
         return html.write_pdf()
 
     @staticmethod
-    def populate_page_info(html):
-        """Iterate through pages and populate page number info."""
-        total_pages = len(html.pages)
-        count = 1
-        for page in html.pages:
-            ReportService.populate_page_count(page._page_box, count, total_pages)  # pylint: disable=protected-access
-            count = count + 1
-        return html
+    def populate_page_info(
+        html,
+    ):  # deprecated shim, prefer api.services.page_info.populate_page_info
+        """Shim for backward compatibility; delegates to shared helper."""
+        return populate_page_info(html)
 
     @staticmethod
-    def populate_page_count(box, count, total):
-        """Iterate through boxes and populate page info under pageinfo tag."""
-        if box.element_tag:
-            if box.element_tag == 'pageinfo':
-                page_info_text = f'Page {count} of {total}'
-                if isinstance(box, InlineBox):
-                    box.children[0].text = page_info_text
-                    box.children[0].pango_layout.text = page_info_text
-                box.text = page_info_text
-        if box.all_children():
-            for b in box.children:
-                ReportService.populate_page_count(b, count, total)
+    def populate_page_count(box, count, total):  # deprecated shim
+        """Shim for backward compatibility; delegates to shared helper."""
+        return populate_page_count(box, count, total)
