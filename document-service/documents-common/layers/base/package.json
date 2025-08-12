@@ -1,7 +1,7 @@
 {
   "name": "documents-common-base-layer",
   "type": "module",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "./nuxt.config.ts",
   "scripts": {
     "dev": "nuxi dev .playground",

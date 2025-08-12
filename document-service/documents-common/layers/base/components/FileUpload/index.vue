@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import VuePdfEmbed from 'vue-pdf-embed'
 import { useFileHandler } from '~/composables/useFileHandler'
+import type { SelectMenuItem } from '@nuxt/ui'
 
 /**
  * FileUpload component for handling file uploads with validation.
@@ -76,6 +77,72 @@ const hasValidUploadedFile = computed(() =>
 const showValidationError = computed(() =>
   props.validate && !hasValidUploadedFile.value
 )
+
+/** Mobile detection and responsive layout handling */
+const isMobile = ref(window.innerWidth < 640)
+function handleResize() {
+  isMobile.value = window.innerWidth < 640
+}
+onMounted(() => window.addEventListener('resize', handleResize))
+onUnmounted(() => window.removeEventListener('resize', handleResize))
+
+/** Computed configurations for file upload component */
+const fileUploadFileConfig = computed(() => {
+  const baseConfig = showValidationError.value
+    ? { label: 'text-red-600', base: 'border-red-600' }
+    : {}
+  if (isMobile.value) {
+    return { ...baseConfig, file: 'grid grid-cols-6 gap-1 wrap-anywhere' };
+  }
+  return baseConfig
+})
+
+/**
+ * Handles the change event for mobile picture or album input.
+ * Extracts the selected file(s) and passes them as an array to the file handler.
+ * @param event - The input change event from the file input element.
+ */
+const mobilePictureHandler = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files.length > 0) {
+
+    // Ensure state.files is always an array before spreading new files into it
+    const files = Array.from(input.files)
+    state.files = Array.isArray(state.files) ? [...state.files, ...files] : [...files]
+
+    fileHandler(state.files)
+  }
+}
+
+/** Dropdown menu items for mobile actions */
+const mobileMenuItems = ref([
+  {
+    label: 'Photos',
+    value: 'albumInput',
+    icon: 'i-mdi-camera'
+  },
+  {
+    label: 'Camera',
+    value: 'cameraInput',
+    icon: 'i-mdi-image-multiple'
+  },
+  {
+    label: 'Files',
+    value: 'fileInput',
+    icon: 'i-mdi-file'
+  }
+] satisfies SelectMenuItem[])
+
+/** Refs for mobile file inputs */
+const albumInput = ref<HTMLInputElement | null>(null)
+const cameraInput = ref<HTMLInputElement | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+/** Trigger input click by type */
+function triggerInput(type: 'cameraInput' | 'albumInput' | 'fileInput') {
+  const inputRefs = { albumInput, cameraInput, fileInput }
+  inputRefs[type].value?.click()
+}
 </script>
 
 <template>
@@ -89,7 +156,7 @@ const showValidationError = computed(() =>
         :interactive="false"
         class="w-full"
         @update:model-value="fileHandler"
-        :ui="showValidationError ? { label: 'text-red-600', base: 'border-red-600' } : {}"
+        :ui="fileUploadFileConfig"
       >
         <template #leading>{{ null }}</template>
         <template #description>
@@ -101,7 +168,58 @@ const showValidationError = computed(() =>
           </div>
         </template>
         <template #actions="{ open }">
-          <div class="flex items-center">
+          <!-- Mobile Device Actions-->
+          <template v-if="isMobile">
+            <UDropdownMenu
+              :items="mobileMenuItems"
+            >
+              <UButton
+                label="Upload Files"
+                icon="i-mdi-file-upload-outline"
+                color="primary"
+                variant="solid"
+                class=""
+              />
+              <template #item="{ item }">
+                <UButton
+                  type="button"
+                  class="min-w-[150px]"
+                  variant="ghost"
+                  :label="item.label"
+                  :icon="item.icon"
+                  @click="triggerInput(item.value)"
+                />
+              </template>
+            </UDropdownMenu>
+
+            <!-- Camera Input -->
+            <input
+              ref="cameraInput"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              class="hidden"
+              @change="mobilePictureHandler"
+            />
+            <!-- Photo Album Input -->
+            <input
+              ref="albumInput"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="mobilePictureHandler"
+            />
+            <!-- File Picker Input -->
+            <input
+              ref="fileInput"
+              type="file"
+              class="hidden"
+              @change="mobilePictureHandler"
+            />
+          </template>
+
+          <!-- Desktop Actions -->
+          <div v-else class="flex items-center">
             <UButton
               label="Upload Files"
               icon="i-mdi-file-upload-outline"
@@ -114,7 +232,7 @@ const showValidationError = computed(() =>
         </template>
 
         <template #file="{ file, index }">
-          <div class="w-24">
+          <div class="w-24 col-span-2">
             <VuePdfEmbed
               v-if="file?.uploaded"
               :source="getObjectURL(file?.document)"
@@ -130,10 +248,10 @@ const showValidationError = computed(() =>
             </div>
           </div>
 
-          <div class="w-full ml-4">
-            <template v-if="file.errorMsg">
+          <div class="w-full ml-4 col-span-4">
+            <template v-if="file?.errorMsg">
               <div class="flex items-center">
-                <UIcon name="i-mdi-close-circle" class="text-red-600 w-5 h-5" />
+                <UIcon name="i-mdi-close-circle" class="text-red-600 size-[20px]" />
                 <span class="ml-2 text-red-600 text-[14px] italic">
                   Upload of {{file.document?.name}} failed. {{file.errorMsg}}
                 </span>
@@ -141,7 +259,7 @@ const showValidationError = computed(() =>
             </template>
             <template v-else-if="file?.uploaded">
               <div class="flex items-center">
-                <UIcon name="i-mdi-check-circle" class="text-green-700 w-5 h-5" />
+                <UIcon name="i-mdi-check-circle" class="text-green-700 size-[20px]" />
                 <span class="ml-2 text-[16px] italic">{{ file?.document.name }}</span>
               </div>
               <div class="ml-6">
@@ -154,15 +272,17 @@ const showValidationError = computed(() =>
             </template>
           </div>
 
-          <UButton
-            variant="ghost"
-            color="primary"
-            @click="removeFile(index)"
-            class="w-full sm:w-auto"
-          >
-            <span>{{ file?.uploaded ? 'Remove' : 'Cancel' }}</span>
-            <UIcon name="i-mdi-close" />
-          </UButton>
+          <div class="col-span-2 col-start-3">
+            <UButton
+              variant="ghost"
+              color="primary"
+              @click="removeFile(index)"
+              class="w-full sm:w-auto"
+            >
+              <span>{{ file?.uploaded ? 'Remove' : 'Cancel' }}</span>
+              <UIcon name="i-mdi-close" />
+            </UButton>
+          </div>
         </template>
       </UFileUpload>
     </UFormField>

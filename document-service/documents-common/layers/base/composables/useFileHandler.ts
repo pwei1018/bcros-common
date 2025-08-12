@@ -15,6 +15,11 @@ export function useFileHandler(options: FileHandlerOptionsIF = {}) {
     acceptedFileTypes,
   } = options
 
+  /** Reactive state for file handling. */
+  const state = reactive<{ files?: File[] }>({ files: undefined })
+  /** Indicates if a file operation is in progress. */
+  const isProcessing = ref(false)
+
   /**
    * Formats bytes as a human-readable string.
    * @param {number} bytes - The number of bytes.
@@ -51,12 +56,6 @@ export function useFileHandler(options: FileHandlerOptionsIF = {}) {
         message: `The file is too large. Please choose a file smaller than ${formatBytes(maxFileSize ?? 0)}.`
       })
   })
-
-  /** Reactive state for file handling. */
-  const state = reactive<{ files?: any[] }>({ files: undefined })
-
-  /** Indicates if a file operation is in progress. */
-  const isProcessing = ref(false)
 
   /**
    * Removes a file from the state by index.
