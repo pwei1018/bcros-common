@@ -16,3 +16,4 @@
 from .csv_service import CsvService
 from .report_service import ReportService
 from .template_service import TemplateService
+from .streaming_report_service import StreamingReportService

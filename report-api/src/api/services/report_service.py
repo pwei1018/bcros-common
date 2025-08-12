@@ -17,11 +17,11 @@
 import base64
 
 from dateutil import parser
-from flask import current_app, url_for
+from flask import url_for
 from jinja2 import Environment, FileSystemLoader, Template
 from weasyprint import HTML
 
-from api.services.page_info import populate_page_count, populate_page_info  # noqa: F401
+from api.services.page_info import populate_page_count, populate_page_info
 from api.services.streaming_report_service import StreamingReportService
 from api.utils.util import TEMPLATE_FOLDER_PATH
 

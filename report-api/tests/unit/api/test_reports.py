@@ -24,6 +24,7 @@ import json
 import pytest
 
 from .base_test import get_claims, token_header
+from api.services import report_service
 
 
 def test_get_generate(client):
@@ -179,3 +180,29 @@ def test_csv_report_with_invalid_request(client, jwt, app):
     }
     rv = client.post(request_url, data=json.dumps(request_data), headers=headers)
     assert rv.status_code == 400
+
+
+def _inline_tpl():
+    html = '<html><body>ok</body></html>'
+    return base64.b64encode(html.encode('utf-8')).decode('utf-8')
+
+def test_statement_grouped_invoices(client, jwt, app, monkeypatch):
+    monkeypatch.setattr(
+        report_service.StreamingReportService,
+        '_build_chunk_html',
+        staticmethod(lambda *a, **k: '<html><body>ok</body></html>')
+    )
+
+    token = jwt.create_jwt(get_claims(app_request=app), token_header)
+    headers = {'Authorization': f'Bearer {token}', 'content-type': 'application/json'}
+    data = {
+        'template': _inline_tpl(),
+        'templateVars': {
+            'groupedInvoices': [{'transactions': [1]}],
+            'reportName': 'statement_report',
+        },
+        'reportName': 'statement_report',
+    }
+    resp = client.post('/api/v1/reports', data=json.dumps(data), headers=headers)
+    assert resp.status_code == 200
+    assert resp.content_type == 'application/pdf'

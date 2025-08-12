@@ -8,9 +8,7 @@ def populate_page_info(document):
     total_pages = len(document.pages)
     count = 1
     for page in document.pages:
-        populate_page_count(
-            page._page_box, count, total_pages
-        )  # pylint: disable=protected-access
+        populate_page_count(page._page_box, count, total_pages)  # pylint: disable=protected-access
         count += 1
     return document
 
