@@ -26,7 +26,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from flask import current_app, url_for
 from jinja2 import Environment, FileSystemLoader
-from PyPDF2 import PdfMerger
 from weasyprint import HTML
 
 from api.services.page_info import populate_page_info
@@ -35,10 +34,10 @@ from api.utils.util import TEMPLATE_FOLDER_PATH
 
 class ChunkReportService:  # pylint:disable=too-few-public-methods
     """Service for generating large reports using chunk approach."""
-    
+
     _TEMPLATE_ENV = Environment(
         loader=FileSystemLoader("."), autoescape=True
-    ) 
+    )
 
     @dataclass
     class ChunkInfo:
@@ -61,14 +60,17 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
     @staticmethod
     def _merge_pdf_files(temp_files: List[str]) -> bytes:
         """Merge multiple PDF files into one."""
-        with PdfMerger() as merger:
-            for temp_file in temp_files:
-                with open(temp_file, "rb") as pdf_file:
-                    merger.append(pdf_file)
 
-            output = io.BytesIO()
-            merger.write(output)
-            return output.getvalue()
+        # Lazy import to avoid heavy module import in worker processes
+        from pikepdf import Pdf # pylint:disable=import-outside-toplevel
+
+        with Pdf.new() as out_pdf:
+            for path in temp_files:
+                with Pdf.open(path) as src:
+                    out_pdf.pages.extend(src.pages)
+            buf = io.BytesIO()
+            out_pdf.save(buf)
+            return buf.getvalue()
 
     @staticmethod
     def _optimize_html_if_large(html_out: str) -> str:
@@ -78,15 +80,6 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
             html_out = re.sub(r">\s+<", "><", html_out)
             html_out = re.sub(r"\s+", " ", html_out)
         return html_out
-
-    @staticmethod
-    def _render_pdf_fast(html_out: str) -> bytes:
-        gc.collect()
-        html = HTML(string=html_out)
-        pdf_content = html.write_pdf()
-        del html
-        gc.collect()
-        return pdf_content
 
     @staticmethod
     def _append_pdf_bytes(pdf_content: bytes, temp_files: List[str]) -> None:
@@ -189,7 +182,6 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         template_vars: Dict[str, Any]
         temp_files: List[str]
         generate_page_number: bool
-        overall_start_time: float
 
     @staticmethod
     def create_chunk_report(
@@ -202,7 +194,7 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         overall_start_time = time.time()
 
         if chunk_size is None:
-            chunk_size = 500
+            chunk_size = 500 # the optimal chunk size is 500 after testing
 
         grouped_invoices = template_vars.get("groupedInvoices", [])
         temp_files: List[str] = []
@@ -212,7 +204,6 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
             template_name, template_vars, grouped_invoices, chunk_size
         )
 
-        # Parallel render using process pool
         base_url = current_app.root_path
         worker_count = max(1, (os.cpu_count() or 2) - 1)
 
@@ -222,15 +213,20 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
             ChunkReportService._append_pdf_bytes(pdf_bytes, temp_files)
 
         # Merge and finalize output
-        return ChunkReportService._merge_and_finalize(
+        result = ChunkReportService._merge_and_finalize(
             ChunkReportService.MergeContext(
                 template_name=template_name,
                 template_vars=template_vars,
                 temp_files=temp_files,
-                generate_page_number=generate_page_number,
-                overall_start_time=overall_start_time,
+                generate_page_number=generate_page_number
             )
         )
+
+        elapsed = time.time() - overall_start_time
+        current_app.logger.info(
+            "chunk_report done: chunks=%s elapsed=%.1fs", len(tasks), elapsed
+        )
+        return result
 
     @staticmethod
     def _fix_page_numbers_by_regeneration(
@@ -252,7 +248,6 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         if invoice_count > 10:
             return merged_pdf
 
-        # Render the complete template
         env = Environment(loader=FileSystemLoader("."), autoescape=True)
         template = env.get_template(f"{TEMPLATE_FOLDER_PATH}/{template_name}.html")
         bc_logo_url = url_for("static", filename="images/bcgov-logo-vert.jpg")
@@ -261,7 +256,6 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
             template_vars, bclogoUrl=bc_logo_url, registriesurl=registries_url
         )
 
-            # Generate PDF with page numbering using shared helper
         html_rendered = HTML(string=html_out).render(
             optimize_size=("fonts", "images")
         )
