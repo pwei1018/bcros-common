@@ -17,7 +17,6 @@
 import gc
 import io
 import os
-import re
 import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -72,14 +71,6 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
             out_pdf.save(buf)
             return buf.getvalue()
 
-    @staticmethod
-    def _optimize_html_if_large(html_out: str) -> str:
-        html_size_mb = len(html_out.encode("utf-8")) / (1024 * 1024)
-        if html_size_mb > 10:
-            html_out = re.sub(r"<!--.*?-->", "", html_out, flags=re.DOTALL)
-            html_out = re.sub(r">\s+<", "><", html_out)
-            html_out = re.sub(r"\s+", " ", html_out)
-        return html_out
 
     @staticmethod
     def _append_pdf_bytes(pdf_content: bytes, temp_files: List[str]) -> None:
@@ -147,9 +138,7 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
                         slice_end=end,
                     ),
                 )
-                tasks.append(
-                    (order_id, ChunkReportService._optimize_html_if_large(html_out))
-                )
+                tasks.append((order_id, html_out))
                 order_id += 1
                 start = end
         return tasks
