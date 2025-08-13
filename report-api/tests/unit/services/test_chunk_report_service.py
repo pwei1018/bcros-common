@@ -75,11 +75,3 @@ def test_fix_page_numbers_skip_when_large_pdf():
     big_bytes = b'x' * (10 * 1024 * 1024 + 1)
     out = ChunkReportService._fix_page_numbers_by_regeneration('statement_report', {'groupedInvoices': [{}]}, big_bytes)
     assert out == big_bytes
-
-
-def test_fix_page_numbers_skip_when_many_invoices():
-    """When invoice_count > 10, function should return input unchanged."""
-    small = b'%PDF-1.4\n%minimal'
-    tmpl_vars = {'groupedInvoices': [{}] * 11}
-    out = ChunkReportService._fix_page_numbers_by_regeneration('statement_report', tmpl_vars, small)
-    assert out == small

@@ -27,3 +27,12 @@ def populate_page_count(box, count, total):
     if hasattr(box, "all_children") and box.all_children():
         for child in box.children:
             populate_page_count(child, count, total)
+
+
+def populate_page_info_with_offset(document, start_index: int, total_pages: int):
+    """Populate page numbers starting from a given index (1-based)."""
+    count = max(1, int(start_index))
+    for page in document.pages:
+        populate_page_count(page._page_box, count, total_pages)  # pylint: disable=protected-access
+        count += 1
+    return document

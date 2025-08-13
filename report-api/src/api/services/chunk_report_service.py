@@ -27,7 +27,10 @@ from flask import current_app, url_for
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 
-from api.services.page_info import populate_page_info
+from api.services.page_info import (
+    populate_page_info,
+    populate_page_info_with_offset,
+)
 from api.utils.util import TEMPLATE_FOLDER_PATH
 
 
@@ -86,6 +89,18 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         html = HTML(string=html_out, base_url=base_url)
         pdf_content = html.write_pdf()
         del html
+        gc.collect()
+        return pdf_content
+
+    @staticmethod
+    def _render_pdf_with_offset_worker(args: Tuple[str, str, int, int]) -> bytes:
+        """Render HTML then populate page numbers with offset and total, return PDF bytes."""
+        html_out, base_url, start_index, total_pages = args
+        gc.collect()
+        doc = HTML(string=html_out, base_url=base_url).render()
+        doc = populate_page_info_with_offset(doc, start_index, total_pages)
+        pdf_content = doc.write_pdf()
+        del doc
         gc.collect()
         return pdf_content
 
@@ -163,6 +178,50 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
                 results.append((future_map[fut], fut.result()))
         return [pdf for _, pdf in sorted(results, key=lambda x: x[0])]
 
+    @staticmethod
+    def _count_pdf_pages(pdf_bytes: bytes) -> int:
+        """Return page count using pikepdf (fast, no render)."""
+        # Lazy import to avoid heavy module import in worker processes
+        from pikepdf import Pdf  # pylint:disable=import-outside-toplevel
+
+        with Pdf.open(io.BytesIO(pdf_bytes)) as pdf:
+            return len(pdf.pages)
+
+    @staticmethod
+    def _render_second_pass_to_temp_files(
+        ordered_htmls: List[str],
+        base_url: str,
+        worker_count: int,
+        first_pass_pdfs: List[bytes],
+    ) -> List[str]:
+        """Second pass render: render with page offsets and persist to temp files."""
+        temp_files: List[str] = []
+
+        page_counts = [ChunkReportService._count_pdf_pages(pdf) for pdf in first_pass_pdfs]
+        offsets: List[int] = []
+        total_pages = 0
+        for count in page_counts:
+            offsets.append(total_pages + 1)
+            total_pages += count
+
+        with ProcessPoolExecutor(max_workers=worker_count) as executor:
+            future_map = {
+                executor.submit(
+                    ChunkReportService._render_pdf_with_offset_worker,
+                    (ordered_htmls[i], base_url, offsets[i], total_pages),
+                ): i
+                for i in range(len(ordered_htmls))
+            }
+            ordered_results: Dict[int, bytes] = {}
+            for fut in as_completed(future_map):
+                ordered_results[future_map[fut]] = fut.result()
+            for i in range(len(ordered_htmls)):
+                ChunkReportService._append_pdf_bytes(ordered_results[i], temp_files)
+        # Help GC in very large runs
+        del ordered_results
+        gc.collect()
+        return temp_files
+
     @dataclass
     class MergeContext:
         """Merge context for chunk report."""
@@ -196,10 +255,18 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         base_url = current_app.root_path
         worker_count = max(1, (os.cpu_count() or 2) - 1)
 
-        for pdf_bytes in ChunkReportService._render_tasks_parallel(
+        # Preserve original order of HTML chunks
+        ordered_htmls: List[str] = [html for _, html in sorted(tasks, key=lambda x: x[0])]
+
+        # First pass: quick render to PDF bytes and collect page counts
+        first_pass_pdfs = ChunkReportService._render_tasks_parallel(
             tasks, base_url, worker_count
-        ):
-            ChunkReportService._append_pdf_bytes(pdf_bytes, temp_files)
+        )
+
+        # Second pass: render again with page offsets and write PDFs
+        temp_files = ChunkReportService._render_second_pass_to_temp_files(
+            ordered_htmls, base_url, worker_count, first_pass_pdfs
+        )
 
         # Merge and finalize output
         result = ChunkReportService._merge_and_finalize(
@@ -217,43 +284,9 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         )
         return result
 
-    @staticmethod
-    def _fix_page_numbers_by_regeneration(
-        template_name: str, template_vars: Dict[str, Any], merged_pdf: bytes
-    ) -> bytes:
-        """
-        Fix page numbers by regenerating the PDF with proper page numbering.
-
-        This is more reliable than trying to edit the merged PDF directly.
-        """
-
-        # For large outputs, regenerating the entire document is too heavy; skip
-        merged_size_mb = len(merged_pdf) / (1024 * 1024)
-        if merged_size_mb > 10:
-            return merged_pdf
-
-        env = Environment(loader=FileSystemLoader("."), autoescape=True)
-        template = env.get_template(f"{TEMPLATE_FOLDER_PATH}/{template_name}.html")
-        bc_logo_url = url_for("static", filename="images/bcgov-logo-vert.jpg")
-        registries_url = url_for("static", filename="images/reg_logo.png")
-        html_out = template.render(
-            template_vars, bclogoUrl=bc_logo_url, registriesurl=registries_url
-        )
-
-        html_rendered = HTML(string=html_out).render(
-            optimize_size=("fonts", "images")
-        )
-        html_with_pages = populate_page_info(html_rendered)
-        return html_with_pages.write_pdf()
 
     @staticmethod
     def _merge_and_finalize(ctx: "ChunkReportService.MergeContext") -> bytes:
         """Merge temp PDFs, optionally fix page numbers, log and return final bytes."""
         merged_pdf = ChunkReportService._merge_pdf_files(ctx.temp_files)
-
-        if ctx.generate_page_number:
-            merged_pdf = ChunkReportService._fix_page_numbers_by_regeneration(
-                ctx.template_name, ctx.template_vars, merged_pdf
-            )
-
         return merged_pdf
