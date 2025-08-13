@@ -13,11 +13,11 @@
 # limitations under the License.
 
 
-"""Tests to assure the StreamingReportService."""
+"""Tests to assure the ChunkReportService."""
 
 from weasyprint import HTML
 
-from api.services.streaming_report_service import StreamingReportService
+from api.services.chunk_report_service import ChunkReportService
 
 
 def test_prepare_chunk_tasks_splits_transactions(monkeypatch):
@@ -35,7 +35,7 @@ def test_prepare_chunk_tasks_splits_transactions(monkeypatch):
         )
         return '<html><body>ok</body></html>'
 
-    monkeypatch.setattr(StreamingReportService, '_build_chunk_html', staticmethod(fake_build_chunk_html))
+    monkeypatch.setattr(ChunkReportService, '_build_chunk_html', staticmethod(fake_build_chunk_html))
 
     grouped_invoices = [
         {
@@ -44,7 +44,7 @@ def test_prepare_chunk_tasks_splits_transactions(monkeypatch):
         }
     ]
 
-    tasks = StreamingReportService._prepare_chunk_tasks('statement_report', {'foo': 'bar'}, grouped_invoices, chunk_size=5)
+    tasks = ChunkReportService._prepare_chunk_tasks('statement_report', {'foo': 'bar'}, grouped_invoices, chunk_size=5)
     assert len(tasks) == 3
     # verify chunk boundaries 1-5, 6-10, 11-12
     assert captured[0] == {'start': 1, 'end': 5, 'len': 5}
@@ -64,7 +64,7 @@ def test_merge_pdf_files_merges_two_pdfs(tmp_path):
     p1.write_bytes(_make_pdf_bytes('A'))
     p2.write_bytes(_make_pdf_bytes('B'))
 
-    merged = StreamingReportService._merge_pdf_files([str(p1), str(p2)])
+    merged = ChunkReportService._merge_pdf_files([str(p1), str(p2)])
     assert isinstance(merged, (bytes, bytearray))
     # merged file should be larger than each single input
     assert len(merged) > max(p1.stat().st_size, p2.stat().st_size)
@@ -73,7 +73,7 @@ def test_merge_pdf_files_merges_two_pdfs(tmp_path):
 def test_fix_page_numbers_skip_when_large_pdf():
     """When merged PDF is >10MB, function should return input unchanged."""
     big_bytes = b'x' * (10 * 1024 * 1024 + 1)
-    out = StreamingReportService._fix_page_numbers_by_regeneration('statement_report', {'groupedInvoices': [{}]}, big_bytes)
+    out = ChunkReportService._fix_page_numbers_by_regeneration('statement_report', {'groupedInvoices': [{}]}, big_bytes)
     assert out == big_bytes
 
 
@@ -81,5 +81,5 @@ def test_fix_page_numbers_skip_when_many_invoices():
     """When invoice_count > 10, function should return input unchanged."""
     small = b'%PDF-1.4\n%minimal'
     tmpl_vars = {'groupedInvoices': [{}] * 11}
-    out = StreamingReportService._fix_page_numbers_by_regeneration('statement_report', tmpl_vars, small)
+    out = ChunkReportService._fix_page_numbers_by_regeneration('statement_report', tmpl_vars, small)
     assert out == small

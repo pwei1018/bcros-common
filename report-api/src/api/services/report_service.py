@@ -22,7 +22,7 @@ from jinja2 import Environment, FileSystemLoader, Template
 from weasyprint import HTML
 
 from api.services.page_info import populate_page_count, populate_page_info
-from api.services.streaming_report_service import StreamingReportService
+from api.services.chunk_report_service import ChunkReportService
 from api.utils.util import TEMPLATE_FOLDER_PATH
 
 
@@ -61,11 +61,11 @@ class ReportService:
         html_out: str,
         generate_page_number: bool,
     ) -> bytes:
-        """Route to streaming only when statement_report has groupedInvoices; else render directly."""
+        """Route to chunk only when statement_report has groupedInvoices; else render directly."""
         is_statement = 'statement_report' in (template_name or '')
         has_grouped_invoices = bool((template_args or {}).get('groupedInvoices'))
         if is_statement and has_grouped_invoices:
-            return StreamingReportService.create_streaming_report(
+            return ChunkReportService.create_chunk_report(
                 template_name,
                 template_args,
                 generate_page_number,
@@ -87,7 +87,7 @@ class ReportService:
             template_args, bclogoUrl=bc_logo_url, registriesurl=registries_url
         )
 
-        # Finalize via shared helper (streaming when name contains 'statement_report')
+        # Finalize via shared helper (chunk when name contains 'statement_report')
         return ReportService._finalize_pdf(
             template_name,
             template_args,

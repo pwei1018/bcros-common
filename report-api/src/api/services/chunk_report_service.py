@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Streaming PDF generation service for handling large datasets."""
+"""Chunk PDF generation service for handling large datasets."""
 
 import gc
 import io
@@ -33,16 +33,16 @@ from api.services.page_info import populate_page_info
 from api.utils.util import TEMPLATE_FOLDER_PATH
 
 
-class StreamingReportService:  # pylint:disable=too-few-public-methods
-    """Service for generating large reports using streaming/chunking approach."""
+class ChunkReportService:  # pylint:disable=too-few-public-methods
+    """Service for generating large reports using chunk approach."""
     
     _TEMPLATE_ENV = Environment(
         loader=FileSystemLoader("."), autoescape=True
-    )
+    ) 
 
     @dataclass
     class ChunkInfo:
-        """Chunk info for streaming report."""
+        """Chunk info for chunk report."""
 
         mode: str = "transactions"
         invoice_index: int = 0
@@ -110,12 +110,12 @@ class StreamingReportService:  # pylint:disable=too-few-public-methods
         template_name: str,
         template_vars: Dict[str, Any],
         invoice_copy: Dict[str, Any],
-        chunk_info: "StreamingReportService.ChunkInfo",
+        chunk_info: "ChunkReportService.ChunkInfo",
     ) -> str:
         chunk_vars = template_vars.copy()
         chunk_vars["groupedInvoices"] = [invoice_copy]
         chunk_vars["_chunk_info"] = asdict(chunk_info)
-        template = StreamingReportService._TEMPLATE_ENV.get_template(
+        template = ChunkReportService._TEMPLATE_ENV.get_template(
             f"{TEMPLATE_FOLDER_PATH}/{template_name}.html"
         )
         bc_logo_url = url_for("static", filename="images/bcgov-logo-vert.jpg")
@@ -143,11 +143,11 @@ class StreamingReportService:  # pylint:disable=too-few-public-methods
                 end = min(start + chunk_size, len(txns))
                 invoice_copy = dict(original)
                 invoice_copy["transactions"] = txns[start:end]
-                html_out = StreamingReportService._build_chunk_html(
+                html_out = ChunkReportService._build_chunk_html(
                     template_name,
                     template_vars,
                     invoice_copy,
-                    StreamingReportService.ChunkInfo(
+                    ChunkReportService.ChunkInfo(
                         invoice_index=invoice_index,
                         current_chunk=(start // max(1, chunk_size)) + 1,
                         slice_start=start + 1,
@@ -155,7 +155,7 @@ class StreamingReportService:  # pylint:disable=too-few-public-methods
                     ),
                 )
                 tasks.append(
-                    (order_id, StreamingReportService._optimize_html_if_large(html_out))
+                    (order_id, ChunkReportService._optimize_html_if_large(html_out))
                 )
                 order_id += 1
                 start = end
@@ -172,7 +172,7 @@ class StreamingReportService:  # pylint:disable=too-few-public-methods
         with ProcessPoolExecutor(max_workers=worker_count) as executor:
             future_map = {
                 executor.submit(
-                    StreamingReportService._render_pdf_bytes_worker,
+                    ChunkReportService._render_pdf_bytes_worker,
                     (html_out, base_url),
                 ): oid
                 for oid, html_out in tasks
@@ -183,7 +183,7 @@ class StreamingReportService:  # pylint:disable=too-few-public-methods
 
     @dataclass
     class MergeContext:
-        """Merge context for streaming report."""
+        """Merge context for chunk report."""
 
         template_name: str
         template_vars: Dict[str, Any]
@@ -192,13 +192,13 @@ class StreamingReportService:  # pylint:disable=too-few-public-methods
         overall_start_time: float
 
     @staticmethod
-    def create_streaming_report(
+    def create_chunk_report(
         template_name: str,
         template_vars: Dict[str, Any],
         generate_page_number: bool = False,
         chunk_size: Optional[int] = None,
     ) -> bytes:
-        """Create large reports using streaming/chunking approach."""
+        """Create large reports using chunking approach."""
         overall_start_time = time.time()
 
         if chunk_size is None:
@@ -208,7 +208,7 @@ class StreamingReportService:  # pylint:disable=too-few-public-methods
         temp_files: List[str] = []
 
         # Build all chunk HTMLs ahead of time (keep order id)
-        tasks = StreamingReportService._prepare_chunk_tasks(
+        tasks = ChunkReportService._prepare_chunk_tasks(
             template_name, template_vars, grouped_invoices, chunk_size
         )
 
@@ -216,14 +216,14 @@ class StreamingReportService:  # pylint:disable=too-few-public-methods
         base_url = current_app.root_path
         worker_count = max(1, (os.cpu_count() or 2) - 1)
 
-        for pdf_bytes in StreamingReportService._render_tasks_parallel(
+        for pdf_bytes in ChunkReportService._render_tasks_parallel(
             tasks, base_url, worker_count
         ):
-            StreamingReportService._append_pdf_bytes(pdf_bytes, temp_files)
+            ChunkReportService._append_pdf_bytes(pdf_bytes, temp_files)
 
         # Merge and finalize output
-        return StreamingReportService._merge_and_finalize(
-            StreamingReportService.MergeContext(
+        return ChunkReportService._merge_and_finalize(
+            ChunkReportService.MergeContext(
                 template_name=template_name,
                 template_vars=template_vars,
                 temp_files=temp_files,
@@ -269,12 +269,12 @@ class StreamingReportService:  # pylint:disable=too-few-public-methods
         return html_with_pages.write_pdf()
 
     @staticmethod
-    def _merge_and_finalize(ctx: "StreamingReportService.MergeContext") -> bytes:
+    def _merge_and_finalize(ctx: "ChunkReportService.MergeContext") -> bytes:
         """Merge temp PDFs, optionally fix page numbers, log and return final bytes."""
-        merged_pdf = StreamingReportService._merge_pdf_files(ctx.temp_files)
+        merged_pdf = ChunkReportService._merge_pdf_files(ctx.temp_files)
 
         if ctx.generate_page_number:
-            merged_pdf = StreamingReportService._fix_page_numbers_by_regeneration(
+            merged_pdf = ChunkReportService._fix_page_numbers_by_regeneration(
                 ctx.template_name, ctx.template_vars, merged_pdf
             )
 

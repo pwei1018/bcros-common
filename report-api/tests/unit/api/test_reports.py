@@ -188,7 +188,7 @@ def _inline_tpl():
 
 def test_statement_grouped_invoices(client, jwt, app, monkeypatch):
     monkeypatch.setattr(
-        report_service.StreamingReportService,
+        report_service.ChunkReportService,
         '_build_chunk_html',
         staticmethod(lambda *a, **k: '<html><body>ok</body></html>')
     )
