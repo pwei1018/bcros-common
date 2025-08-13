@@ -243,11 +243,6 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         if merged_size_mb > 10:
             return merged_pdf
 
-        # For large datasets, regenerating might still be too slow, so we skip it
-        invoice_count = len(template_vars.get("groupedInvoices", []))
-        if invoice_count > 10:
-            return merged_pdf
-
         env = Environment(loader=FileSystemLoader("."), autoescape=True)
         template = env.get_template(f"{TEMPLATE_FOLDER_PATH}/{template_name}.html")
         bc_logo_url = url_for("static", filename="images/bcgov-logo-vert.jpg")
