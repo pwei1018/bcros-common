@@ -663,9 +663,9 @@
                 <td>${{"%.2f"|format((item.filingFees+item.futureEffectiveFees+item.priorityFees)) if (item.total) else
                   '0.00'}}</td>
                 <td>${{"%.2f"|format(item.get('serviceFees', 0))}}</td>
+                <td>${{"%.2f"|format(item.get('gst', 0))}}</td>
                 <td class="total-elements-price">${{"%.2f"|format(item.total+item.get('serviceFees', 0)) if item.total
                   else '0.00'}}</td>
-                <td>${{"%.2f"|format(item.get('gst', 0))}}</td>
               </tr>
               {% endfor %}
 
