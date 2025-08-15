@@ -674,7 +674,7 @@
                             <th class="transaction-counts-head text-align-right">Transaction Counts</th>
                             <th class="total-amount-head text-align-right">Total Fees</th>
                             <th class="total-amount-head text-align-right">Total Stat Fee GST</th>
-                            <th class="total-amount-head text-align-right">Disbursement Total</th>
+                            <th class="total-amount-head text-align-right">Net Disbursement Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -692,7 +692,7 @@
             </div>
             {% if hasGst > 0 %}
                 <div class="additional-info">
-                    <p>GST was remitted to GL {{ gstGL }}. GST amount is included in the disbursement total.</p>
+                    <p>GST was remitted to GL {{ gstGL }}. GST amount is included in the net disbursement total.</p>
                 </div>
             {% endif %}
             <div class="additional-info">
