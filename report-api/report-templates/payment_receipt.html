@@ -649,7 +649,7 @@
               <th class="two-line-head" style="width: 96px;">Date</th>
               <th>Fee</th>
               <th class="two-line-head" style="width: 45px;">Service Fee</th>
-              <th>GST</th>
+              <th style="width: 45px;">GST</th>
               <th>Total</th>
             </thead>
             <tbody>
@@ -664,7 +664,7 @@
                   '0.00'}}</td>
                 <td>${{"%.2f"|format(item.get('serviceFees', 0))}}</td>
                 <td>${{"%.2f"|format(item.get('gst', 0))}}</td>
-                <td class="total-elements-price">${{"%.2f"|format(item.total+item.get('serviceFees', 0)) if item.total
+                <td class="total-elements-price">${{"%.2f"|format(item.total+item.get('serviceFees', 0)+item.get('gst', 0)) if item.total
                   else '0.00'}}</td>
               </tr>
               {% endfor %}
