@@ -4,7 +4,7 @@
 
 .app-inner-container {
   @apply max-w-(--container-bcGovLg) w-full mx-auto; /* px-4 */
-  padding-inline: 1rem; /* TODO figure out why p-4 doesnt work in the css file */
+  padding-inline: 1rem;
 }
 
 .app-body {
