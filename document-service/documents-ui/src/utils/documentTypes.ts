@@ -53,7 +53,40 @@ export const documentTypes: Array<DocumentClassIF> = [
       { type: 'ASNU', description: 'Assumed Name Undertaking', productCode: 'business' },
       { type: 'AMAL', description: 'Update Due to Amalgamation', productCode: 'business' },
       { type: 'ATTN', description: 'Attorney', productCode: 'business' },
-      { type: 'INV', description: 'Investigation', productCode: 'business' }
+      { type: 'INV', description: 'Investigation', productCode: 'business' },
+      { type: 'FZE_ADMIN', description: 'Admin Freeze', productCode: 'business' },
+      { type: 'AGMEX', description: 'AGM Extension', productCode: 'business' },
+      { type: 'NOALA', description: 'Notice of Alteration', productCode: 'business' },
+      { type: 'AGMLC', description: 'AGM Location Change', productCode: 'business' },
+      { type: 'AGMAM', description: 'AGM Amendment', productCode: 'business' },
+      {
+        type: 'RECV_APPOINT',
+        description: 'Notice of Appointment of Receiver or Receiver Manager',
+        productCode: 'business' 
+      },
+      {
+        type: 'RECV_CEASE',
+        description: 'Notice of Ceasing to Act as Receiver or Receiver Manager',
+        productCode: 'business'
+      },
+      { type: 'CHANGE_NAME', description: 'Change of Name', productCode: 'business' },
+      { type: 'CHANGE_OFF', description: 'Change of Officers', productCode: 'business' },
+      { type: 'CHANGE_REG', description: 'Change of Registration', productCode: 'business' },
+      { type: 'CNV_LEDGER', description: 'Conversion Ledger', productCode: 'business' },
+      { type: 'CRTO_LIQ', description: 'Court Ordered Liquidation', productCode: 'business' },
+      { type: 'DISS_VOL', description: 'Voluntary Dissolution', productCode: 'business' },
+      { type: 'DISS_ADMIN', description: 'Administrative Dissolution', productCode: 'business' },
+      { type: 'ICORP', description: 'Incorporation Application', productCode: 'business' },
+      { type: 'CORP_AFFIDAVIT', description: 'Affidavit', productCode: 'business' },
+      { type: 'COMP', description: 'Certificate Of Companies', productCode: 'business' },
+      { type: 'INTENT_LIQ', description: 'Intent to Liquidate', productCode: 'business' },
+      { type: 'OTHER_LEGACY', description: 'Legacy Other', productCode: 'business' },
+      { type: 'NWITH', description: 'Notice of Withdrawal', productCode: 'business' },
+      { type: 'PB_OFF', description: 'Put Back Off', productCode: 'business' },
+      { type: 'PB_ON', description: 'Put Back On', productCode: 'business' },
+      { type: 'REG_BUS', description: 'Registration', productCode: 'business' },
+      { type: 'RSLN_SPEC', description: 'Transition Application', productCode: 'business' },
+      { type: 'TRANSP_REG', description: 'Transparency Register', productCode: 'business' }
     ]
   },
   {
