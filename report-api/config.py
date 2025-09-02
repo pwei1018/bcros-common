@@ -63,6 +63,8 @@ class _Config():  # pylint: disable=too-few-public-methods
     JWT_OIDC_CACHING_ENABLED = os.getenv('JWT_OIDC_CACHING_ENABLED')
     JWT_OIDC_JWKS_CACHE_TIMEOUT = int(os.getenv('JWT_OIDC_JWKS_CACHE_TIMEOUT', '300'))
 
+    GOTENBERG_URL = os.getenv('GOTENBERG_URL', 'http://localhost:3000')
+
     TESTING = False
     DEBUG = True
 

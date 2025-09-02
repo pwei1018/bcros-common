@@ -51,3 +51,4 @@ git+https://github.com/daxiom/simple-cloudevent.py.git
 git+https://github.com/seeker25/flask-jwt-oidc.git
 pikepdf==9.10.2
 psutil==5.9.8
+aiohttp==3.12.15

@@ -33,22 +33,15 @@ def test_get_generate(client):
     assert rv.status_code == 200
 
 
-@pytest.mark.skip(reason='New weasyprint breaks adding svg image, skipping until issue is fixed')
-def test_generate_report_with_existing_template(client, jwt, app):
-    """Call to generate report with existing template."""
+def test_generate_report_with_existing_template(client, jwt, app, mock_gotenberg_requests):
+    """Generate PDF via Gotenberg with stored template (mocked call)."""
     token = jwt.create_jwt(get_claims(app_request=app), token_header)
     headers = {'Authorization': f'Bearer {token}', 'content-type': 'application/json'}
 
-    rv = client.get('/api/v1/templates')
-    template_name = rv.json['report-templates'][0]
-    assert template_name is not None
     request_url = '/api/v1/reports'
     request_data = {
-        'templateName': 'payment_receipt',
-        'templateVars': {
-            'title': 'This is a sample request',
-            'invoice': {}
-        },
+        'templateName': 'invoice',
+        'templateVars': {'title': 'This is a sample request'},
         'reportName': 'sample'
     }
 
@@ -74,7 +67,7 @@ def test_generate_report_with_invalid_template(client, jwt, app):
     assert rv.status_code == 404
 
 
-def test_generate_report_with_template(client, jwt, app):
+def test_generate_report_with_template(client, jwt, app, mock_gotenberg_requests):
     """Call to generate report with new template."""
     token = jwt.create_jwt(get_claims(app_request=app), token_header)
     headers = {'Authorization': f'Bearer {token}', 'content-type': 'application/json'}
@@ -88,12 +81,13 @@ def test_generate_report_with_template(client, jwt, app):
         },
         'reportName': 'Test Report'
     }
+
     rv = client.post(request_url, data=json.dumps(request_data), headers=headers)
     assert rv.status_code == 200
     assert rv.content_type == 'application/pdf'
 
 
-def test_generate_report_with_page_number(client, jwt, app):
+def test_generate_report_with_page_number(client, jwt, app, mock_gotenberg_requests):
     """Call to generate report with new template."""
     token = jwt.create_jwt(get_claims(app_request=app), token_header)
     headers = {'Authorization': f'Bearer {token}', 'content-type': 'application/json'}
@@ -108,6 +102,7 @@ def test_generate_report_with_page_number(client, jwt, app):
         'reportName': 'Test Report',
         'populatePageNumber': 'true'
     }
+
     rv = client.post(request_url, data=json.dumps(request_data), headers=headers)
     assert rv.status_code == 200
     assert rv.content_type == 'application/pdf'

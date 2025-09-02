@@ -73,3 +73,20 @@ def docker_compose_files(pytestconfig):
     return [
         os.path.join(str(pytestconfig.rootdir), 'tests/docker', 'docker-compose.yml')
     ]
+
+
+@pytest.fixture
+def mock_gotenberg_requests(monkeypatch):
+    """Mock requests.post to simulate Gotenberg PDF generation response."""
+    import requests as _req
+    
+    class MockGotenbergResponse:
+        status_code = 200
+        content_type = 'application/pdf'
+        content = b'%PDF-1.7\n%mock_pdf_content'
+        
+        def raise_for_status(self):
+            return None
+    
+    monkeypatch.setattr(_req, 'post', lambda *args, **kwargs: MockGotenbergResponse())
+    return MockGotenbergResponse

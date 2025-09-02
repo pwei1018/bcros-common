@@ -18,12 +18,12 @@ import base64
 
 from dateutil import parser
 from flask import url_for
-from jinja2 import Environment, FileSystemLoader, Template
+from jinja2 import Environment, FileSystemLoader
 from jinja2.sandbox import SandboxedEnvironment
-from weasyprint import HTML
 
-from api.services.page_info import populate_page_count, populate_page_info
 from api.services.chunk_report_service import ChunkReportService
+from api.services.footer_service import add_page_numbers_to_pdf
+from api.services.gotenberg_service import GotenbergService
 from api.utils.util import TEMPLATE_FOLDER_PATH
 
 
@@ -65,13 +65,24 @@ class ReportService:
         """Route to chunk only when statement_report has groupedInvoices; else render directly."""
         is_statement = 'statement_report' in (template_name or '')
         has_grouped_invoices = bool((template_args or {}).get('groupedInvoices'))
+
         if is_statement and has_grouped_invoices:
             return ChunkReportService.create_chunk_report(
                 template_name,
                 template_args,
                 generate_page_number,
             )
-        return ReportService.generate_pdf(html_out, generate_page_number)
+        return ReportService.generate_pdf(template_name,html_out, generate_page_number, template_args)
+
+    @staticmethod
+    def generate_pdf(template_name, html_out, generate_page_number: bool = False, template_args: dict = None): # pylint:disable=too-many-locals
+        """Generate pdf out of the html using Gotenberg."""
+
+        main_pdf_bytes = GotenbergService.convert_html_to_pdf_sync(html_out).content
+
+        footer_args = dict(template_args or {})
+        footer_args['current_template'] = template_name
+        return add_page_numbers_to_pdf(footer_args, main_pdf_bytes, generate_page_number)
 
     @classmethod
     def create_report_from_stored_template(
@@ -114,24 +125,3 @@ class ReportService:
             html_out=html_out,
             generate_page_number=generate_page_number,
         )
-
-    @staticmethod
-    def generate_pdf(html_out, generate_page_number: bool = False):
-        """Generate pdf out of the html."""
-        html = HTML(string=html_out).render(optimize_size=('fonts', 'images',))
-        if generate_page_number:
-            html = populate_page_info(html)
-
-        return html.write_pdf()
-
-    @staticmethod
-    def populate_page_info(
-        html,
-    ):  # deprecated shim, prefer api.services.page_info.populate_page_info
-        """Shim for backward compatibility; delegates to shared helper."""
-        return populate_page_info(html)
-
-    @staticmethod
-    def populate_page_count(box, count, total):  # deprecated shim
-        """Shim for backward compatibility; delegates to shared helper."""
-        return populate_page_count(box, count, total)

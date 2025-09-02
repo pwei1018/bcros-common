@@ -24,6 +24,9 @@ virtual environment to install the Python packages used by this project.
 You also need to set up the variables used for environment-specific settings:
 1. Copy the [dotenv template file](./docs/dotenv_template) to somewhere above the source code and rename to `.env`. You will need to fill in missing values.
 
+You need gotenberg service running on your local machine.
+1. Run `docker compose up` in the `gotenberg` directory.
+
 ## Running REPORT-API
 
 1. Build the service by `docker build --tag reportservice`.
