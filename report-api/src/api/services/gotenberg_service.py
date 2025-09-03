@@ -17,7 +17,10 @@ class GotenbergService:
         return current_app.config.get('GOTENBERG_URL')
 
     @staticmethod
-    async def _render_pdf_bytes_worker_gotenberg_with_session(args: Tuple[str, str], session: aiohttp.ClientSession) -> bytes:
+    async def _render_pdf_bytes_worker_gotenberg_with_session(
+        args: Tuple[str, str],
+        session: aiohttp.ClientSession
+    ) -> bytes:
         """Worker used to render HTML string to PDF bytes using Gotenberg with shared session."""
         html_out = args[0]
         gc.collect()
@@ -38,7 +41,10 @@ class GotenbergService:
                 gc.collect()
                 return pdf_content
             error_text = await response.text()
-            raise Exception(f"Gotenberg conversion failed with status {response.status}: {error_text}") # pylint: disable=broad-exception-raised
+            raise Exception(  # pylint: disable=broad-exception-raised
+                f'Gotenberg conversion failed with status {response.status}: '
+                f'{error_text}'
+            )
 
     @staticmethod
     async def render_tasks_parallel_async(
@@ -69,9 +75,9 @@ class GotenbergService:
     def convert_html_to_pdf_sync(html_content: str, timeout: int = 500) -> requests.Response:
         """Convert HTML content to PDF using Gotenberg synchronously."""
         gotenberg_url = GotenbergService._get_gotenberg_url()
-        endpoint = f"{gotenberg_url}/forms/chromium/convert/html"
+        endpoint = f'{gotenberg_url}/forms/chromium/convert/html'
 
-        files = [("files", ("index.html", html_content, "text/html"))]
+        files = [('files', ('index.html', html_content, 'text/html'))]
         data = {}
 
         resp = requests.post(

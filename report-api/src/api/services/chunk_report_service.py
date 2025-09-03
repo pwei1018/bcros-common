@@ -34,14 +34,14 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
     """Service for generating large reports using chunk approach."""
 
     _TEMPLATE_ENV = Environment(
-        loader=FileSystemLoader("."), autoescape=True
+        loader=FileSystemLoader('.'), autoescape=True
     )
 
     @dataclass
     class ChunkInfo:
         """Chunk info for chunk report."""
 
-        mode: str = "transactions"
+        mode: str = 'transactions'
         invoice_index: int = 0
         current_chunk: int = 0
         slice_start: int = 0
@@ -58,7 +58,6 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
     @staticmethod
     def _merge_pdf_files(temp_files: List[str]) -> bytes:
         """Merge multiple PDF files into one."""
-
         # Lazy import to avoid heavy module import in worker processes
         from pikepdf import Pdf  # pylint:disable=import-outside-toplevel
 
@@ -72,7 +71,7 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
 
     @staticmethod
     def _append_pdf_bytes(pdf_content: bytes, temp_files: List[str]) -> None:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
             temp_file.write(pdf_content)
             temp_files.append(temp_file.name)
 
@@ -81,17 +80,17 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         template_name: str,
         template_vars: Dict[str, Any],
         invoice_copy: Dict[str, Any],
-        chunk_info: "ChunkReportService.ChunkInfo",
+        chunk_info: 'ChunkReportService.ChunkInfo',
     ) -> str:
         chunk_vars = template_vars.copy()
-        chunk_vars["groupedInvoices"] = [invoice_copy]
-        chunk_vars["_chunk_info"] = asdict(chunk_info)
+        chunk_vars['groupedInvoices'] = [invoice_copy]
+        chunk_vars['_chunk_info'] = asdict(chunk_info)
 
         template = ChunkReportService._TEMPLATE_ENV.get_template(
-            f"{TEMPLATE_FOLDER_PATH}/{template_name}.html"
+            f'{TEMPLATE_FOLDER_PATH}/{template_name}.html'
         )
-        bc_logo_url = url_for("static", filename="images/bcgov-logo-vert.jpg")
-        registries_url = url_for("static", filename="images/reg_logo.png")
+        bc_logo_url = url_for('static', filename='images/bcgov-logo-vert.jpg')
+        registries_url = url_for('static', filename='images/reg_logo.png')
         return template.render(
             chunk_vars, bclogoUrl=bc_logo_url, registriesurl=registries_url
         )
@@ -107,14 +106,14 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         tasks: List[Tuple[int, str]] = []
         order_id = 0
         for invoice_index, original in enumerate(grouped_invoices, start=1):
-            txns = original.get("transactions") or []
+            txns = original.get('transactions') or []
             if not txns:
                 continue
             start = 0
             while start < len(txns):
                 end = min(start + chunk_size, len(txns))
                 invoice_copy = dict(original)
-                invoice_copy["transactions"] = txns[start:end]
+                invoice_copy['transactions'] = txns[start:end]
                 html_out = ChunkReportService._build_chunk_html(
                     template_name,
                     template_vars,
@@ -144,7 +143,7 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         if chunk_size is None:
             chunk_size = 500  # the optimal chunk size is 500 after testing
 
-        grouped_invoices = template_vars.get("groupedInvoices", [])
+        grouped_invoices = template_vars.get('groupedInvoices', [])
         temp_files: List[str] = []
 
         # Build all chunk HTMLs ahead of time (keep order id)
@@ -169,6 +168,6 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         result = add_page_numbers_to_pdf(template_vars, merged_pdf_without_footers, generate_page_number)
 
         current_app.logger.info(
-            "chunk_report done: chunks=%s elapsed=%.1fs", len(tasks), time.time() - overall_start_time
+            'chunk_report done: chunks=%s elapsed=%.1fs', len(tasks), time.time() - overall_start_time
         )
         return result

@@ -15,6 +15,7 @@
 """Common setup and fixtures for the py-test suite used by this service."""
 
 import pytest
+import requests as _req
 
 from api import create_app
 from api import jwt as _jwt
@@ -77,16 +78,55 @@ def docker_compose_files(pytestconfig):
 
 @pytest.fixture
 def mock_gotenberg_requests(monkeypatch):
-    """Mock requests.post to simulate Gotenberg PDF generation response."""
-    import requests as _req
-    
-    class MockGotenbergResponse:
+    """Mock Gotenberg PDF generation for both sync and async requests."""
+    mock_pdf_content = b"""%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Contents 4 0 R>>endobj
+4 0 obj<</Length 0>>stream\nendstream endobj
+xref
+0 5
+0000000000 65535 f
+0000000010 00000 n
+0000000047 00000 n
+0000000084 00000 n
+0000000121 00000 n
+trailer<</Size 5/Root 1 0 R>>
+startxref
+148
+%%EOF"""
+
+    class MockResponse:
         status_code = 200
-        content_type = 'application/pdf'
-        content = b'%PDF-1.7\n%mock_pdf_content'
-        
+        content = mock_pdf_content
+
         def raise_for_status(self):
-            return None
-    
-    monkeypatch.setattr(_req, 'post', lambda *args, **kwargs: MockGotenbergResponse())
-    return MockGotenbergResponse
+            pass
+
+    class MockAsyncResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def read(self):
+            return mock_pdf_content
+
+    class MockAsyncSession:
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        def post(self, *args, **kwargs):
+            return MockAsyncResponse()
+
+    monkeypatch.setattr(_req, 'post', lambda *args, **kwargs: MockResponse())
+    monkeypatch.setattr('aiohttp.ClientSession', MockAsyncSession)
+
+    return MockResponse()

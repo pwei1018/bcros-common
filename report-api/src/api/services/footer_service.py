@@ -16,29 +16,35 @@
 import asyncio
 import io
 from io import BytesIO
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Tuple
+
+import pikepdf
 from flask import current_app
 from jinja2 import Environment, FileSystemLoader
-import pikepdf
 
 from api.services.gotenberg_service import GotenbergService
 from api.utils.util import TEMPLATE_FOLDER_PATH
 
 _TEMPLATE_ENV = Environment(
-    loader=FileSystemLoader("."), autoescape=True
+    loader=FileSystemLoader('.'), autoescape=True
 )
+
 
 def get_pdf_page_count(pdf_content: bytes) -> int:
     """Extract total page count from PDF content."""
     try:
         with pikepdf.Pdf.open(BytesIO(pdf_content)) as pdf:
             return len(pdf.pages)
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        current_app.logger.warning(f"Failed to get PDF page count: {e}")
+    except Exception as e:  # noqa: B902 pylint: disable=broad-exception-caught
+        current_app.logger.warning(f'Failed to get PDF page count: {e}')
         return 1
 
 
-def add_page_numbers_to_pdf(template_vars: Dict[str, Any], merged_pdf_without_footers: bytes, generate_page_number: bool) -> bytes:
+def add_page_numbers_to_pdf(
+    template_vars: Dict[str, Any],
+    merged_pdf_without_footers: bytes,
+    generate_page_number: bool
+) -> bytes:
     """Add page numbers to PDF using footer generation logic."""
     template_vars['generate_page_number'] = generate_page_number
     total_pages = get_pdf_page_count(merged_pdf_without_footers)
@@ -85,13 +91,18 @@ def _add_footer_to_first_page_only(template_vars: Dict[str, Any], main_pdf_bytes
     return _overlay_footer_pdfs_on_main_pdf(main_pdf_bytes, footer_pdfs)
 
 
-def _prepare_footer_batch_tasks(template_args: dict, total_pages: int, batch_size: int = 200, first_page_only: bool = False) -> List[Tuple[int, str]]:
-    """prepare footer batch tasks"""
+def _prepare_footer_batch_tasks(
+    template_args: dict,
+    total_pages: int,
+    batch_size: int = 200,
+    first_page_only: bool = False
+) -> List[Tuple[int, str]]:
+    """Prepare footer batch tasks."""
     footer_template = _TEMPLATE_ENV.get_template(
-        f"{TEMPLATE_FOLDER_PATH}/generic_footer.html"
+        f'{TEMPLATE_FOLDER_PATH}/generic_footer.html'
     )
     overlay_style = _TEMPLATE_ENV.get_template(
-        f"{TEMPLATE_FOLDER_PATH}/styles/footer_overlay.html"
+        f'{TEMPLATE_FOLDER_PATH}/styles/footer_overlay.html'
     ).render()
 
     tasks: List[Tuple[int, str]] = []
@@ -100,22 +111,23 @@ def _prepare_footer_batch_tasks(template_args: dict, total_pages: int, batch_siz
     for batch_start in range(1, total_pages_to_process + 1, batch_size):
         batch_end = min(batch_start + batch_size, total_pages_to_process + 1)
 
-        batch_html_parts = ["<!DOCTYPE html><html><head>"]
+        batch_html_parts = ['<!DOCTYPE html><html><head>']
 
         batch_html_parts.append(overlay_style)
-        batch_html_parts.append("</head><body>")
+        batch_html_parts.append('</head><body>')
 
         for page_num in range(batch_start, batch_end):
             page_args = template_args.copy()
-            page_args["current_page"] = page_num
-            page_args["total_pages"] = total_pages
+            page_args['current_page'] = page_num
+            page_args['total_pages'] = total_pages
 
             batch_html_parts.append(
-                f'<div class="footer-page" id="footer-page-{page_num}"><div class="footer-anchor">{footer_template.render(page_args)}</div></div>'
+                f'<div class="footer-page" id="footer-page-{page_num}">'
+                f'<div class="footer-anchor">{footer_template.render(page_args)}</div></div>'
             )
 
-        batch_html_parts.append("</body></html>")
-        batch_html = "".join(batch_html_parts)
+        batch_html_parts.append('</body></html>')
+        batch_html = ''.join(batch_html_parts)
 
         tasks.append((batch_id, batch_html))
         batch_id += 1
@@ -137,8 +149,8 @@ def _split_pdf_pages(pdf_bytes: bytes) -> List[bytes]:
                 single_page_pdf.save(output_buffer)
                 individual_pdfs.append(output_buffer.getvalue())
 
-    except Exception as e:
-        current_app.logger.error(f"Error splitting PDF pages: {e}")
+    except Exception as e:  # noqa: B902
+        current_app.logger.error(f'Error splitting PDF pages: {e}')
         raise
 
     return individual_pdfs
@@ -169,16 +181,16 @@ def _overlay_footer_pdfs_on_main_pdf(
             result_pdf.save(output_buffer)
             return output_buffer.getvalue()
 
-    except Exception as e: # pylint: disable=broad-exception-caught
-        current_app.logger.error(f"Error overlaying footer PDFs: {e}")
+    except Exception as e:  # noqa: B902 pylint: disable=broad-exception-caught
+        current_app.logger.error(f'Error overlaying footer PDFs: {e}')
         return main_pdf_bytes
 
 
 def _overlay_page_content(base_page, overlay_page):
     """Overlay content from overlay_page onto base_page using pikepdf."""
     try:
-        if hasattr(base_page, "add_overlay"):
+        if hasattr(base_page, 'add_overlay'):
             base_page.add_overlay(overlay_page)
             return
-    except Exception as e: # pylint: disable=broad-exception-caught
-        current_app.logger.warning(f"Could not overlay page content: {e}")
+    except Exception as e:  # noqa: B902 pylint: disable=broad-exception-caught
+        current_app.logger.warning(f'Could not overlay page content: {e}')

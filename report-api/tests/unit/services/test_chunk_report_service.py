@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""Test chunk report service."""
 
 import types
 from api.services.chunk_report_service import ChunkReportService
@@ -19,7 +19,6 @@ from api.services.chunk_report_service import ChunkReportService
 
 def test_prepare_chunk_tasks_splits_transactions(monkeypatch):
     """Should split one invoice's transactions into multiple chunk tasks."""
-
     captured = []
 
     def fake_build_chunk_html(template_name, template_vars, invoice_copy, chunk_info):
@@ -62,7 +61,7 @@ class _DummyPdf:
 
     def save(self, buf):
         # Write bytes proportional to number of pages so len > 0
-        buf.write(b"X" * (len(self.pages) + 1))
+        buf.write(b'X' * (len(self.pages) + 1))
 
 
 def test_merge_pdf_files_merges_two_pdfs(tmp_path, monkeypatch):
@@ -90,5 +89,3 @@ def test_merge_pdf_files_merges_two_pdfs(tmp_path, monkeypatch):
     merged = ChunkReportService._merge_pdf_files([str(p1), str(p2)])
     assert isinstance(merged, (bytes, bytearray))
     assert len(merged) > 0
-
-
