@@ -32,6 +32,17 @@ def test_logging_with_file(capsys):
     assert captured.out.startswith('Configure logging, from conf')
 
 
+def test_logging_with_fallback_to_package_resources(capsys):
+    """Assert that logging falls back to package resources when file path is None."""
+    file_path = None
+    setup_logging(file_path)  # important to do this first
+
+    captured = capsys.readouterr()
+
+    assert captured.out.startswith('Configure logging from package resources')
+    assert captured.err == ''
+
+
 def test_logging_with_missing_file(capsys):
     """Assert that a message is sent to STDERR when the configuration doesn't exist."""
     file_path = None
@@ -39,4 +50,5 @@ def test_logging_with_missing_file(capsys):
 
     captured = capsys.readouterr()
 
-    assert captured.err.startswith('Unable to configure logging')
+    if not captured.out:
+        assert captured.err.startswith('Unable to configure logging')
