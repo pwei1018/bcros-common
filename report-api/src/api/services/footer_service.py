@@ -173,9 +173,8 @@ def _overlay_footer_pdfs_on_main_pdf(
                     with pikepdf.Pdf.open(io.BytesIO(footer_pdfs[i])) as footer_pdf:
                         if len(footer_pdf.pages) > 0:
                             footer_page = footer_pdf.pages[0]
-                            _overlay_page_content(
-                                new_page, footer_page
-                            )
+                            page_width, band_height = _prepare_footer_page_for_overlay(footer_page, new_page)
+                            _overlay_page_content(new_page, footer_page, page_width=page_width, band_height=band_height)
 
             output_buffer = io.BytesIO()
             result_pdf.save(output_buffer)
@@ -186,11 +185,23 @@ def _overlay_footer_pdfs_on_main_pdf(
         return main_pdf_bytes
 
 
-def _overlay_page_content(base_page, overlay_page):
+def _prepare_footer_page_for_overlay(footer_page, base_page) -> tuple:
+    """Set footer page CropBox to bottom band; return (page_width, band_height)."""
+    media_box = getattr(base_page, 'MediaBox', None)
+    page_width = float(media_box[2]) if media_box and len(media_box) >= 3 else 612.0  # Letter width (8.5in × 72pt)
+    page_height = float(media_box[3]) if media_box and len(media_box) >= 4 else 792.0  # Letter height (11in × 72pt)
+    band_height = 90.0  # footer band; spacious for logo + page number; adjustable
+    footer_page.MediaBox = pikepdf.Array([0, 0, page_width, page_height])
+    footer_page.CropBox = pikepdf.Array([0, 0, page_width, band_height])
+    return page_width, band_height
+
+
+def _overlay_page_content(base_page, overlay_page, page_width: float, band_height: float):
     """Overlay content from overlay_page onto base_page using pikepdf."""
     try:
         if hasattr(base_page, 'add_overlay'):
-            base_page.add_overlay(overlay_page)
+            rect = pikepdf.Rectangle(0, 0, page_width, band_height)
+            base_page.add_overlay(overlay_page, rect=rect)
             return
     except Exception as e:  # noqa: B902 pylint: disable=broad-exception-caught
         current_app.logger.warning(f'Could not overlay page content: {e}')
