@@ -4,25 +4,31 @@
             <td colspan="2">
                 <div>
                     <div><span class="font-bold">Account Number:</span> {{ account.id }}</div>
-                    {% if is_index_0 %}
-                        <div><span class="font-bold">Statement Total</span> <span class="font-bold">${{ total.due }}</span></div>
-                        <div><span class="font-bold">Total Amount Paid:</span> <span class="font-bold">${{ total_paid }}</span></div>
-                        {% if eft_payment %}
-                            <div><span class="font-bold">Total Amount Owing:</span> <span class="font-bold">${{ statement.amount_owing }}</span></div>
+                        {% if payment_method == 'PAD' %}
+                        <div><span class="font-bold">Pre-Authorized Debit Totals:</span> <span class="font-bold">${{ data.totals_summary }}</span></div>
+                        <div><span class="font-bold">Amount Owing:</span> <span class="font-bold">${{ statement.amount_owing }}</span></div>
+                        {% elif payment_method == 'ONLINE_BANKING' %}
+                        <div><span class="font-bold">Online Banking Totals:</span> <span class="font-bold">${{ '%.2f' % data.totals_summary }}</span></div>
+                        {% elif payment_method in ['DIRECT_PAY', 'CC'] %}
+                        <div><span class="font-bold">Credit Card Totals:</span> <span class="font-bold">${{ '%.2f' % data.totals_summary }}</span></div>
+                        {% elif payment_method == 'DRAWDOWN' %}
+                        <div><span class="font-bold">BC OnLine Totals:</span> <span class="font-bold">${{ '%.2f' % data.totals_summary }}</span></div>
                         {% endif %}
-                        {% if statement.is_interim_statement %}
+                        {% if eft_payment %}
+                            <div><span class="font-bold">EFT Totals:</span> <span class="font-bold">${{ data.totals_summary }}</span></div>
+                            <div><span class="font-bold">Amount Owing:</span> <span class="font-bold">${{ statement.amount_owing }}</span></div>
+                            {% if statementSummary.dueDate %}
+                            <div><span class="font-bold">Payment Due Date:</span> {{ statementSummary.dueDate }}</div>
+                            {% endif %}
+                        {% else %}
+                            <div><span class="font-bold">Amount Paid:</span> <span class="font-bold">${{ total_paid }}</span></div>
+                        {% endif %}
+                        {% if statement.is_interim_statement and payment_method == 'EFT' %}
                             <div><span class="font-bold">Payment Received Date:</span>
                                 {{ statementSummary.latestStatementPaymentDate }}
                             </div>
                         {% endif %}
-                    {% else %}
-                        {% if not statement.is_interim_statement and is_index_0 and statementSummary.dueDate %}
-                            <div><span class="font-bold">Payment Due Date:</span> {{ statementSummary.dueDate }}</div>
-                        {% endif %}
-                    {% endif %}
-                    {% if is_index_0 %}
                         <div><span class="font-bold">Statement Number:</span> {{statement.id}}</div>
-                    {% endif %}
                 </div>
             </td>
         </tr>

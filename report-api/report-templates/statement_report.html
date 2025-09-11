@@ -415,16 +415,18 @@
   {% endif %}
 
   <!-- EFT Instructions -->
-  {% if hasPaymentInstructions %}
-    {% set payment_method = 'EFT' %}
-    {% set is_payment_instructions = true %}
-    <div class="inner-wrap page-break-before">
-      {% include 'report-templates/statement_header.html' %}
-      <h2>Payment Instructions</h2>
-    </div>
-    {% include 'report-templates/eft/eft_instructions_details.html' %}
-    {% include 'report-templates/eft/eft_instructions_charges.html' %}
-  {% endif %}
+  {% for data in groupedInvoices %}
+    {% if hasPaymentInstructions and data.payment_method == 'EFT' %}
+      {% set payment_method = 'EFT' %}
+      {% set is_payment_instructions = true %}
+      <div class="inner-wrap page-break-before">
+        {% include 'report-templates/statement_header.html' %}
+        <h2>Payment Instructions</h2>
+      </div>
+      {% include 'report-templates/eft/eft_instructions_details.html' %}
+      {% include 'report-templates/eft/eft_instructions_charges.html' %}
+    {% endif %}
+  {% endfor %}
 </body>
 </html>
 
