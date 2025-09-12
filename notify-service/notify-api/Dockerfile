@@ -61,14 +61,14 @@ RUN groupadd -g "${GID}" -r web \
 # Copy only requirements first, to cache them in docker layer
 COPY --chown=web:web ./pyproject.toml /code/
 COPY --chown=web:web ./uv.lock /code/
+COPY --chown=web:web ./src /code/src
+COPY --chown=web:web ./README.md /code/
 
 # Install dependencies first (better caching)
 RUN --mount=type=cache,target="/root/.cache/uv" \
   uv sync --no-default-groups --frozen
 
 # Then copy the rest of the application
-COPY --chown=web:web ./src /code/src
-COPY --chown=web:web ./README.md /code/
 COPY --chown=web:web ./wsgi.py /code/
 COPY --chown=web:web ./gunicorn_config.py /code/
 COPY --chown=web:web ./update_db.sh /code/
