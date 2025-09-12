@@ -30,16 +30,20 @@ from notify_api.utils.enums import MillionverifierResult
 class TestEmailValidationEndpoint:
     """Test suite for email validation endpoint functionality."""
 
-    def test_valid_email_address(self, client):
+    @patch("notify_api.models.email.validate_email")
+    def test_valid_email_address(self, mock_validate_email, client):
         """Test email validation with a valid email address."""
+        mock_validate_email.return_value = None
         response = client.get("/api/v2/email_validation/?email_address=test@gmail.com")
 
         # Should return 200 OK for valid email
         assert response.status_code == HTTPStatus.OK
         assert response.json == {}
 
-    def test_valid_email_address_with_spaces(self, client):
+    @patch("notify_api.models.email.validate_email")
+    def test_valid_email_address_with_spaces(self, mock_validate_email, client):
         """Test email validation with valid email that has leading/trailing spaces."""
+        mock_validate_email.return_value = None
         response = client.get("/api/v2/email_validation/?email_address=  test@gmail.com  ")
 
         # Should handle spaces and return 200 OK
@@ -87,8 +91,10 @@ class TestEmailValidationEndpoint:
             # If there's an error handler bug, it's still testing empty parameter rejection
             pass
 
-    def test_get_method_supported(self, client):
+    @patch("notify_api.models.email.validate_email")
+    def test_get_method_supported(self, mock_validate_email, client):
         """Test that GET method is supported."""
+        mock_validate_email.return_value = None
         response = client.get("/api/v2/email_validation/?email_address=test@gmail.com")
 
         # Should not return METHOD_NOT_ALLOWED

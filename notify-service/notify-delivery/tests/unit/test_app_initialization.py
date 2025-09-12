@@ -38,6 +38,7 @@ class TestAppInitialization(unittest.TestCase):
             **{
                 "get.return_value": None,
                 "DB_INSTANCE_CONNECTION_NAME": None,
+                "DB_USER": "test_user",
                 "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
             }
         )
@@ -61,7 +62,11 @@ class TestAppInitialization(unittest.TestCase):
         """Test DBConfig dataclass creation."""
         # Act
         db_config = DBConfig(
-            instance_name="test-instance", database="test_db", user="test_user", ip_type="private", schema="test_schema"
+            instance_name="test-instance",
+            database="test_db",
+            user="test_user",
+            ip_type="private",
+            schema="test_schema",
         )
 
         # Assert
@@ -81,7 +86,8 @@ class TestAppInitialization(unittest.TestCase):
         # Assert
         assert db_config.schema is None
 
-    def test_create_app_with_gcp_database_connection(self):
+    @patch("sqlalchemy.event.listens_for")
+    def test_create_app_with_gcp_database_connection(self, mock_listens_for):
         """Test app creation with GCP database connection configuration."""
         with (
             patch("notify_delivery.config") as mock_config,
@@ -96,6 +102,7 @@ class TestAppInitialization(unittest.TestCase):
                     "DB_INSTANCE_CONNECTION_NAME": "test-project:region:instance",
                     "DB_NAME": "test_db",
                     "DB_USER": "test_user",
+                    "DB_IP_TYPE": "private",
                     "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@localhost/db",
                     "SQLALCHEMY_ENGINE_OPTIONS": {"creator": Mock()},  # Mock engine options from cloud-sql-connector
                 }
@@ -128,7 +135,10 @@ class TestAppInitialization(unittest.TestCase):
         mock_config_obj.configure_mock(
             **{
                 "DB_SCHEMA": "test_schema",  # Set the schema attribute
-                "DB_INSTANCE_CONNECTION_NAME": None,
+                "DB_INSTANCE_CONNECTION_NAME": "test-project:region:instance",
+                "DB_USER": "test_user",
+                "DB_NAME": "test_db",
+                "DB_IP_TYPE": "private",
                 "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
             }
         )

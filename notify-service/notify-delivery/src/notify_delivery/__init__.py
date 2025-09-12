@@ -36,26 +36,23 @@ def create_app(run_mode: str = APP_RUNNING_ENVIRONMENT) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config[run_mode])
 
-    db_user = app.config["DB_USER"]
-    logger.info(db_user)
-
+    schema = app.config.get("DB_SCHEMA", "public")
     db_instance_connection_name = app.config.get("DB_INSTANCE_CONNECTION_NAME")
-    logger.info(f"DB_INSTANCE_CONNECTION_NAME: {db_instance_connection_name}")
 
     if db_instance_connection_name:
         db_config = DBConfig(
-            instance_name=app.config["DB_INSTANCE_CONNECTION_NAME"],
-            database=app.config["DB_NAME"],
-            user=app.config["DB_USER"],
-            ip_type=app.config["DB_IP_TYPE"],
+            instance_name=db_instance_connection_name,
+            database=app.config.get("DB_NAME"),
+            user=app.config.get("DB_USER"),
+            ip_type=app.config.get("DB_IP_TYPE"),
             enable_iam_auth=True,
             driver="pg8000",
+            schema=schema,
             # Connection pool configuration
             pool_size=10,
             max_overflow=10,
             pool_timeout=30,
             pool_recycle=300,
-            pool_use_lifo=True,
             pool_pre_ping=True,
         )
 
@@ -68,8 +65,7 @@ def create_app(run_mode: str = APP_RUNNING_ENVIRONMENT) -> Flask:
         engine = db.engine
 
         # Use the cloud-sql-connector's search path event listener
-        schema = app.config.get("DB_SCHEMA", "public")
-        if schema and app.config["DB_INSTANCE_CONNECTION_NAME"]:
+        if schema and db_instance_connection_name:
             setup_search_path_event_listener(engine, schema)
 
     queue.init_app(app)

@@ -416,7 +416,9 @@ class TestBaseUtilities:
         """Test error handler for validation errors."""
         # Mock a validation error
         mock_error = Mock()
-        mock_error.body_params = [{"msg": "field required"}]
+        mock_error.body_params = None
+        mock_error.query_params = [{"msg": "field required"}]
+        mock_error.path_params = None
 
         handler = ExceptionHandler()
 
@@ -424,8 +426,8 @@ class TestBaseUtilities:
             response, status_code, headers = handler.validation_handler(mock_error)
 
         assert status_code == HTTPStatus.BAD_REQUEST
-        assert "error" in response.get_json()
-        assert response.get_json()["error"] == "field required"
+        assert "error" in response
+        assert response["error"] == "field required"
 
     @staticmethod
     def test_error_handler_default_exception_handler(app):

@@ -65,9 +65,12 @@ class ExceptionHandler:
     @staticmethod
     def validation_handler(error):
         """Handle pydantic validation error."""
-        error_message = f"{{error: 'Validation Error' {error.body_params}}}"
+        error_param = error.body_params or error.query_params or error.path_params
+        error_message = f"{{error: 'Validation Error' {error_param}}}"
         logger.warning(error_message)
-        return {"error": f"{error.body_params[0]['msg']}"}, 400, RESPONSE_HEADERS
+        if error_param:
+            return {"error": f"{error_param[0]['msg']}"}, 400, RESPONSE_HEADERS
+        return {"error": "Validation Error"}, 400, RESPONSE_HEADERS
 
     @staticmethod
     def std_handler(error):  # pylint: disable=useless-option-value

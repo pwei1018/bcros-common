@@ -407,7 +407,9 @@ class TestNotifyServiceQueueOperations:
             )
 
         assert result is True
-        mock_notification_class.create_notification.assert_called_once_with(mock_request, "test@example.com")
+        mock_notification_class.create_notification.assert_called_once_with(
+            mock_request, "test@example.com", "GC_NOTIFY"
+        )
         mock_update_status.assert_called_once()
 
     @staticmethod

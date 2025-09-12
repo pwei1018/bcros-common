@@ -17,9 +17,11 @@ from email_validator import EmailNotValidError, validate_email
 from flask import current_app
 from pydantic import BaseModel, field_validator
 import requests
+from structured_logging import StructuredLogging
 
 from notify_api.utils.enums import MillionverifierResult
 
+logger = StructuredLogging.get_logger()
 
 class EmailValidator(BaseModel):
     """Provides email validation."""
