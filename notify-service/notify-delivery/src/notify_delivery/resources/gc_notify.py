@@ -9,74 +9,50 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions andcurrent_app.
+# See the License for the specific language governing permissions and
 # limitations under the License.
 """Worker resource to handle incoming queue pushes from gcp."""
 
 from http import HTTPStatus
 
-from flask import Blueprint, request
-from notify_api.models import Notification, NotificationHistory, NotificationSendResponses
-from notify_api.services.gcp_queue import queue
+from flask import Blueprint
 from structured_logging import StructuredLogging
 
+from notify_delivery.resources.utils import (
+    get_cloud_event,
+    process_notification,
+    validate_event_type,
+)
 from notify_delivery.services.providers.gc_notify import GCNotify
 
 bp = Blueprint("gcnotify", __name__)
 logger = StructuredLogging.get_logger()
 
+# Constants
+EXPECTED_EVENT_TYPE = "bc.registry.notify.gc_notify"
+
 
 @bp.route("/", methods=("POST",))
 def worker():
     """Worker to handle incoming queue pushes."""
-    if not request.data:
-        logger.info("No incoming raw msg.")
-        return {}, HTTPStatus.OK
-
-    if not (ce := queue.get_simple_cloud_event(request, wrapped=True)):
-        logger.info("No incoming cloud event msg.")
-        return {}, HTTPStatus.OK
-
     try:
-        logger.info(f"Event Message Received: {ce}")
-        if ce.type == "bc.registry.notify.gc_notify":
-            process_message(ce.data)
-        else:
-            logger.error("Invalid queue message type")
+        cloud_event = get_cloud_event()
+        if not cloud_event:
+            return {}, HTTPStatus.OK
+
+        if not validate_event_type(cloud_event, EXPECTED_EVENT_TYPE):
             return {}, HTTPStatus.BAD_REQUEST
 
-        logger.info(f"Event Message Processed: {ce.id}")
+        process_notification(cloud_event.data, GCNotify)
+
+        logger.info(f"Event Message Processed successfully: {cloud_event.id}")
         return {}, HTTPStatus.OK
-    except Exception as e:
-        logger.error(f"Failed to process queue message: {e}")
+
+    except ValueError as validation_error:
+        logger.error(f"Validation error processing queue message: {validation_error}")
+        return {}, HTTPStatus.BAD_REQUEST
+    except Exception as error:
+        logger.error(
+            f"Unexpected error processing queue message: {error}", exc_info=True
+        )
         return {}, HTTPStatus.INTERNAL_SERVER_ERROR
-
-
-def process_message(data: dict) -> NotificationHistory | Notification:
-    """Delivery message through GC Notify service."""
-    history: NotificationHistory = None
-
-    notification_id = data["notificationId"]
-    notification: Notification = Notification.find_notification_by_id(notification_id)
-
-    if notification is None:
-        raise ValueError(f"Unknown notification for notificationId {notification_id}")
-
-    gc_notify_provider = GCNotify(notification)
-
-    responses: NotificationSendResponses = gc_notify_provider.send()
-
-    if responses:
-        notification.status_code = Notification.NotificationStatus.SENT
-        notification.update_notification()
-
-        for response in responses.recipients:
-            history = NotificationHistory.create_history(notification, response.recipient, response.response_id)
-
-        notification.delete_notification()
-    else:
-        notification.status_code = Notification.NotificationStatus.FAILURE
-        notification.update_notification()
-        return notification
-
-    return history

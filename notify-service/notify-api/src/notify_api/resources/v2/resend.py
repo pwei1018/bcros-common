@@ -18,7 +18,7 @@ from http import HTTPStatus
 from flask import Blueprint
 from flask_pydantic import validate
 
-from notify_api.services import notify
+from notify_api.services.notify_service import NotifyService
 from notify_api.utils.auth import jwt
 from notify_api.utils.enums import Role
 
@@ -31,6 +31,6 @@ bp = Blueprint("RESEND", __name__, url_prefix="/resend")
 @validate()
 def resend():
     """Resend notification endpoint."""
-    notify.queue_republish()
+    NotifyService.queue_republish()
 
     return {}, HTTPStatus.OK

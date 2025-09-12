@@ -13,8 +13,8 @@ defaults:
 
 jobs:
   notify-delivery-ci:
-    uses: bcgov/bcregistry-sre/.github/workflows/backend-ci.yaml@main
+    uses: pwei1018/bcregistry-sre/.github/workflows/backend-ci.yaml@main
     with:
       app_name: "notify-delivery"
       working_directory: "./notify-service/notify-delivery"
-      codecov_flag: "notifydelivery"
+      coverage_threshold: "80"

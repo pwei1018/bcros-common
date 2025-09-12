@@ -16,12 +16,10 @@
 This module is the API for the BC Registries Notify application.
 """
 
-from dataclasses import dataclass
-
+from cloud_sql_connector import DBConfig, setup_search_path_event_listener
 from flask import Flask
 from flask_cors import CORS
-from google.cloud.sql.connector import Connector
-from sqlalchemy import event
+from flask_migrate import Migrate, upgrade
 from structured_logging import StructuredLogging
 
 from notify_api import models
@@ -36,46 +34,7 @@ from notify_api.utils.auth import jwt
 logger = StructuredLogging.get_logger()
 
 
-@dataclass
-class DBConfig:
-    """Database configuration settings."""
-
-    instance_name: str
-    database: str
-    user: str
-    ip_type: str
-    schema: str
-
-
-def getconn(db_config: DBConfig) -> object:
-    """Create a database connection.
-
-    Args:
-        db_config (DBConfig): The database configuration.
-
-    Returns:
-        object: A connection object to the database.
-    """
-    with Connector(refresh_strategy="lazy") as connector:
-        conn = connector.connect(
-            instance_connection_string=db_config.instance_name,
-            db=db_config.database,
-            user=db_config.user,
-            ip_type=db_config.ip_type,
-            driver="pg8000",
-            enable_iam_auth=True
-        )
-
-        if db_config.schema:
-            cursor = conn.cursor()
-            cursor.execute(f"SET search_path TO {db_config.schema},public")
-            cursor.execute(f"SET LOCAL search_path TO {db_config.schema}, public;")
-            cursor.close()
-
-        return conn
-
-
-def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
+def create_app(run_mode: str = APP_RUNNING_ENVIRONMENT) -> Flask:
     """Return a configured Flask App using the Factory method."""
     app = Flask(__name__)
     app.config.from_object(config[run_mode])
@@ -91,29 +50,32 @@ def create_app(run_mode=APP_RUNNING_ENVIRONMENT):
             database=app.config["DB_NAME"],
             user=app.config["DB_USER"],
             ip_type="private",
-            schema=schema if run_mode != "migration" else None
+            schema=schema if run_mode != "migration" else "",
+            enable_iam_auth=True,
+            driver="pg8000",
+            # Connection pool configuration
+            pool_size=10,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=3600,  # 1 hour
+            pool_pre_ping=True,
+            connect_args={"check_same_thread": False, "connect_timeout": 60},
         )
 
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-            "creator": lambda: getconn(db_config),
-            "pool_pre_ping": True,
-            "pool_recycle": 300
-        }
+        # Use the cloud-sql-connector's built-in engine options
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = db_config.get_engine_options()
 
     db.init_app(app)
 
     if run_mode != "migration":
         with app.app_context():
             engine = db.engine
-            @event.listens_for(engine, "checkout")
-            def set_search_path_on_checkout(dbapi_connection, connection_record, connection_proxy):
-                cursor = dbapi_connection.cursor()
-                cursor.execute(f"SET search_path TO {schema},public")
-                cursor.close()
+
+            # Use the cloud-sql-connector's search path event listener
+            if schema and app.config["DB_INSTANCE_CONNECTION_NAME"]:
+                setup_search_path_event_listener(engine, schema)
 
     if run_mode == "migration":
-        from flask_migrate import Migrate, upgrade
-
         Migrate(app, db)
         logger.info("Running migration upgrade.")
         with app.app_context():

@@ -13,13 +13,15 @@
 # limitations under the License.
 """Email validator model."""
 
-import requests
 from email_validator import EmailNotValidError, validate_email
 from flask import current_app
 from pydantic import BaseModel, field_validator
+import requests
+from structured_logging import StructuredLogging
 
 from notify_api.utils.enums import MillionverifierResult
 
+logger = StructuredLogging.get_logger()
 
 class EmailValidator(BaseModel):
     """Provides email validation."""
@@ -47,4 +49,4 @@ class EmailValidator(BaseModel):
         except EmailNotValidError as error_msg:
             raise ValueError(f"Invalid: {value} {error_msg}") from error_msg
 
-        return True
+        return value

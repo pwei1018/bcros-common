@@ -14,11 +14,6 @@
 
 """The Test-Suite used to ensure that the Model objects are working correctly."""
 
-import base64
-import uuid
-from datetime import datetime, timezone
-
-from freezegun import freeze_time
-
-from notify_api.models import db
-from tests import EPOCH_DATETIME, FROZEN_DATETIME
+from notify_api.models import db as db
+from tests import EPOCH_DATETIME as EPOCH_DATETIME
+from tests import FROZEN_DATETIME as FROZEN_DATETIME

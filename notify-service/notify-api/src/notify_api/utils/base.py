@@ -13,7 +13,7 @@
 # limitations under the License.
 """This module holds all of the basic data about a business."""
 
-from enum import Enum, EnumMeta
+from enum import EnumMeta, StrEnum
 from typing import Any
 
 
@@ -30,7 +30,7 @@ class BaseMeta(EnumMeta):
             return True
 
 
-class BaseEnum(str, Enum, metaclass=BaseMeta):
+class BaseEnum(StrEnum, metaclass=BaseMeta):
     """Replace autoname from Enum class."""
 
     def __str__(self):
@@ -46,6 +46,6 @@ class BaseEnum(str, Enum, metaclass=BaseMeta):
         return None
 
     @staticmethod
-    def _generate_next_value_(name: str, start: int, count: int, last_values: list[Any]) -> str:
+    def _generate_next_value_(name: str, start: int, count: int, last_values: list[Any]) -> str:  # noqa: ARG004
         """Return the lower-cased version of the member name."""
         return name.lower()

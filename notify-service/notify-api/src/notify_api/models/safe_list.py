@@ -37,9 +37,7 @@ class SafeList(db.Model):
     @property
     def json(self) -> dict:
         """Return a dict of this object, with keys in JSON format."""
-        safe_list_json = {"id": self.id, "email": self.email}
-
-        return safe_list_json
+        return {"id": self.id, "email": self.email}
 
     @classmethod
     def add_email(cls, email: str):
@@ -73,8 +71,7 @@ class SafeList(db.Model):
     @classmethod
     def find_all(cls) -> list[SafeList]:
         """Return all of the safe emails."""
-        safe_emails = cls.query.all()
-        return safe_emails
+        return cls.query.all()
 
     def delete_email(self):
         """delete email from safe list."""

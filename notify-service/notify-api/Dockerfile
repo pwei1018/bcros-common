@@ -1,4 +1,6 @@
-FROM python:3.12.6-bullseye as development_build
+FROM python:3.12-bullseye AS builder
+
+USER root
 
 ARG VCS_REF="missing"
 ARG BUILD_DATE="missing"
@@ -8,11 +10,8 @@ ENV BUILD_DATE=${BUILD_DATE}
 ENV PORT=8080
 
 LABEL org.label-schema.vcs-ref=${VCS_REF} \
-    org.label-schema.build-date=${BUILD_DATE}
+  org.label-schema.build-date=${BUILD_DATE}
 
-USER root
-
-LABEL maintainer="pwei"
 LABEL vendor="BCROS"
 
 ARG APP_ENV \
@@ -31,27 +30,24 @@ ENV APP_ENV=${APP_ENV} \
   PIP_DISABLE_PIP_VERSION_CHECK=1 \
   PIP_DEFAULT_TIMEOUT=100 \
   PIP_ROOT_USER_ACTION=ignore \
-  # poetry:
-  POETRY_VERSION=1.8.3 \
-  POETRY_NO_INTERACTION=1 \
-  POETRY_VIRTUALENVS_CREATE=false \
-  POETRY_CACHE_DIR='/var/cache/pypoetry' \
-  POETRY_HOME='/usr/local'
+  # uv:
+  UV_HOME="/usr/local" \
+  PATH="/root/.local/bin:$PATH"
 
 SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 
 RUN apt-get update && apt-get upgrade -y \
   && apt-get install --no-install-recommends -y \
-    bash \
-    brotli \
-    build-essential \
-    curl \
-    gettext \
-    git \
-    libpq-dev \
-    wait-for-it \
-  && curl -sSL 'https://install.python-poetry.org' | python - \
-  && poetry --version \
+  bash \
+  brotli \
+  build-essential \
+  curl \
+  gettext \
+  git \
+  libpq-dev \
+  wait-for-it \
+  && curl -LsSf https://astral.sh/uv/install.sh | sh \
+  && mv /root/.local/bin/uv /usr/local/bin/uv \
   # Cleaning cache:
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && apt-get clean -y && rm -rf /var/lib/apt/lists/*
@@ -62,28 +58,58 @@ RUN groupadd -g "${GID}" -r web \
   && useradd -d '/code' -g web -l -r -u "${UID}" web \
   && chown web:web -R '/code'
 
-# Copy only requirements, to cache them in docker layer
-COPY --chown=web:web ./poetry.lock ./pyproject.toml /code/
-
+# Copy only requirements first, to cache them in docker layer
+COPY --chown=web:web ./pyproject.toml /code/
+COPY --chown=web:web ./uv.lock /code/
 COPY --chown=web:web ./src /code/src
-COPY --chown=web:web ./README.md /code
+COPY --chown=web:web ./README.md /code/
 
-# Project initialization:
-RUN --mount=type=cache,target="$POETRY_CACHE_DIR" \
-  echo "$APP_ENV" \
-  && poetry version \
-  && poetry config installer.max-workers 1 \
-  # Install deps:
-  && poetry run pip install -U pip \
-  && poetry install \
-    $(if [ -z ${APP_ENV+x} ] | [ "$APP_ENV" = 'production' ]; then echo '--only main'; fi) \
-    --no-interaction --no-ansi
+# Install dependencies first (better caching)
+RUN --mount=type=cache,target="/root/.cache/uv" \
+  uv sync --no-default-groups --frozen
 
-# Running as non-root user:
+# Then copy the rest of the application
+COPY --chown=web:web ./wsgi.py /code/
+COPY --chown=web:web ./gunicorn_config.py /code/
+COPY --chown=web:web ./update_db.sh /code/
+COPY --chown=web:web ./devops /code/devops
+COPY --chown=web:web ./migrations /code/migrations
+
+FROM python:3.12-slim-bullseye AS production
+
+USER root
+
+ARG UID=1000
+ARG GID=1000
+
+ENV PORT=8080 \
+  PYTHONPATH="/code/src" \
+  # Production Python settings
+  PYTHONFAULTHANDLER=1 \
+  PYTHONUNBUFFERED=1 \
+  PYTHONHASHSEED=random \
+  PYTHONDONTWRITEBYTECODE=1
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  libpq5 \
+  curl \
+  git \
+  && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -g "${GID}" -r web \
+  && useradd -d '/code' -g web -l -r -u "${UID}" web \
+  && mkdir -p /code \
+  && chown web:web -R '/code'
+
+WORKDIR /code
+
+# Copy the entire application from builder stage
+COPY --from=builder --chown=web:web /code /code
+
+# Copy uv binary from builder stage
+COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
+
 USER web
 
-# The following stage is only for production:
-FROM development_build AS production_build
-COPY --chown=web:web . /code
-
-CMD gunicorn --bind 0.0.0.0:${PORT} --config /code/gunicorn_config.py wsgi:app
+CMD exec /code/.venv/bin/gunicorn --bind :$PORT -c /code/gunicorn_config.py wsgi:app

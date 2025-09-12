@@ -13,8 +13,8 @@
 # limitations under the License.
 """API endpoints for receive callback message from GC Notify."""
 
-import sys
 from http import HTTPStatus
+import sys
 
 from flask import Blueprint
 from flask_pydantic import validate

@@ -13,8 +13,8 @@
 # limitations under the License.
 """Get metadata information from pyproject.toml"""
 
-import os
 from importlib.metadata import metadata, version
+import os
 
 meta = metadata(__package__ or __name__)
 APP_NAME = meta["Name"]
