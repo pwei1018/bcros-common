@@ -97,7 +97,7 @@ uv run pytest --cov=src/notify_api --cov-report=html --cov-report=term-missing
 ### Run the application in local
 
 ```bash
-./run_local.sh
+.././run_local.sh
 ```
 
 ## Database Operations

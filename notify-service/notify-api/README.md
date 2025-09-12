@@ -111,7 +111,7 @@ uv run python -m pytest tests/unit/models/ -v --no-cov
 ### Run the application in local
 
 ```bash
-./run_local.sh
+.././run_local.sh
 ```
 
 ## Database Operations
