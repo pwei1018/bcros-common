@@ -49,8 +49,8 @@ def create_app(run_mode: str = APP_RUNNING_ENVIRONMENT) -> Flask:
             instance_name=app.config["DB_INSTANCE_CONNECTION_NAME"],
             database=app.config["DB_NAME"],
             user=app.config["DB_USER"],
-            ip_type="private",
-            schema=schema if run_mode != "migration" else "",
+            ip_type=app.config["DB_IP_TYPE"],
+            schema=schema if run_mode != "migration" else None,
             enable_iam_auth=True,
             driver="pg8000",
             # Connection pool configuration

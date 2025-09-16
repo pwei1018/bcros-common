@@ -43,6 +43,7 @@ class Config:  # pylint: disable=too-few-public-methods
 
     # POSTGRESQL
     if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
+        DB_IP_TYPE = os.getenv("DATABASE_IP_TYPE", "private")
         SQLALCHEMY_DATABASE_URI = "postgresql+pg8000://"
     else:
         DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
@@ -115,6 +116,7 @@ class MigrationConfig:  # pylint: disable=too-few-public-methods
 
     if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
         SQLALCHEMY_DATABASE_URI = "postgresql+pg8000://"
+        DB_IP_TYPE = os.getenv("DATABASE_IP_TYPE", "private")
     else:
         DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
         DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
