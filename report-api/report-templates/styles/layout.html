@@ -71,6 +71,13 @@
         box-sizing: border-box;
     }
 
+    /* Avoid EFT instructions forced breaks that create blank pages. */
+    .eft-instruction {
+      break-before: auto;
+      page-break-before: auto;
+      margin-top: 24px;
+    }
+
     .no-margin {
       margin-top: 0;
     }

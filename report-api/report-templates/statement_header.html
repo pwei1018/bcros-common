@@ -13,7 +13,9 @@
             </div>
             <div class="r-heading">
                 <div class="r-title">
-                  {% if is_payment_instructions %}
+                  {% if summary_header_text %}
+                      {{summary_header_text}}
+                  {% elif is_payment_instructions %}
                       ELECTRONIC FUNDS TRANSFER INSTRUCTIONS
                   {% elif statement_header_text %}
                       {{ statement_header_text }}
