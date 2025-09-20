@@ -14,6 +14,8 @@
                         <div><span class="font-bold">Credit Card Totals:</span> <span class="font-bold">${{ '%.2f' % data.totals_summary }}</span></div>
                         {% elif payment_method == 'DRAWDOWN' %}
                         <div><span class="font-bold">BC OnLine Totals:</span> <span class="font-bold">${{ '%.2f' % data.totals_summary }}</span></div>
+                        {% elif payment_method == 'EJV' %}
+                        <div><span class="font-bold">Electronic Journal Voucher Totals:</span> <span class="font-bold">${{ '%.2f' % data.totals_summary }}</span></div>
                         {% endif %}
                         {% if eft_payment %}
                             <div><span class="font-bold">EFT Totals:</span> <span class="font-bold">${{ '%.2f' % data.totals_summary }}</span></div>
