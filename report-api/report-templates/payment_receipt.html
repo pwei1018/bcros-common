@@ -612,7 +612,7 @@
             {% if filingDateTime %}
             <div class="detail-row">
               <div class="detail-label">
-                {% if invoice['corpTypeCode'] == 'NRO' %}
+                {% if invoice['corpTypeCode'] == 'NRO' or isSubmission %}
                 Submission Date & Time:
                 {% else %}
                 Filed Date and Time:
@@ -668,7 +668,7 @@
         <td colspan="2">
           <table class="transaction-table">
             <thead>
-              <th>Product Purchased</th>
+              <th>Product</th>
               <th>Folio</th>
               <th class="two-line-head" style="width: 96px;">Date</th>
               <th>Fee</th>
