@@ -24,6 +24,7 @@
                   {% else %}
                   <span>Filing #{{filingIdentifier}}</span>
                   {% endif %}
+                  {% endif %}
                   {% if invoice['businessIdentifier'] %}
                   {% if invoice['corpTypeCode'] in ('SP','GP') %}
                   <span>Registration #{{invoice['businessIdentifier']}}</span>
