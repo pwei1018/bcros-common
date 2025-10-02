@@ -13,7 +13,7 @@ export default defineAppConfig({
         label: 'text-base text-default mt-2 text-bcGovGray-700 font-bold',
         description: 'text-bcGovGray-700 my-2 text-base',
         actions: 'flex flex-wrap gap-1.5 shrink-0 mt-4',
-        file: 'relative bg-white gap-4 p-6! border-x-0 border-t-0! rounded-[0px]!',
+        file: 'relative bg-white gap-4 p-6! border-x-0! border-t-0! rounded-[0px]!',
         fileLeadingAvatar: 'shrink-0',
         fileWrapper: 'flex flex-col min-w-0',
         fileName: 'text-default truncate',

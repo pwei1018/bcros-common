@@ -155,8 +155,8 @@ function triggerInput(type: 'cameraInput' | 'albumInput' | 'fileInput') {
         :multiple="multipleFiles"
         :interactive="false"
         class="w-full"
-        @update:model-value="fileHandler"
         :ui="fileUploadFileConfig"
+        @update:model-value="fileHandler"
       >
         <template #leading>{{ null }}</template>
         <template #description>
@@ -200,7 +200,7 @@ function triggerInput(type: 'cameraInput' | 'albumInput' | 'fileInput') {
               capture="environment"
               class="hidden"
               @change="mobilePictureHandler"
-            />
+            >
             <!-- Photo Album Input -->
             <input
               ref="albumInput"
@@ -208,20 +208,20 @@ function triggerInput(type: 'cameraInput' | 'albumInput' | 'fileInput') {
               accept="image/*"
               class="hidden"
               @change="mobilePictureHandler"
-            />
+            >
             <!-- File Picker Input -->
             <input
               ref="fileInput"
               type="file"
               class="hidden"
               @change="mobilePictureHandler"
-            />
+            >
           </template>
 
           <!-- Desktop Actions -->
           <div v-else class="flex items-center">
             <UButton
-              label="Upload Files"
+              :label="'Upload File' + (multipleFiles ? 's' : '')"
               icon="i-mdi-file-upload-outline"
               color="primary"
               variant="solid"
@@ -232,19 +232,25 @@ function triggerInput(type: 'cameraInput' | 'albumInput' | 'fileInput') {
         </template>
 
         <template #file="{ file, index }">
-          <div class="w-24 col-span-2">
-            <VuePdfEmbed
-              v-if="file?.uploaded"
-              :source="getObjectURL(file?.document)"
-              :page="[1]"
-              :width="105"
-              :key="file?.document?.name"
-            />
-            <div v-else class="w-[105px] h-20 rounded bg-gray-100 flex items-center">
-              <UIcon
-                name="i-mdi-image-outline"
-                class="w-7 h-7 m-auto"
+
+          <!-- Mobile fallback / quick open in native viewer -->
+          <div v-if="isMobile" class="w-28 col-span-2">
+            <div class="w-[100%] h-30 rounded bg-gray-100 flex items-center">
+              <UIcon name="i-mdi-image-outline" class="w-7 h-7 m-auto" />
+            </div>
+          </div>
+
+          <div v-else class="w-[20%] col-span-2">
+            <div v-if="file?.uploaded" class="pdf-frame">
+              <iframe
+                :key="file?.document?.name"
+                :src="getObjectURL(file?.document) + '#zoom=Fit'"
+                class="pdf-frame__iframe"
               />
+            </div>
+
+            <div v-else class="w-[100%] h-30 rounded bg-gray-100 flex items-center">
+              <UIcon name="i-mdi-image-outline" class="w-7 h-7 m-auto" />
             </div>
           </div>
 
@@ -260,7 +266,14 @@ function triggerInput(type: 'cameraInput' | 'albumInput' | 'fileInput') {
             <template v-else-if="file?.uploaded">
               <div class="flex items-center">
                 <UIcon name="i-mdi-check-circle" class="text-green-700 size-[20px]" />
-                <span class="ml-2 text-[16px] italic">{{ file?.document.name }}</span>
+                <a
+                  class="ml-2 text-[16px] italic"
+                  :href="getObjectURL(file?.document)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span class="text-blue-500">{{ file?.document.name }}</span>
+                </a>
               </div>
               <div class="ml-6">
                 {{ formatBytes(file?.document.size, 0) }}
@@ -276,8 +289,8 @@ function triggerInput(type: 'cameraInput' | 'albumInput' | 'fileInput') {
             <UButton
               variant="ghost"
               color="primary"
-              @click="removeFile(index)"
               class="w-full sm:w-auto"
+              @click="removeFile(index)"
             >
               <span>{{ file?.uploaded ? 'Remove' : 'Cancel' }}</span>
               <UIcon name="i-mdi-close" />
@@ -288,4 +301,32 @@ function triggerInput(type: 'cameraInput' | 'albumInput' | 'fileInput') {
     </UFormField>
   </UForm>
 </template>
+<style scoped>
+/* Ensure iframe has a definite height on mobile */
+.pdf-frame {
+  /* explicit height so the iframe can fill it; adjust as needed */
+  height: 160px;
+  width: 100%;
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  background-color: white !important;
+}
 
+/* Make the iframe fill the parent and remove any border/shadow/outline */
+.pdf-frame__iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  object-fit: contain;
+}
+
+.pdf-frame, .pdf-frame__iframe { -webkit-overflow-scrolling: touch; }
+</style>
