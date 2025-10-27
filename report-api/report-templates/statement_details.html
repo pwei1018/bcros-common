@@ -4,7 +4,7 @@
             <td colspan="2">
                 <div>
                     <div><span class="font-bold">Account Number:</span> {{ account.id }}</div>
-                    {% if not summary_header_text %}
+                    {% if not summary_header_text and summaryPage.display_summary_page %}
                         {% if payment_method == 'PAD' %}
                         <div><span class="font-bold">Pre-Authorized Debit Totals:</span> <span class="font-bold">${{ '%.2f' % data.totals_summary }}</span></div>
                         <div><span class="font-bold">Amount Owing:</span> <span class="font-bold">${{ '%.2f' % data.due_summary }}</span></div>
