@@ -119,3 +119,4 @@ venv.bak/
 
 # Misc backups
 *.bak
+report-api/src/sbc-common-components

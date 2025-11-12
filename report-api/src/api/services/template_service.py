@@ -16,11 +16,10 @@
 
 import fnmatch
 import os
-import os.path
 
 from jinja2 import Environment, FileSystemLoader
 
-from api.utils.util import TEMPLATE_FOLDER_PATH
+from api.utils.util import TEMPLATE_FOLDER_PATH, sanitize_template_name
 
 
 ENV = Environment(loader=FileSystemLoader('.'))
@@ -42,6 +41,7 @@ class TemplateService:
     @classmethod
     def get_stored_template(cls, templatename: str, ):
         """Get a stored template."""
-        template = ENV.get_template(f'{TEMPLATE_FOLDER_PATH}/{templatename}.html')
+        sanitized_name = sanitize_template_name(templatename)
+        template = ENV.get_template(f'{TEMPLATE_FOLDER_PATH}/{sanitized_name}.html')
         html_template = template.render()
         return html_template

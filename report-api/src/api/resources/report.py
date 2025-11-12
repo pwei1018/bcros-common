@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Endpoints to check and manage payments."""
+import gzip
+import json
 from http import HTTPStatus
 
-from flask import Response, abort, request
+from flask import Response, abort, request, stream_with_context
 from flask_restx import Namespace, Resource
 from jinja2 import TemplateNotFound
 
@@ -23,6 +25,80 @@ from api.utils.auth import jwt as _jwt
 
 
 API = Namespace('Reports', description='Service - Reports')
+
+
+def _parse_request_json():
+    """Parse request JSON, handling GZIP decompression if needed."""
+    content_encoding = request.headers.get('Content-Encoding', '').lower()
+    if content_encoding == 'gzip':
+        try:
+            compressed_data = request.get_data()
+            decompressed_data = gzip.decompress(compressed_data)
+            return json.loads(decompressed_data.decode('utf-8'))
+        except (gzip.BadGzipFile, json.JSONDecodeError, UnicodeDecodeError) as e:
+            abort(HTTPStatus.BAD_REQUEST, f'Failed to decompress or parse GZIP data: {str(e)}')
+    return request.get_json()
+
+
+def _generate_csv_report(request_json):
+    """Generate CSV report from request data."""
+    report_name = request_json.get('reportName', 'report')
+    file_name = f'{report_name}.csv'
+    template_vars = request_json.get('templateVars', {})
+    if not template_vars.get('columns'):
+        return None, file_name
+    report = CsvService.create_report(template_vars)
+    return report, file_name
+
+
+def _generate_pdf_report(request_json):
+    """Generate PDF report from request data."""
+    report_name = request_json.get('reportName', 'report')
+    file_name = f'{report_name}.pdf'
+    template_vars = request_json['templateVars']
+    populate_page_number = bool(request_json.get('populatePageNumber', None))
+
+    if 'templateName' in request_json:
+        template_name = request_json['templateName']
+        try:
+            report = ReportService.create_report_from_stored_template(
+                template_name, template_vars, populate_page_number
+            )
+        except TemplateNotFound:
+            abort(HTTPStatus.NOT_FOUND, 'Template not found')
+        except ValueError as e:
+            abort(HTTPStatus.BAD_REQUEST, str(e))
+    elif 'template' in request_json:
+        report = ReportService.create_report_from_template(
+            request_json['template'], template_vars, populate_page_number
+        )
+    else:
+        report = None
+
+    return report, file_name
+
+
+def _create_response(report, file_name, content_type):
+    """Create streaming HTTP response with report data."""
+    if report is None:
+        abort(HTTPStatus.BAD_REQUEST, 'Report cannot be generated')
+
+    content_disposition = f'attachment; filename="{file_name}"'  # noqa: E702
+
+    if content_type == 'text/csv':
+        response_data = stream_with_context(report)
+    else:
+        def pdf_generator():
+            yield report
+        response_data = stream_with_context(pdf_generator())
+
+    return Response(
+        response_data,
+        mimetype=content_type,
+        headers={
+            'Content-Disposition': content_disposition
+        }
+    )
 
 
 @API.route('')
@@ -38,35 +114,10 @@ class Report(Resource):
     @_jwt.requires_auth
     def post():
         """Create a report."""
-        report = None
-        request_json = request.get_json()
+        request_json = _parse_request_json()
         response_content_type = request.headers.get('Accept', 'application/pdf')
         if response_content_type == 'text/csv':
-            file_name = f"{request_json.get('reportName')}.csv"
-            report = CsvService.create_report(request_json.get('templateVars'))
+            report, file_name = _generate_csv_report(request_json)
         else:
-            file_name = f"{request_json.get('reportName')}.pdf"
-            template_vars = request_json['templateVars']
-            populate_page_number = bool(request_json.get('populatePageNumber', None))
-
-            if 'templateName' in request_json:  # Ignore template if template_name is present
-                template_name = request_json['templateName']
-                try:
-                    report = ReportService.create_report_from_stored_template(template_name, template_vars,
-                                                                              populate_page_number)
-                except TemplateNotFound:
-                    abort(HTTPStatus.NOT_FOUND, 'Template not found')
-
-            elif 'template' in request_json:
-                report = ReportService.create_report_from_template(request_json['template'], template_vars,
-                                                                   populate_page_number)
-
-        if report is not None:
-            response = Response(report, 200)
-            response.headers.set('Content-Disposition', 'attachment', filename=file_name)
-            response.headers.set('Content-Type', response_content_type)
-
-        else:
-            abort(HTTPStatus.BAD_REQUEST, 'Report cannot be generated')
-
-        return response
+            report, file_name = _generate_pdf_report(request_json)
+        return _create_response(report, file_name, response_content_type)

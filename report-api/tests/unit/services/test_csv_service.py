@@ -51,4 +51,9 @@ def test_create_csv_with_no_data(app):
     csv_payload = {
     }
     csv_report = CsvService.create_report(csv_payload)
-    assert csv_report is None
+    assert csv_report is not None
+    try:
+        next(csv_report)
+        assert False, 'Generator should be empty'
+    except StopIteration:
+        pass

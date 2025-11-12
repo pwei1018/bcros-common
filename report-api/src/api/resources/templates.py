@@ -43,4 +43,6 @@ class Templates(Resource):
                 response.headers.set('Content-Type', 'application/html')
             except TemplateNotFound:
                 abort(HTTPStatus.NOT_FOUND, 'Template not found')
+            except ValueError as e:
+                abort(HTTPStatus.BAD_REQUEST, str(e))
         return response

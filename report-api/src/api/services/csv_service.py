@@ -15,25 +15,31 @@
 """Service to  manage report-templates."""
 
 import csv
-from tempfile import NamedTemporaryFile
-from typing import Dict
+import io
+from typing import Dict, Iterator
 
 
 class CsvService:  # pylint: disable=too-few-public-methods
     """Service for all template related operations."""
 
     @classmethod
-    def create_report(cls, payload: Dict):
-        """Create a report csv report from the input parameters."""
-        temp_file = None
+    def create_report(cls, payload: Dict) -> Iterator[bytes]:
+        """Create a streaming CSV report generator from the input parameters."""
         columns = payload.get('columns', None)
         values = payload.get('values', None)
-        if columns:
-            temp_file = NamedTemporaryFile(delete=True)  # pylint: disable=consider-using-with
-            with open(temp_file.name, 'w', newline='', encoding='utf-8') as csvfile:
-                report = csv.writer(csvfile)
-                report.writerow(columns)
-                for row in values:
-                    report.writerow(row)
+        if not columns:
+            return
 
-        return temp_file
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+
+        writer.writerow(columns)
+        yield buffer.getvalue().encode('utf-8')
+        buffer.seek(0)
+        buffer.truncate(0)
+
+        for row in values:
+            writer.writerow(row)
+            yield buffer.getvalue().encode('utf-8')
+            buffer.seek(0)
+            buffer.truncate(0)

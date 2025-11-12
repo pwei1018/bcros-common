@@ -26,7 +26,7 @@ from api.services.chunk_report_service import ChunkReportService
 from api.services.footer_service import add_page_numbers_to_pdf
 from api.services.gotenberg_service import GotenbergService
 from api.services.page_info import populate_page_count, populate_page_info
-from api.utils.util import TEMPLATE_FOLDER_PATH
+from api.utils.util import TEMPLATE_FOLDER_PATH, sanitize_template_name
 
 
 def format_datetime(value, format='short'):  # pylint: disable=redefined-builtin
@@ -98,7 +98,8 @@ class ReportService:
         generate_page_number: bool = False,
     ):
         """Create a report from a stored template."""
-        template = ENV.get_template(f'{TEMPLATE_FOLDER_PATH}/{template_name}.html')
+        sanitized_name = sanitize_template_name(template_name)
+        template = ENV.get_template(f'{TEMPLATE_FOLDER_PATH}/{sanitized_name}.html')
         bc_logo_url = url_for('static', filename='images/bcgov-logo-vert.jpg')
         registries_url = url_for('static', filename='images/reg_logo.png')
         html_out = template.render(
