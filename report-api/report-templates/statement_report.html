@@ -423,16 +423,6 @@
     {% set eft_payment = payment_method == 'EFT' %}
     {% set statement_header_text = data.statement_header_text %}
     {% set include_service_provided = data.include_service_provided %}
-    {% set is_index_0 = data.is_index_0 %}
-    {% if summaryPage.display_summary_page and is_index_0 %}
-      <div>
-        {% set summary_header_text = 'ACCOUNT STATEMENT - SUMMARY' %}
-        {% include 'report-templates/statement_header.html' with context %}
-        {% include 'report-templates/statement_details.html' with context %}
-        {% include 'report-templates/statement_summary.html' with context %}
-        {% set summary_header_text = None %}
-      </div>
-    {% endif %}
     <div class="page-break-before">
       {% include 'report-templates/statement_header.html' with context %}
     </div>
