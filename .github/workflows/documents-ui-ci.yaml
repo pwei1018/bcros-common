@@ -18,3 +18,4 @@ jobs:
       app_name: "documents-ui"
       working_directory: "./document-service/documents-ui"
       codecov_flag: "documentsui"
+      node_version: "22"
