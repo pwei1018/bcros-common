@@ -251,6 +251,29 @@ export const useDocuments = () => {
       }
 
       try {
+
+        if (!uploadedDocumentList.value.length) {
+          // No documents uploaded → create record only
+          const response: ApiResponseOrError = await postDocument({
+            consumerDocumentId: consumerDocumentId.value,
+            consumerIdentifier: consumerIdentifier.value,
+            documentClass: documentClass.value,
+            documentType: documentType.value,
+            description: description.value,
+            consumerFilingDate: formatDateToISO(consumerFilingDate.value)
+          })
+
+          if ('data' in response) {
+            documentInfoRO.value = response.data.value
+          } else {
+            console.warn('Error:', response.message, response.status, response.statusText)
+          }
+
+          isLoading.value = false
+          return
+        }
+
+
         // Iterate over the document list and handle requests sequentially
         for (const document of uploadedDocumentList.value) {
           const response: ApiResponseOrError = await postDocument(
@@ -317,7 +340,7 @@ export const useDocuments = () => {
 
     // Update Document Files
     if (hasDocumentFileChanges.value && !!document.size) {
-      // If the record does not have a document, the first request should use PUT. 
+      // If the record does not have a document, the first request should use PUT.
       // All subsequent requests should use POST.
       if (!!documentRecord.value.documentServiceId && documentRecord.value.consumerFilenames.length === 0) {
         const response = await putDocument(

@@ -18,7 +18,9 @@ const crumbConstructors = computed(() => (route?.meta?.breadcrumbs || []) as (()
       v-if="documentRecord?.consumerDocumentId && !isEditingReview"
       :tombstone-title="$t('documentReview.labels.documentId') + ' ' + documentRecord?.consumerDocumentId"
     />
-    <slot />
+    <div class="app-inner-container app-body">
+      <slot />
+    </div>
     <BcrosFooter />
   </div>
 </template>

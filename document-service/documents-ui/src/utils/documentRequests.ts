@@ -77,7 +77,7 @@ export async function postDocument(params: DocumentRequestIF, document: RequestD
   : Promise<ApiResponseOrError> {
   const options = {
     method: 'POST',
-    headers: { 'x-apikey': `${docApiKey}` },
+    headers: { 'x-apikey': `${docApiKey}`, 'Content-Type': 'application/pdf' },
     body: document
   }
 
