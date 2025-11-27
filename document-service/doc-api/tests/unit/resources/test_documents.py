@@ -74,6 +74,7 @@ TEST_CREATE_DATA = [
     ("Invalid role", MEDIA_PDF, INVALID_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.UNAUTHORIZED, None),
     ("Valid staff", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED, "UT0001"),
     ("Valid no payload", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED, "UT0002"),
+    ("Valid CORP class filingType", MEDIA_PDF, STAFF_ROLES, "UT1234", "CORP", "FILE", HTTPStatus.CREATED, "UT0003"),
     ("Valid image", MediaTypes.CONTENT_TYPE_SVG.value, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED, "UT0001"),
 ]
 # testdata pattern is ({description}, {roles}, {account}, {doc_service_id}, {payload}, {status})
@@ -131,10 +132,12 @@ def test_create(session, client, jwt, desc, content_type, roles, account, doc_cl
     req_path = PATH.format(doc_class=doc_class, doc_type=doc_type)
     if ref_id:
         req_path += "&consumerReferenceId=" + ref_id
+    if desc == "Valid CORP class filingType":
+        req_path += "&consumerFilingType=annualReport"
     # test
     if status != HTTPStatus.CREATED:
         response = client.post(req_path, json=json_data, headers=headers, content_type=content_type)
-    elif desc != "Valid no payload":
+    elif desc not in ("Valid no payload", "Valid CORP class filingType"):
         raw_data = None
         test_file = TEST_DATAFILE if content_type != MediaTypes.CONTENT_TYPE_SVG.value else TEST_SVG_DATAFILE
         with open(test_file, "rb") as data_file:
@@ -152,13 +155,17 @@ def test_create(session, client, jwt, desc, content_type, roles, account, doc_cl
         doc_json = response.json
         assert doc_json
         assert doc_json.get("documentServiceId")
-        if desc != "Valid no payload":
+        if desc not in ("Valid no payload", "Valid CORP class filingType"):
             assert doc_json.get("documentURL")
         else:
             assert not doc_json.get("documentURL")
         doc: Document = Document.find_by_doc_service_id(doc_json.get("documentServiceId"))
         assert doc
-        assert doc.document_type == doc_type
+        if desc !=  "Valid CORP class filingType":
+            assert doc.document_type == doc_type
+        else:
+            assert doc.document_type == "ANNR"
+            assert doc_json.get("documentType") == "ANNR"
         if ref_id:
             assert doc_json.get("consumerReferenceId") == ref_id
         else:

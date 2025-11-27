@@ -19,7 +19,7 @@ from flask import Blueprint, jsonify, request
 
 from doc_api.exceptions import BusinessException, DatabaseException
 from doc_api.models import Document
-from doc_api.models.type_tables import RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentTypes, FilingTypeDocument, RequestTypes
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
 from doc_api.utils.logging import logger
@@ -37,6 +37,16 @@ def post_document_records():
         req_path: str = POST_REC_REQUEST_PATH
         info: RequestInfo = RequestInfo(RequestTypes.ADD, req_path, None, None)
         request_json = json.loads(request.get_data().decode("utf-8"))
+        # CORP class requests map filing type to doc type if available.
+        if request_json.get("documentClass", "") == DocumentClasses.CORP.value and not request_json.get("documentType"):
+            doc_type: str = DocumentTypes.FILE.value  # default
+            filing_type: str = request_json.get("consumerFilingType", "")
+            if filing_type:
+                filing_doc: FilingTypeDocument = FilingTypeDocument.find_by_filing_type(filing_type)
+                if filing_doc:
+                    doc_type = filing_doc.document_type
+            logger.info(f"Setting request doc type={doc_type} mapped from filing type {filing_type}.")
+            request_json["documentType"] = doc_type
         info = resource_utils.get_callback_request_info(request_json, info)
         account_id = info.account_id
         logger.info(f"Starting new callback create document record request {req_path}, account={info.account_id}")
@@ -47,9 +57,9 @@ def post_document_records():
         extra_validation_msg = resource_utils.validate_request(info)
         if extra_validation_msg != "":
             return resource_utils.extra_validation_error_response(extra_validation_msg)
-        doc: Document = Document.find_by_document_id(request_json.get("consumerDocumentId"))
-        if doc:
-            response_json = resource_utils.save_callback_update_rec(info, doc)
+        docs = Document.find_by_document_id(request_json.get("consumerDocumentId"))
+        if docs:  # For this scenario the document ID should always only have 1 document.
+            response_json = resource_utils.save_callback_update_rec(info, docs[0])
             return jsonify(response_json), HTTPStatus.OK
         else:
             response_json = resource_utils.save_callback_create_rec(info)

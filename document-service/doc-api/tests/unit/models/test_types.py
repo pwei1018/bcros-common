@@ -114,6 +114,29 @@ TEST_EVENT_TRACKING_TYPES = [
     (EventTrackingTypes.PDF_CLEAN.value, True),
     (EventTrackingTypes.DOC_PAYMENT.value, True),
 ]
+# testdata pattern is ({filing_type}, {doc_type}, {has_results})
+TEST_FILING_TYPE_DOC = [
+    ("XXX", DocumentTypes.ADDR.value, False),
+    ("alteration", DocumentTypes.NOALA.value, True),
+    ("amalgamationApplication", DocumentTypes.AMLG.value, True),
+    ("amalgamationOut", DocumentTypes.AMLO.value, True),
+    ("annualReport", DocumentTypes.ANNR.value, True),
+    ("appointReceiver", DocumentTypes.RECV_APPOINT.value, True),
+    ("changeOfAddress", DocumentTypes.ADDR.value, True),
+    ("changeOfDirectors", DocumentTypes.DIRS.value, True),
+    ("changeOfName", DocumentTypes.CHANGE_NAME.value, True),
+    ("changeOfOfficers", DocumentTypes.CHANGE_OFF.value, True),
+    ("conversion", DocumentTypes.CNVS.value, True),
+    ("correction", DocumentTypes.CORC.value, True),
+    ("incorporationApplication", DocumentTypes.ICORP.value, True),
+    ("involuntaryDissolution", DocumentTypes.DISS_ADMIN.value, True),
+    ("registrarsNotation", DocumentTypes.REGN.value, True),
+    ("registrarsOrder", DocumentTypes.REGO.value, True),
+    ("restoration", DocumentTypes.RSRI.value, True),
+    ("restorationApplication", DocumentTypes.RSRI.value, True),
+    ("transition", DocumentTypes.TRANSITION.value, True),
+    ("voluntaryDissolution", DocumentTypes.DISS_VOL.value, True),
+]
 
 
 def test_request_type_findall(session):
@@ -295,5 +318,16 @@ def test_event_tracking_type_find(session, event_type, exists):
         assert result
         assert result.event_tracking_type == event_type
         assert result.event_tracking_desc
+    else:
+        assert not result
+
+
+@pytest.mark.parametrize("filing_type, doc_type, has_results", TEST_FILING_TYPE_DOC)
+def test_filing_type_documents(session, filing_type, doc_type, has_results):
+    """Assert that mapping a filing type to a document type works as expected."""
+    result = type_tables.FilingTypeDocument.find_by_filing_type(filing_type)
+    if has_results:
+        assert result
+        assert result.document_type == doc_type
     else:
         assert not result

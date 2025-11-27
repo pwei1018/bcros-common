@@ -19,7 +19,7 @@ from flask import Blueprint, g, jsonify, request
 
 from doc_api.exceptions import BusinessException, DatabaseException
 from doc_api.models import Document
-from doc_api.models.type_tables import DocumentTypeClass, RequestTypes
+from doc_api.models.type_tables import DocumentClasses, DocumentTypeClass, FilingTypeDocument, RequestTypes
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
 from doc_api.resources.v1.pdf_conversions import get_filename, validate_content_type
@@ -33,6 +33,7 @@ from doc_api.utils.request_validator import checksum_valid
 POST_REQUEST_PATH = "/documents/{doc_class}/{doc_type}"
 CHANGE_REQUEST_PATH = "/documents/{doc_service_id}"
 VERIFY_REQUEST_PATH = "/documents/verify{consumer_doc_id}"
+PARAM_CONSUMER_FILINGTYPE = "consumerFilingType"
 
 bp = Blueprint("DOCUMENTS1", __name__, url_prefix="/documents")  # pylint: disable=invalid-name
 
@@ -50,6 +51,12 @@ def post_documents(doc_class: str, doc_type: str):
         info = resource_utils.get_request_info(request, info, is_staff(jwt))
         info.document_class = doc_class
         logger.info(f"Starting new create document request {req_path}, account={info.account_id}")
+        if doc_class == DocumentClasses.CORP.value and request.args.get(PARAM_CONSUMER_FILINGTYPE):
+            filing_type: str = request.args.get(PARAM_CONSUMER_FILINGTYPE)
+            filing_doc: FilingTypeDocument = FilingTypeDocument.find_by_filing_type(filing_type)
+            if filing_doc:
+                info.document_type = filing_doc.document_type
+                logger.info(f"Setting doc type={info.document_type} mapped from filing type {filing_type}.")
         if not info.account_id:
             return resource_utils.account_required_response()
         account_id = info.account_id

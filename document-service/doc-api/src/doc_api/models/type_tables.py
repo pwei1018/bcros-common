@@ -306,6 +306,7 @@ class DocumentType(db.Model):  # pylint: disable=too-few-public-methods
     # Relationships
     doc_type_class = db.relationship("DocumentTypeClass", back_populates="doc_type")
     document = db.relationship("Document", back_populates="doc_type")
+    filing_type_document = db.relationship("FilingTypeDocument", back_populates="doc_type")
 
     @property
     def scanning_json(self) -> dict:
@@ -476,3 +477,35 @@ class EventTrackingType(db.Model):  # pylint: disable=too-few-public-methods
             .filter(EventTrackingType.event_tracking_type == event_type)
             .one_or_none()
         )
+
+
+class FilingTypeDocument(db.Model):  # pylint: disable=too-few-public-methods
+    """This class maps an entities (CORP class) document type to an API document type."""
+
+    __tablename__ = "filing_type_documents"
+
+    filing_type = db.mapped_column("filing_type", db.String(30), primary_key=True)
+    document_type = db.mapped_column(
+        "document_type",
+        PG_ENUM(DocumentTypes, name="documenttype"),
+        db.ForeignKey("document_types.document_type"),
+        primary_key=True,
+        index=True,
+    )
+
+    # Relationships
+    doc_type = db.relationship(
+        "DocumentType", foreign_keys=[document_type], back_populates="filing_type_document", cascade="all, delete"
+    )
+
+    @classmethod
+    def find_all(cls):
+        """Return all the active filing types sorted by filing type."""
+        return db.session.query(FilingTypeDocument).order_by(FilingTypeDocument.filing_type).all()
+
+    @classmethod
+    def find_by_filing_type(cls, filing_type: str):
+        """Return a records by filing type."""
+        if not filing_type:
+            return None
+        return db.session.query(FilingTypeDocument).filter(FilingTypeDocument.filing_type == filing_type).one_or_none()
