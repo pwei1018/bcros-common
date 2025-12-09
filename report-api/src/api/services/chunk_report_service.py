@@ -83,7 +83,7 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         chunk_info: 'ChunkReportService.ChunkInfo',
     ) -> str:
         chunk_vars = template_vars.copy()
-        chunk_vars['groupedInvoices'] = [invoice_copy]
+        chunk_vars['grouped_invoices'] = [invoice_copy]
         chunk_vars['_chunk_info'] = asdict(chunk_info)
 
         sanitized_name = sanitize_template_name(template_name)
@@ -144,7 +144,7 @@ class ChunkReportService:  # pylint:disable=too-few-public-methods
         if chunk_size is None:
             chunk_size = 500  # the optimal chunk size is 500 after testing
 
-        grouped_invoices = template_vars.get('groupedInvoices', [])
+        grouped_invoices = template_vars.get('grouped_invoices', [])
         temp_files: List[str] = []
 
         # Build all chunk HTMLs ahead of time (keep order id)

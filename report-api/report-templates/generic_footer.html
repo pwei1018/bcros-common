@@ -33,7 +33,7 @@
                   {% endif %}
                   {% endif %}
                   {% endif %}
-              {% elif statement and statement.is_interim_statement %}
+              {% elif statement and statement.isInterimStatement %}
               <span>Interim Account Statement #{{statement.id}}</span>
               {% elif statement %}
               <span>Account Statement #{{statement.id}}</span>

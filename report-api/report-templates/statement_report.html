@@ -67,6 +67,15 @@
       width: 100%;
     }
 
+    .statement-totals{
+      border: 3px solid #e2e7ed;
+      margin-top: 20px;
+      border-collapse: separate;
+      border-spacing: 0 0;
+      padding-top: 15px;
+      padding-bottom: 15px;
+    }
+
     .wordmark {
       font-family: Georgia, 'Times New Roman', Times, serif;
     }
@@ -276,12 +285,17 @@
     .transaction-table {
       margin: 0px 24px 16px;
       width: 690px;
+      border-bottom: 1px solid #bcbec5;
     }
 
     .transaction-table thead tr,
     .transaction-table tbody tr {
       line-height: 3;
       font-size: 12px;
+      border-top: 1px solid #bcbec5;
+    }
+    .transaction-table tbody tr.no-top-border {
+      border-top: transparent;
       border-bottom: 1px solid #bcbec5;
     }
 
@@ -324,10 +338,41 @@
       border-bottom: 1px solid #b3bac3;
     }
 
-    .total-elements_no_border {
+    .total-elements-top-border {
+      margin: 10px 24px 0 24px;
+      padding: 10px 0;
+      font-size: 14px;
+      border-top: 1px solid #b3bac3;
+    }
+
+    .total-elements-bottom-border {
+      margin: 0px 24px;
+      font-size: 14px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #b3bac3;
+    }
+
+    .total-elements-no-border {
       margin: 0px 24px;
       font-size: 14px;
       border-bottom: none;
+    }
+
+    .transaction-summary-row {
+      margin: 0px 24px;
+      padding: 10px 0;
+      font-size: 14px;
+      border-bottom: 2px solid #b3bac3;
+    }
+
+    .total-elements-last-row {
+      margin: 0px 24px;
+      padding: 0 0 10px 0;
+      border: none;
+    }
+
+    .statement-subline{
+      margin-left: 60px;
     }
 
     .total-elements-price {
@@ -414,36 +459,36 @@
   </style>
 </head>
 <body>
-  {% for data in groupedInvoices %}
-    {% set payment_method = data.payment_method %}
-    {% set transactions = data.transactions %}
-    {% set total_paid = data.total_paid %}
-    {% set latest_payment_date = data.latest_payment_date if 'latest_payment_date' in data else None %}
-    {% set due_date = data.due_date if 'due_date' in data else None %}
-    {% set eft_payment = payment_method == 'EFT' %}
-    {% set statement_header_text = data.statement_header_text %}
-    {% set include_service_provided = data.include_service_provided %}
-    <div class="page-break-before">
-      {% include 'report-templates/statement_header.html' with context %}
-    </div>
-
-    {% include 'report-templates/statement_details.html' with context %}
-    {% include 'report-templates/statement_transactions.html' with context %}
-  {% endfor %}
-  {% if not groupedInvoices %}
+  {% if not groupedInvoices or groupedInvoices|length == 0 %}
     <div class="page-break-before">
       {% include 'report-templates/statement_header.html' %}
     </div>
     {% include 'report-templates/statement_details.html' %}
     {% include 'report-templates/statement_transactions.html' %}
-  {% endif %}
+  {% else %}
+    {% for data in groupedInvoices %}
+      {% set payment_method = data.paymentMethod %}
+      {% set transactions = data.transactions %}
+      {% set total_paid = data.total_paid %}
+      {% set latest_payment_date = data.latestPaymentDate if 'latest_payment_date' in data else None %}
+      {% set due_date = data.dueDate if 'due_date' in data else None %}
+      {% set eft_payment = payment_method == 'EFT' %}
+      {% set statement_header_text = data.statementHeaderText %}
+      {% set include_service_provided = data.includeServiceProvided %}
+      <div class="page-break-before">
+        {% include 'report-templates/statement_header.html' with context %}
+      </div>
 
+      {% include 'report-templates/statement_details.html' with context %}
+      {% include 'report-templates/statement_transactions.html' with context %}
+    {% endfor %}
+  {% endif %}
   <!-- EFT Instructions -->
   {% for data in groupedInvoices %}
-    {% if hasPaymentInstructions and data.payment_method == 'EFT' %}
+    {% if hasPaymentInstructions and data.paymentMethod == 'EFT' %}
       {% set payment_method = 'EFT' %}
       {% set is_payment_instructions = true %}
-      <div class="inner-wrap eft-instruction">
+      <div class="inner-wrap eft-instruction page-break-before">
         {% include 'report-templates/statement_header.html' %}
         <h2>Payment Instructions</h2>
       </div>

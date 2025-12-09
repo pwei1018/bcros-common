@@ -64,9 +64,9 @@ class ReportService:
         html_out: str,
         generate_page_number: bool,
     ) -> bytes:
-        """Route to chunk only when statement_report has groupedInvoices; else render directly."""
+        """Route to chunk only when statement_report has grouped_invoices; else render directly."""
         is_statement = 'statement_report' in (template_name or '')
-        has_grouped_invoices = bool((template_args or {}).get('groupedInvoices'))
+        has_grouped_invoices = bool((template_args or {}).get('grouped_invoices'))
 
         if is_statement and has_grouped_invoices:
             return ChunkReportService.create_chunk_report(

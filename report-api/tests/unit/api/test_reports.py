@@ -194,7 +194,7 @@ def test_statement_grouped_invoices(client, jwt, app, monkeypatch):
     data = {
         'template': _inline_tpl(),
         'templateVars': {
-            'groupedInvoices': [{'transactions': [1]}],
+            'grouped_invoices': [{'transactions': [1]}],
             'reportName': 'statement_report',
         },
         'reportName': 'statement_report',

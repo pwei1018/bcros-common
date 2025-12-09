@@ -25,7 +25,7 @@
                 </div>
                 {% if is_payment_instructions %}
                   <div class="r-subtitle">BC Registries And Online Services</div>
-                {% elif statement.from_date or statement.to_date %}
+                {% elif statement.fromDate or statement.toDate %}
                   <div class="r-subtitle">
                       {{ statement.duration }}
                   </div>
@@ -36,7 +36,7 @@
       {% if not is_payment_instructions %}
         <tr class="letterhead-banner">
           <td colspan="2">
-              <div>{{ account.name|upper }}</div>
+              <div>ACCOUNT NAME: {{ account.name|upper }}</div>
           </td>
         </tr>
         <tr>
