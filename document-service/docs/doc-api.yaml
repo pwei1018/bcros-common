@@ -171,7 +171,7 @@ paths:
       tags:
         - app-reports
       summary: Save a new application report.
-      description: '<p>Upload a new report to the document service. Information associated with the document may be submitted as any of the following request parameters<ul><li>consumerFilingDate - stored and returned in responses as the datePublished property.</li><li>consumerFilename - stored and returned in responses as the name property</li></ul>If no consumerFilename is submitted the default name value is {entityIdentifier}-{eventIdentifier}-{reportType}.pdf. If no consumerFilingDate is submitted datePublished is dateCreated. A success response includes a URL to download the submitted report.</p>'
+      description: '<p>Upload a new report to the document service. Information associated with the document may be submitted as any of the following request parameters<ul><li>consumerFilingDate - stored and returned in responses as the datePublished property.</li><li>consumerFilename - stored and returned in responses as the name property</li></ul>If no consumerFilename is submitted the default name value is {entityIdentifier}-{eventIdentifier}-{reportType}.pdf. If no consumerFilingDate is submitted datePublished is dateCreated. A success response includes a URL to download the submitted report.</p><p>Note: for each distinct document, the combination of entityIdentifier, eventIdentifier and reportType must be unique.</p>'
       operationId: post-prod-app-report
       parameters:
         - $ref: '#/components/parameters/prodCode'
@@ -3043,7 +3043,7 @@ components:
         type: string
     identifier:
       name: identifier
-      in: query
+      in: path
       description: 'The unique identifier of an existing document service application document, returned in a successful POST response when the document is first stored. If an invalid id is submitted with a GET/PATCH/PUT then the response is a [404] status code.'
       required: true
       schema:
