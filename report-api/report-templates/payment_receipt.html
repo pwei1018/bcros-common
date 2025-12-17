@@ -403,6 +403,14 @@
         font-family: 'BCSans-Bold', sans-serif;
       }
 
+      .line-item-desc {
+        margin-left: 4px;
+      }
+
+      .pr-section {
+        margin: 0px 4px 8px;
+      }
+
       .section-payment-title {
         margin: 30px 4px 0px;
         /* padding-bottom: 8px; */
@@ -574,6 +582,8 @@
             <div class="details-main">
               {% if corpName %}
               {{corpName}}
+              {% else %}
+              {{invoice.paymentAccount.accountName}}
               {% endif %}
             </div>
             {% if receiptNumber %}
@@ -599,6 +609,14 @@
               </div>
             </div>
             {% endif %}
+            <div class="detail-row">
+              <div class="detail-label">
+                Account Number:
+              </div>
+              <div class="detail-value">
+                {{invoice.paymentAccount.accountId}}
+              </div>
+            </div>
             {% if businessNumber %}
             <div class="detail-row">
               <div class="detail-label">
@@ -633,6 +651,14 @@
               </div>
             </div>
             {% endif %}
+            <div class="detail-row">
+              <div class="detail-label">
+                Receipt Number:
+              </div>
+              <div class="detail-value">
+                {{receiptNumber}}
+              </div>
+            </div>
           </div>
         </td>
       </tr>
@@ -653,74 +679,134 @@
       <tr>
         <td colspan="2">
           <div class="section-title">
-            Transactions
+            {{ 'Refunded' if isRefundReceipt else '' }} Transactions
           </div>
         </td>
       </tr>
       <tr>
         <td colspan="2">
           <div class="transaction-amount blue-border-bottom">
-            Number of Transactions: {{invoice.lineItems|length}}
+            Number of Transactions: {{ partialRefund|length if partialRefund else invoice.lineItems|length}}
           </div>
         </td>
       </tr>
       <tr>
         <td colspan="2">
-          <table class="transaction-table">
-            <thead>
-              <th>Product</th>
-              <th>Folio</th>
-              <th class="two-line-head" style="width: 96px;">Date</th>
-              <th>Fee</th>
-              <th class="two-line-head" style="width: 45px;">Service Fee</th>
-              <th style="width: 45px;">GST</th>
-              <th>Total</th>
-            </thead>
-            <tbody>
-              {% for item in invoice.lineItems %}
-              <tr>
-                <td class="product-purchased">
-                  {{item.description}}
-                </td>
+          {% if partialRefund and isRefundReceipt %}
+            <table class="transaction-table">
+              <thead>
+                <th>Product Detail</th>
+                <th>Folio</th>
+                <th class="two-line-head" style="width: 96px;">Date</th>
+                <th>Fee Type</th>
+                <th>Total</th>
+              </thead>
+              <tbody>
+                {% for item in partialRefund %}
+                <tr>
+                  <td class="product-purchased">
+                    <div class="font-bold">{{'Refund as Credits' if paymentMethod in ['ONLINE_BANKING', 'PAD'] else 'Refunds'}}</div>
+                    For: {{item.description}} <br>
+                    (Transaction ID: {{ item.paymentLineItemId }})
+                  </td>
                 <td>{{invoice.get('folioNumber','-')}}</td>
                 <td>{{invoice.createdOn}}</td>
-                <td>${{"%.2f"|format((item.filingFees+item.futureEffectiveFees+item.priorityFees)) if (item.total) else
-                  '0.00'}}</td>
-                <td>${{"%.2f"|format(item.get('serviceFees', 0))}}</td>
-                <td>${{"%.2f"|format(item.get('gst', 0))}}</td>
-                <td class="total-elements-price">${{"%.2f"|format(item.total+item.get('serviceFees', 0)+item.get('gst', 0)) if item.total
-                  else '0.00'}}</td>
-              </tr>
-              {% endfor %}
+                <td>{{item.refundType}}</td>
+                <td>-${{"%.2f"|format(item.refundAmount)}}</td>
+                </tr>
+                {% endfor %}
 
-              <tr class="row-border" style="text-align: left;">
-                <td colspan="7" style="text-align: left;">
-                  {% for detail in invoice.details %}
-                  <div>{{detail.label}}&nbsp;{{detail.value}}</div>
-                  {% endfor %}
+                <tr class="row-border" style="text-align: left;">
+                  <td colspan="7" style="text-align: left;">
+                    {% for detail in invoice.details %}
+                    <div>{{detail.label}}&nbsp;{{detail.value}}</div>
+                    {% endfor %}
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <td colspan="4" class="font-bold">TOTAL {{ 'CREDITED' if paymentMethod in ['ONLINE_BANKING', 'PAD'] else 'REFUNDED' }} AMOUNT :</td>
                 </td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <td colspan="3" class="font-bold">TOTAL AMOUNT :</td>
-              <td>
-                ${{"%.2f"|format(invoice.total-invoice.get('serviceFees', 0)-invoice.get('gst', 0)) if invoice.total else '0.00'}}
-              </td>
-              <td>${{"%.2f"|format(invoice.get('serviceFees', 0))}}</td>
-              <td>${{"%.2f"|format(invoice.gst) if invoice.get('gst', 0) else '0.00'}}</td>
-              <td class="total-elements-price">
-                ${{"%.2f"|format(invoice.total) if invoice.total else '0.00'}}
-              </td>
-            </tfoot>
-          </table>
+                <td class="total-elements-price">
+                  -${{"%.2f"|format(invoice.refund) if invoice.refund else '0.00'}}
+                </td>
+              </tfoot>
+            </table>
+          {% else %}
+            <table class="transaction-table">
+              <thead>
+                <th>Product Detail</th>
+                <th>Folio</th>
+                <th class="two-line-head" style="width: 96px;">Date</th>
+                <th>Fee</th>
+                <th class="two-line-head" style="width: 65px;">Service Fee</th>
+                <th class="two-line-head" style="width: 25px;">GST</th>
+                <th>Total</th>
+              </thead>
+              <tbody>
+                {% for item in invoice.lineItems %}
+                <tr>
+                    {% if isRefundReceipt %}
+                      <td class="product-purchased">
+                        <div class="font-bold">{{"Refund as Credits" if invoice.statusCode == 'CREDITED' else "Refunds" }}</div>
+                        For: {{item.description}} <br>
+                        (Transaction ID: {{ refund.refundId }})
+                      </td>
+                    {% else %}
+                      <td class="product-purchased">
+                        {{item.description}}
+                      </td>
+                    {% endif %}
+                  <td>{{invoice.get('folioNumber','-')}}</td>
+                  <td>{{invoice.createdOn}}</td>
+                  <td>{{'-' if isRefundReceipt else '' }}${{"%.2f"|format((item.filingFees+item.futureEffectiveFees+item.priorityFees)) if (item.total) else
+                    '0.00'}}</td>
+                  <td>{{'-' if isRefundReceipt else '' }}${{"%.2f"|format(item.get('serviceFees', 0))}}</td>
+                  <td>{{'-' if isRefundReceipt else '' }}${{"%.2f"|format(item.get('gst', 0))}}</td>
+                  <td class="total-elements-price">{{'-' if isRefundReceipt else '' }}${{"%.2f"|format(item.total+item.get('serviceFees', 0)+item.get('gst', 0)) if item.total
+                    else '0.00'}}</td>
+                </tr>
+                {% endfor %}
+
+                <tr class="row-border" style="text-align: left;">
+                  <td colspan="7" style="text-align: left;">
+                    {% for detail in invoice.details %}
+                    <div>{{detail.label}}&nbsp;{{detail.value}}</div>
+                    {% endfor %}
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <td colspan="3" class="font-bold">TOTAL {{ invoice.statusCode if isRefundReceipt else '' }} AMOUNT :</td>
+                <td>
+                  {{'-' if isRefundReceipt else '' }}${{"%.2f"|format(invoice.total-invoice.get('serviceFees', 0)-invoice.get('gst', 0)) if invoice.total else '0.00'}}
+                </td>
+                <td>{{'-' if isRefundReceipt else '' }}${{"%.2f"|format(invoice.get('serviceFees', 0))}}</td>
+                <td>{{'-' if isRefundReceipt else '' }}${{"%.2f"|format(invoice.gst) if invoice.get('gst', 0) else '0.00'}}</td>
+                <td class="total-elements-price">
+                  {{'-' if isRefundReceipt else '' }}${{"%.2f"|format(invoice.total) if invoice.total else '0.00'}}
+                </td>
+              </tfoot>
+            </table>
+          {% endif %}
         </td>
       </tr>
       {% if invoice.paymentAccount.get('billable') == true %}
       <tr>
         <td colspan="2">
+          {% if (invoice.statusCode == 'CREDITED' and isRefundReceipt) or (isRefundReceipt and paymentMethod in ('PAD', 'ONLINE_BANKING'))%}
+            <div class="receipt-message">
+              This is a confirmation of refund as account credit.
+            </div>
+          {% elif isRefundReceipt %}
+          <div class="receipt-message">
+            This is a confirmation of refund to your original payment method.
+          </div>
+          {% else %}
           <div class="receipt-message">
             This is a confirmation of payment.
           </div>
+          {% endif %}
         </td>
       </tr>
       {% endif %}
@@ -734,12 +820,26 @@
               Payment Method: <span> {{paymentMethodDescription}}</span>
             </div>
             {% endif %}
+            {% if paymentMethod in ('PAD', 'ONLINE_BANKING') %}
+              {% if paymentMethod == 'PAD' %}
+                <div class="payment-row">
+                  Pre-Authorized Debit Amount: <span>${{ "%.2f"|format(invoice.total - appliedCredits) }}</span>
+                </div>
+              {% elif paymentMethod == 'ONLINE_BANKING' %}
+                <div class="payment-row">
+                  Online Banking Amount: <span>${{ "%.2f"|format(invoice.total - appliedCredits) }}</span>
+                </div>
+              {% endif %}
+              <div class="payment-row">
+                Account Credit Applied: <span>${{ "%.2f"|format(appliedCredits) }}</span>
+              </div>
+            {% endif %}
             {% if invoiceNumber %}
             <div class="payment-row">
               Invoice Number: <span> {{invoiceNumber}}</span>
             </div>
             {% endif %}
-            {% if bcOnlineAccountNumber %}
+            {% if bcOnlineAccountNumber and paymentMethod == 'DRAWDOWN' %}
             <div class="payment-row">
               BC Online Account Number: <span> {{bcOnlineAccountNumber}}</span>
             </div>
