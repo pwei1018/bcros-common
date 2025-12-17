@@ -184,7 +184,7 @@
           </tr>
         {% endif %}      
     </table>
-    <table>
+    <table class="{% if payment_method in ['EFT', 'PAD'] %}page-break-before{% endif %}">
         <tr>
             <td colspan="2">
                 <div class="section-title no-border">
@@ -319,8 +319,7 @@
                     </div>
                 </td>
             </tr>
-        {% endif %}
-        {% if payment_method in ('ONLINE_BANKING', 'CC', 'BCOL', 'DRAWDOWN', 'DIRECT_PAY', 'INTERNAL') %}
+        {% else %}
         <tr>
           <tr>
             <td colspan="2">
