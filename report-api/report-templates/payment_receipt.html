@@ -820,7 +820,7 @@
               Payment Method: <span> {{paymentMethodDescription}}</span>
             </div>
             {% endif %}
-            {% if paymentMethod in ('PAD', 'ONLINE_BANKING') %}
+            {% if paymentMethod in ('PAD', 'ONLINE_BANKING') and not isRefundReceipt %}
               {% if paymentMethod == 'PAD' %}
                 <div class="payment-row">
                   Pre-Authorized Debit Amount: <span>${{ "%.2f"|format(invoice.total - appliedCredits) }}</span>
