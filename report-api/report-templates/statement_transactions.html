@@ -40,7 +40,7 @@
           <td colspan="2">
               <div class="total-elements-no-border">
                   Fees:
-                  <span class="total-elements-price">${{ data.fees if data else '0.0' }}</span>
+                  <span class="total-elements-price">${{ data.fees if data else '0.00' }}</span>
               </div>
           </td>
         </tr>
@@ -48,7 +48,7 @@
           <td colspan="2">
               <div class="total-elements-no-border">
                   Service Fees:
-                  <span class="total-elements-price">${{ data.serviceFees if data else '0.0' }}</span>
+                  <span class="total-elements-price">${{ data.serviceFees if data else '0.00' }}</span>
               </div>
           </td>
         </tr>
@@ -56,7 +56,7 @@
           <td colspan="2">
               <div class="total-elements-no-border">
                   GST (Reg Number 107864738):
-                  <span class="total-elements-price">${{ data.gst if data else '0.0' }}</span>
+                  <span class="total-elements-price">${{ data.gst if data else '0.00' }}</span>
               </div>
           </td>
         </tr>
@@ -88,7 +88,7 @@
           <td colspan="2">
               <div class="total-elements-no-border font-bold">
                   Current Statement Total:
-                  <span class="total-elements-price font-bold">${{ data.totals if data else '0.0' }}</span>
+                  <span class="total-elements-price font-bold">${{ data.totals if data else '0.00' }}</span>
               </div>
           </td>
         </tr>
@@ -106,7 +106,7 @@
           <td colspan="2">
               <div class="total-elements-bottom-border font-bold">
                   Current Statement Total:
-                  <span class="total-elements-price font-bold">${{ data.totals if data else '0.0' }}</span>
+                  <span class="total-elements-price font-bold">${{ data.totals if data else '0.00' }}</span>
               </div>
           </td>
         </tr>
@@ -151,7 +151,7 @@
             <td colspan="2">
                 <div class="total-elements-top-border font-bold">
                     CREDIT CARD TOTAL:
-                    <span class="total-elements-price font-bold">${{ data.totals if data else '0.0' }}</span>
+                    <span class="total-elements-price font-bold">${{ data.totals if data else '0.00' }}</span>
                 </div>
                 <div class="total-elements-last-row">
                   Fees charged to credit card
@@ -163,7 +163,7 @@
             <td colspan="2">
                 <div class="total-elements-top-border font-bold">
                     ONLINE BANKING TOTAL:
-                    <span class="total-elements-price font-bold">${{ data.totals if data else '0.0' }}</span>
+                    <span class="total-elements-price font-bold">${{ data.totals if data else '0.00' }}</span>
                 </div>
                 <div class="total-elements-last-row">
                   Fees paid by online banking
@@ -175,7 +175,7 @@
             <td colspan="2">
                 <div class="total-elements-top-border font-bold">
                     BC ONLINE TOTAL:
-                    <span class="total-elements-price font-bold">${{ data.totals if data else '0.0' }}</span>
+                    <span class="total-elements-price font-bold">${{ data.totals if data else '0.00' }}</span>
                 </div>
                 <div class="total-elements-last-row">
                   Fees for BC Registries and Online Services are deducted from the BC Online account.
@@ -304,7 +304,7 @@
       <td colspan="2">
           <div class="transaction-summary-row font-bold">
               Current Statement Total:
-              <span class="total-elements-price font-bold">${{ data.totals if data else '0.0' }}</span>
+              <span class="total-elements-price font-bold">${{ data.totals if data else '0.00' }}</span>
           </div>
       </td>
     </tr>
