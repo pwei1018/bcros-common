@@ -20,7 +20,7 @@
                   {% elif statement_header_text %}
                       {{ statement_header_text }}
                   {% else %}
-                      ACCOUNT STATEMENT
+                      {{ statement.statementHeaderText or 'ACCOUNT STATEMENT' }}
                   {% endif %}
                 </div>
                 {% if is_payment_instructions %}

@@ -83,7 +83,7 @@
           </td>
         </tr>
         {% endif %}
-        {% if payment_method == 'PAD' %}
+        {% if payment_method == 'PAD' or statement.defaultPaymentMethod == 'PAD' %}
         <tr>
           <td colspan="2">
               <div class="total-elements-no-border font-bold">
@@ -101,7 +101,7 @@
               </td>
             </tr>
         {% endif %}
-        {% if payment_method == 'EFT' %}
+        {% if payment_method == 'EFT' or statement.defaultPaymentMethod == 'EFT' %}
         <tr>
           <td colspan="2">
               <div class="total-elements-bottom-border font-bold">
@@ -146,7 +146,7 @@
                 </tr>
             {% endif %}
         {% endif %}
-        {% if payment_method in ['DIRECT_PAY', 'CC'] %}
+        {% if payment_method in ['DIRECT_PAY', 'CC'] or statement.defaultPaymentMethod in ['DIRECT_PAY', 'CC'] %}
           <tr>
             <td colspan="2">
                 <div class="total-elements-top-border font-bold">
@@ -158,7 +158,7 @@
                 </div>
             </td>
           </tr>
-        {% elif payment_method == 'ONLINE_BANKING' %}
+        {% elif payment_method == 'ONLINE_BANKING'  or statement.defaultPaymentMethod == 'ONLINE_BANKING' %}
           <tr>
             <td colspan="2">
                 <div class="total-elements-top-border font-bold">
@@ -170,7 +170,7 @@
                 </div>
             </td>
           </tr>
-        {% elif payment_method == 'DRAWDOWN' %}
+        {% elif payment_method == 'DRAWDOWN' or statement.defaultPaymentMethod == 'DRAWDOWN' %}
           <tr>
             <td colspan="2">
                 <div class="total-elements-top-border font-bold">
