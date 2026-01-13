@@ -1,0 +1,38 @@
+#
+# This file contains the environment-specific settings that are read by python-dotenv. Place it somewhere above your
+# source code and it will be used.
+#
+DEPLOYMENT_PLATFORM = "gcp"
+DEPLOYMENT_PROJECT = ""
+DEPLOYMENT_ENV = "production"
+
+# third party Services
+COLIN_URL = "https://www.corporateonline.gov.bc.ca/corporateonline/colin"
+
+DOC_DATABASE_UNIX_SOCKET=""
+DOC_DATABASE_USERNAME=""
+DOC_DATABASE_PASSWORD=""
+DOC_DATABASE_NAME=""
+DOC_DATABASE_HOST=""
+DOC_DATABASE_PORT=""
+
+BUS_DATABASE_UNIX_SOCKET=""
+BUS_DATABASE_USERNAME=""
+BUS_DATABASE_PASSWORD=""
+BUS_DATABASE_NAME=""
+BUS_DATABASE_HOST=""
+BUS_DATABASE_PORT=""
+
+GCP_AUTH_KEY=""
+
+# Bucket to store migrated reports
+GCP_CS_BUCKET_ID=""
+
+# Unique for each job: required for parallel processing. Filter on company identifiers to include using this ID. 
+MIGRATION_JOB_ID="1"
+# Optional - filter migration by company recognition date year. Leave blank to ignore.
+MIGRATION_JOB_YEAR="2019"
+# Optional - limit the number of companies to migrate per job run. Leave blank to set no limit (job ID sets the limit).
+MIGRATION_JOB_BATCH_SIZE="500"
+# Optional - filter companies to migrate by COLIN op corp state: HIS or ACT.
+MIGRATION_CORP_STATE="ACT"
