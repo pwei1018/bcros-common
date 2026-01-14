@@ -17,6 +17,7 @@ import sys
 from http import HTTPStatus
 
 import psycopg2
+import pymupdf
 import requests
 
 from colin_report_migration.config import Config
@@ -109,6 +110,17 @@ def is_stale_extract(filing_rows: list, filings_info: dict) -> bool:
     return index_first_report < index_first_filing_date
 
 
+def cleanup_pdf(pdf_data):
+    """Remove request/retrieval date and time from the legacy report."""
+    doc = pymupdf.Document(stream=pdf_data)
+    page = doc[0]
+    # Date and time text coordinates are well-known from unit testing. Coordinates should work for all dates.
+    remove_rect = pymupdf.Rect(14.0, 39.0, 275.0, 53.0)
+    page.add_redact_annot(remove_rect)
+    page.apply_redactions()  # This permanently removes the content
+    return doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
+
+
 def save_report(corp_num: str, report_type: str, filing_info: dict, result: dict) -> dict:
     """Save an individual report to doc storage and create a DRS app report record."""
     storage_name: str = get_storage_name(result.get("filing_date"), corp_num, result.get("event_id"), report_type)
@@ -123,7 +135,10 @@ def save_report(corp_num: str, report_type: str, filing_info: dict, result: dict
         response = requests.get(report_url, cookies=cookies)
         # logger.info(f"save_report status={response.status_code}")
         if response.status_code == HTTPStatus.OK:
-            GoogleStorageService.save_document(storage_name, response.content)
+            pdf_data = response.content
+            if report_type in (REPORT_TYPE_FILING, REPORT_TYPE_NOA):
+                pdf_data = cleanup_pdf(pdf_data)
+            GoogleStorageService.save_document(storage_name, pdf_data)
             Database.create_document_record(corp_num, storage_name, report_type.upper(), result)
             result["report_count"] = result.get("report_count") + 1
         else:
@@ -209,7 +224,7 @@ def migrate_reports(config: Config, rows: list) -> dict:
         except Exception as report_err:
             logger.error(f"Job {config.JOB_ID} unexpected error for corp_num={corp_num}: {report_err}")
             total_error_count += 1
-        if corp_count % 50 == 0:
+        if corp_count % 15 == 0:
             logger.info(f"Job {config.JOB_ID} company migration count: {corp_count}")
     logger.info(f"Final counts companies={corp_count} errors={total_error_count} reports={total_report_count}.")
 

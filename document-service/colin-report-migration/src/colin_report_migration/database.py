@@ -40,11 +40,10 @@ QUERY_CORPS_SIZE_LIMIT = " fetch first {job_size} rows only"
 QUERY_FILINGS = """
 select to_char(e.event_timerstamp, 'YYYY-MM-DD HH24:MI:SS') as filing_date, f.event_id, f.filing_type_cd,
        trim(to_char((e.event_timerstamp at time zone 'PST'), 'Month')) ||
-       to_char((e.event_timerstamp at time zone 'PST'), ' DD, YYYY FMHH12:MI AM') as report_date
+       to_char((e.event_timerstamp at time zone 'PST'), ' DD, YYYY') as report_date
   from colin_extract.filing f, colin_extract.event e
  where e.event_id = f.event_id
    and e.corp_num = '{corp_num}'
-   and f.ods_type_cd = 'F'
  order by f.effective_dt desc
 """
 QUERY_JOB_CORP_UPDATE = """
