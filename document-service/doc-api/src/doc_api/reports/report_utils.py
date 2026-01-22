@@ -10,9 +10,12 @@
 # specific language governing permissions and limitations under the License.
 """Helper/utility functions for report generation."""
 import copy
+from datetime import datetime as _datetime
 from pathlib import Path
 
 import pycountry
+import pymupdf
+import pytz
 from flask import current_app
 from jinja2 import Template
 
@@ -41,6 +44,13 @@ REPORT_META_DATA = {
     "printBackground": True,
 }
 REPORT_FILES = {"index.html": "", "header.html": "", "footer.html": ""}
+CERTIFIED_COPY_PATH_LEGACY: str = "{templates}/static/certified-copy-legacy.png"
+CERTIFIED_COPY_PATH: str = "{templates}/static/certified-copy.png"
+CERTIFIED_COPY_TEXT_POINT_LEGACY = pymupdf.Point(423, 212)
+CERTIFIED_COPY_IMAGE_RECT_LEGACY = pymupdf.Rect(450.0, 145.0, 525.0, 205.0)
+CERTIFIED_COPY_TEXT_POINT = pymupdf.Point(433, 210)
+CERTIFIED_COPY_IMAGE_RECT = pymupdf.Rect(460.0, 142.0, 535.0, 202.0)
+CERTIFIED_COPY_REMOVE_RECT = pymupdf.Rect(450.0, 145.0, 600.0, 225.0)
 
 
 class ReportTypes(BaseEnum):
@@ -59,6 +69,8 @@ class Config:  # pylint: disable=too-few-public-methods
     FOOTER_TEMPLATE: str = None
     FOOTER_COVER_TEMPLATE: str = None
     FOOTER_REG_COVER_TEMPLATE: str = None
+    CERTIFIED_COPY_DATA_LEGACY = None
+    CERTIFIED_COPY_DATA = None
 
     @classmethod
     def get_header_template(cls) -> str:
@@ -143,6 +155,25 @@ class Config:  # pylint: disable=too-few-public-methods
             except Exception as err:  # noqa: B902; just logging
                 logger.error(f"Error loading reg cover footer template from path={file_path}: " + str(err))
         return cls.FOOTER_REG_COVER_TEMPLATE
+
+    @classmethod
+    def get_certified_copy_image(cls, is_legacy: bool) -> bytes:
+        """Get the image data for the app report certified copy. For migrated colin reports is_legacy is true."""
+        if is_legacy:
+            if cls.CERTIFIED_COPY_DATA_LEGACY is None:
+                template_path: str = current_app.config.get("REPORT_TEMPLATE_PATH")
+                image_file = CERTIFIED_COPY_PATH_LEGACY.format(templates=template_path)
+                with open(image_file, "rb") as image_data_file:
+                    cls.CERTIFIED_COPY_DATA_LEGACY = image_data_file.read()
+                    image_data_file.close()
+            return cls.CERTIFIED_COPY_DATA_LEGACY
+        if cls.CERTIFIED_COPY_DATA is None:
+            template_path: str = current_app.config.get("REPORT_TEMPLATE_PATH")
+            image_file = CERTIFIED_COPY_PATH.format(templates=template_path)
+            with open(image_file, "rb") as image_data_file:
+                cls.CERTIFIED_COPY_DATA = image_data_file.read()
+                image_data_file.close()
+        return cls.CERTIFIED_COPY_DATA
 
 
 def get_header_data(title: str, subtitle: str = "") -> str:
@@ -422,3 +453,51 @@ def to_report_datetime(date_time: str, include_time: bool = True):
         return timestamp.replace(" PM ", " pm ")
 
     return local_datetime.strftime("%B %-d, %Y")
+
+
+def get_certified_copy_image(is_legacy: bool) -> bytes:
+    """Get the image data for the application report certified copy. For migrated colin reports is_legacy is true."""
+    return Config().get_certified_copy_image(is_legacy)
+
+
+def get_app_report_datetime():
+    """Convert local time zone now to report date and time format."""
+    local_datetime = _datetime.now(pytz.timezone("America/Los_Angeles"))
+    timestamp = local_datetime.strftime("%B %-d, %Y at %-I:%M %p Pacific time")
+    if timestamp.find(" AM ") > 0:
+        return timestamp.replace(" AM ", " am ")
+    return timestamp.replace(" PM ", " pm ")
+
+
+def add_certified_copy(report_data: bytes, is_legacy: bool) -> bytes:
+    """Add the certified copy image and timestamp text to the report_data."""
+    image_data = get_certified_copy_image(is_legacy)
+    doc = pymupdf.Document(stream=report_data)
+    page = doc[0]
+    add_text = get_app_report_datetime()
+    point = CERTIFIED_COPY_TEXT_POINT_LEGACY if is_legacy else CERTIFIED_COPY_TEXT_POINT
+    image_rect = CERTIFIED_COPY_IMAGE_RECT_LEGACY if is_legacy else CERTIFIED_COPY_IMAGE_RECT
+    if not is_legacy:
+        page.add_redact_annot(CERTIFIED_COPY_REMOVE_RECT)
+        page.apply_redactions()  # This permanently removes the content
+    page.insert_text(point, add_text, fontsize=7, fontname="Helvetica-Oblique", color=(0, 0, 0))  # Black color
+    page.insert_image(image_rect, stream=image_data)
+    updated_report = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
+    doc.close()
+    return updated_report
+
+
+def is_legacy_report(filename: str) -> bool:
+    """Legacy migrated reports have a distinct filename format: use to determine if legacy."""
+    if not filename:
+        return False
+    name_parts = filename.split("-")
+    if name_parts and len(name_parts) == 3:
+        name_part_2: str = name_parts[2].replace(".pdf", "")
+        return len(name_parts[1]) == 5 and name_part_2 in (
+            model_utils.REPORT_TYPE_CERT,
+            model_utils.REPORT_TYPE_FILING,
+            model_utils.REPORT_TYPE_NOA,
+            model_utils.REPORT_TYPE_RECEIPT,
+        )
+    return False

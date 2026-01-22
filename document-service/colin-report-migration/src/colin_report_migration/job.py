@@ -62,22 +62,24 @@ def get_corp_filings_page(corp_num: str, corp_password: str, colin_url: str) -> 
     menu_url = colin_url + SCRAPING_MENU_PATH
     overview_url = colin_url + SCRAPING_OVERVIEW_PATH
     search_url = colin_url + SCRAPING_SEARCH_PATH
-
+    step: str = "menu"
     try:
-        response = requests.get(menu_url, headers=SCRAPING_HEADERS_MENU)
+        response = requests.get(menu_url, headers=SCRAPING_HEADERS_MENU, timeout=(2, 10))
         if response.status_code != 200:
             logger.info("menu error")
             raise ScrapingException(f"Scraping get menu failed for url={menu_url}.")
         cookie: str = response.cookies["JSESSIONID"]
         cookies = {"JSESSIONID": cookie}
-        response = requests.post(overview_url, data=SCRAPING_OVERVIEW_DATA, cookies=cookies)
+        step = "overview"
+        response = requests.post(overview_url, data=SCRAPING_OVERVIEW_DATA, cookies=cookies, timeout=(2, 10))
         if response.status_code != 200:
             logger.info("overview error")
             raise ScrapingException(f"Scraping get overview failed for url={overview_url}.")
         search_data = copy.deepcopy(SCRAPING_SEARCH_DATA)
         search_data["corpNum"] = corp_num
         search_data["password"] = corp_password
-        response = requests.post(search_url, data=search_data, cookies=cookies)
+        step = "search"
+        response = requests.post(search_url, data=search_data, cookies=cookies, timeout=(2, 10))
         if response.status_code != 200:
             raise ScrapingException(f"Scraping get search failed for url={search_url}.")
         page_text = response.text
@@ -88,7 +90,7 @@ def get_corp_filings_page(corp_num: str, corp_password: str, colin_url: str) -> 
     except ScrapingException:
         raise
     except Exception as err:
-        raise ScrapingException(f"Scraping failed for corp num={corp_num}. {err}") from err
+        raise ScrapingException(f"Scraping failed for step {step} corp num={corp_num}. {err}") from err
 
 
 def has_report(filings_page: str, filing_index: int, report_type: str) -> bool:
@@ -118,7 +120,9 @@ def cleanup_pdf(pdf_data):
     remove_rect = pymupdf.Rect(14.0, 39.0, 275.0, 53.0)
     page.add_redact_annot(remove_rect)
     page.apply_redactions()  # This permanently removes the content
-    return doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
+    updated_pdf = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
+    doc.close()
+    return updated_pdf
 
 
 def save_report(corp_num: str, report_type: str, filing_info: dict, result: dict) -> dict:

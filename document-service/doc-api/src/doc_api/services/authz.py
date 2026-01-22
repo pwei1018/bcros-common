@@ -246,3 +246,12 @@ def is_convert_authorized(jwt: JwtManager) -> bool:
     if jwt.validate_roles([STAFF_ROLE]) or jwt.validate_roles([PPR_STAFF_ROLE]) or jwt.validate_roles([SYSTEM_ROLE]):
         return True
     return False
+
+
+def is_search_authorized(jwt: JwtManager) -> bool:
+    """Return True if the user can submit document search requests: staff or service account."""
+    if not jwt:
+        return False
+    if jwt.validate_roles([STAFF_ROLE]) or jwt.validate_roles([PPR_STAFF_ROLE]) or jwt.validate_roles([SYSTEM_ROLE]):
+        return True
+    return False

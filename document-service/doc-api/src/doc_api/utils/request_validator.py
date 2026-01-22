@@ -312,6 +312,7 @@ def is_document_modified(info: RequestInfo) -> bool:
         is_modified(existing, updated, "consumerFilename")
         or is_modified(existing, updated, "consumerIdentifier")
         or is_modified(existing, updated, "consumerFilingDateTime")
+        or is_modified(existing, updated, "consumerFilingDate")
         or is_modified(existing, updated, "documentType")
     ):
         return True

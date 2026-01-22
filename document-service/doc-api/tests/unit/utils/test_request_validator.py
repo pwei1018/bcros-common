@@ -252,6 +252,7 @@ TEST_DATA_PATCH = [
     ("Valid consumer id", True, None, "BC0700000", None, None, None, None, None),
     ("Valid filename", True, None, None, "change_address.pdf", None, None, None, None),
     ("Valid filing date", True, None, None, None, "2024-07-31", None, None, None),
+    ("Valid consumerFilingDate", True, None, None, None, "2024-07-31", None, None, None),
     ("Valid description", True, None, None, None, None, "Important description", None, None),
     ("Valid scanning change", True, None, None, None, None, None, None, None),
     ("Invalid no change", False, None, None, None, None, None, None, validator.MISSING_PATCH_PARAMS),
@@ -696,7 +697,10 @@ def test_validate_patch(session, desc, valid, doc_type, cons_id, filename, filin
         info.request_data["consumerFilename"] = filename
     if filing_date:
         info.consumer_filedate = filing_date
-        info.request_data["consumerFilingDateTime"] = filing_date
+        if  desc == "Valid consumerFilingDate":
+            info.request_data["consumerFilingDate"] = filing_date
+        else:
+            info.request_data["consumerFilingDateTime"] = filing_date
     if description:
         info.description = description
         info.request_data["description"] = description

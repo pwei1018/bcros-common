@@ -21,6 +21,7 @@ from doc_api.exceptions import BusinessException, DatabaseException
 from doc_api.models import ApplicationReport, Document
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import ProductCodes
+from doc_api.reports import report_utils
 from doc_api.resources import utils as resource_utils
 from doc_api.services.authz import is_report_authorized
 from doc_api.services.document_storage.storage_service import GoogleStorageService
@@ -37,6 +38,7 @@ HISTORY_REQUEST_PATH_PRODUCT = "/application-reports/history/{product_code}/{ent
 EVENT_REQUEST_PATH_PRODUCT = "/application-reports/events/{product_code}/{entity_id}/{event_id}"
 CONTENT_JSON = {"Content-Type": "application/json"}
 CONTENT_PDF = {"Content-Type": "application/pdf"}
+PARAM_CERTIFIED_COPY = "certifiedCopy"
 
 bp = Blueprint("APP_REPORTS1", __name__, url_prefix="/application-reports")  # pylint: disable=invalid-name
 
@@ -132,9 +134,10 @@ def get_individual_product_report(prod_code: str, doc_service_id: str):
         if not app_report:
             logger.info(f"No {prod_code} report record found for document service id={doc_service_id}.")
             return resource_utils.not_found_error_response(f"GET {prod_code} report information", doc_service_id)
-        if resource_utils.is_pdf(request):
-            logger.info(f"Request {prod_code} {doc_service_id} for PDF data.")
-            report_data = get_report_data(app_report)
+        certified_copy: bool = is_certified_copy_request(app_report, request.args.get(PARAM_CERTIFIED_COPY))
+        if resource_utils.is_pdf(request) or certified_copy:
+            logger.info(f"Request {prod_code} {doc_service_id} for PDF data. Certified={certified_copy}.")
+            report_data = get_report_data(app_report, certified_copy)
             return report_data, HTTPStatus.OK, CONTENT_PDF
         response_json = get_report_link(app_report)
         return jsonify(response_json), HTTPStatus.OK, CONTENT_JSON
@@ -203,7 +206,7 @@ def get_product_history_reports(prod_code: str, entity_id: str):
                 f"GET {prod_code} report information by entity ID", entity_id
             )
         reports_json = add_documents(request, entity_id, reports_json)
-        response_json = get_report_links(reports_json, prod_code)
+        response_json = remove_urls(reports_json)
         return jsonify(response_json), HTTPStatus.OK, CONTENT_JSON
     except DatabaseException as db_exception:
         return resource_utils.db_exception_response(
@@ -312,7 +315,7 @@ def get_history_reports(entity_id: str):
         if not reports_json:
             logger.warning(f"No report records found for entity id={entity_id}.")
             return resource_utils.not_found_error_response("GET report information by entity ID", entity_id)
-        response_json = get_report_links(reports_json, ProductCodes.BUSINESS.value)
+        response_json = remove_urls(reports_json)
         return jsonify(response_json), HTTPStatus.OK
     except DatabaseException as db_exception:
         return resource_utils.db_exception_response(db_exception, account_id, "GET report information by entity ID")
@@ -415,15 +418,21 @@ def get_report_link(app_report: ApplicationReport) -> dict:
     return report_json
 
 
-def get_report_data(app_report: ApplicationReport):
-    """Retrieve the report binary data for the app report."""
+def get_report_data(app_report: ApplicationReport, certified_copy: bool = False) -> bytes:
+    """Retrieve the report binary data for the app report. If certified add the image and timestamp."""
     storage_type: str = resource_utils.STORAGE_TYPE_DEFAULT.value
     storage_name: str = app_report.doc_storage_url
+    rep_data: bytes = None
     if storage_name:
         logger.info(f"getting report data for type={storage_type} name={storage_name}...")
         rep_data = GoogleStorageService.get_document(storage_name, storage_type)
         logger.info(f"Retrieved {storage_name} report data length={len(rep_data)}.")
-    return rep_data
+    if not rep_data or not certified_copy:
+        return rep_data
+    is_legacy_report: bool = report_utils.is_legacy_report(app_report.filename)
+    updated_data = report_utils.add_certified_copy(rep_data, is_legacy_report)
+    logger.info(f"Certified copy added to event {app_report.event_id}, filename {app_report.filename}.")
+    return updated_data
 
 
 def get_report_links(reports_json: list, product_code: str) -> list:
@@ -433,8 +442,28 @@ def get_report_links(reports_json: list, product_code: str) -> list:
         storage_type = resource_utils.STORAGE_TYPE_DEFAULT.value
     for report_json in reports_json:
         storage_name: str = report_json.get("url")
-        if storage_name:
+        report_type: str = report_json.get("reportType")
+        if storage_name and report_type in (model_utils.REPORT_TYPE_FILING, model_utils.REPORT_TYPE_NOA):
+            report_json["url"] = ""
+        elif storage_name and report_type not in (model_utils.REPORT_TYPE_FILING, model_utils.REPORT_TYPE_NOA):
             logger.debug(f"getting link for type={storage_type} name={storage_name}...")
             doc_link = GoogleStorageService.get_document_link(storage_name, storage_type, 2)
             report_json["url"] = doc_link
+    return reports_json
+
+
+def is_certified_copy_request(report_data: ApplicationReport, certified_copy) -> bool:
+    """Verify a report request is for a certified copy of the report."""
+    if not report_data.report_type or report_data.report_type not in (
+        model_utils.REPORT_TYPE_NOA,
+        model_utils.REPORT_TYPE_FILING,
+    ):
+        return False
+    return certified_copy and bool(certified_copy) and bool(certified_copy) is True
+
+
+def remove_urls(reports_json: list) -> list:
+    """Replace storage path with empty string in entity ID history response url's."""
+    for report_json in reports_json:
+        report_json["url"] = ""
     return reports_json

@@ -173,14 +173,14 @@ class ApplicationReport(db.Model):
                             ApplicationReport.entity_id == entity_id,
                         )
                     )
-                    .order_by(ApplicationReport.event_id)
+                    .order_by(ApplicationReport.event_id.desc())
                     .all()
                 )
             else:
                 reports = (
                     db.session.query(ApplicationReport)
                     .filter(ApplicationReport.entity_id == entity_id)
-                    .order_by(ApplicationReport.event_id)
+                    .order_by(ApplicationReport.event_id.desc())
                     .all()
                 )
         except Exception as db_exception:  # noqa: B902; return nicer error

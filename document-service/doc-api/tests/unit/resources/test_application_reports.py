@@ -85,6 +85,15 @@ PATCH_PAYLOAD3 = {
     "datePublished": "2022-10-31T19:00:00+00:00",
     "reportType": "N"
 }
+CC_NOA_LEGACY_INFILE = "tests/unit/reports/data/legacy-noa.pdf"
+CC_NOA_LEGACY_OUTFILE = "tests/unit/resources/legacy-noa-certified.pdf"
+CC_FILING_LEGACY_INFILE = "tests/unit/reports/data/legacy-filing.pdf"
+CC_FILING_LEGACY_OUTFILE = "tests/unit/resources/legacy-filing-certified.pdf"
+CC_NOA_INFILE = "tests/unit/reports/data/noa.pdf"
+CC_NOA_OUTFILE = "tests/unit/resources/noa-certified.pdf"
+CC_FILING_INFILE = "tests/unit/reports/data/filing.pdf"
+CC_FILING_OUTFILE = "tests/unit/resources/filing-certified.pdf"
+
 # testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status})
 TEST_CREATE_DATA = [
     ("Invalid entity ID", "1", "12345", "FILING", HTTPStatus.BAD_REQUEST),
@@ -163,6 +172,17 @@ TEST_GET_HISTORY_DATA_PRODUCT = [
     ("Valid staff", "UT-123456", "123456", "FILING", HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_STAFF, False),
     ("Invalid role", "UT-123456", "123456", "FILING", HTTPStatus.UNAUTHORIZED, "BUSINESS", USER_ROLES, True),
     ("Invalid product code", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, "XXX", PRODUCT_ROLES_STAFF, False),
+]
+# testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {infile}, {outfile}, {filename})
+TEST_GET_CERTIFIED_COPY_DATA = [
+    ("NOA legacy", "UT9900001", 99900001, "NOA", CC_NOA_LEGACY_INFILE, CC_NOA_LEGACY_OUTFILE,
+     "UT9900001-ICORP-NOA.pdf"),
+    ("FILING legacy", "UT9900001", 99900001, "FILING", CC_FILING_LEGACY_INFILE, CC_FILING_LEGACY_OUTFILE,
+     "UT9900001-ICORP-FILING.pdf"),
+    ("NOA", "UT9900002", 99900002, "NOA", CC_NOA_INFILE, CC_NOA_OUTFILE,
+     "UT9900002 Notice Of Articles - 2026-01-16"),
+    ("FILING", "UT9900002", 99900002, "FILING", CC_FILING_INFILE, CC_FILING_OUTFILE,
+     "UT9900002 BC Limited Company Incorporation Application - 2026-01-16.pdf"),
 ]
 
 
@@ -297,6 +317,12 @@ def test_get_product_event_id(session, client, jwt, desc, entity_id, event_id, r
     assert response.status_code == status
     if status == HTTPStatus.OK:
         assert response.json
+        reports_json = response.json
+        for report in reports_json:
+            if report.get("reportType") in (model_utils.REPORT_TYPE_FILING, model_utils.REPORT_TYPE_NOA):
+                assert not report.get("url")
+            else:
+                assert report.get("url")
 
 
 @pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,prod_code,roles,include_docs", TEST_GET_HISTORY_DATA_PRODUCT)
@@ -336,6 +362,9 @@ def test_get_product_entity_id(session, client, jwt, desc, entity_id, event_id, 
         assert response.json
         if include_docs:
             assert len(response.json) > 1
+        reports_json = response.json
+        for report in reports_json:
+            assert not report.get("url")
 
 
 @pytest.mark.parametrize("desc,entity_id,event_id,report_type,status", TEST_CREATE_DATA)
@@ -504,6 +533,41 @@ def test_get_entity_id(session, client, jwt, desc, entity_id, event_id, report_t
     assert response.status_code == status
     if status == HTTPStatus.OK:
         assert response.json
+
+
+@pytest.mark.parametrize("desc,entity_id,event_id,report_type,infile,outfile,filename", TEST_GET_CERTIFIED_COPY_DATA)
+def test_get_certified_copy(session, client, jwt, desc, entity_id, event_id, report_type, infile, outfile, filename):
+    """Assert that a request to get a certified copy application report works as expected."""
+    if is_ci_testing():
+        return
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    prod_code = "BUSINESS"
+    create_path = PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id, event_id=event_id, report_type=report_type)
+    create_path += "?consumerFilingDate=2025-11-22T19:30:30%2B00:00&consumerFilename=" + filename
+    headers = create_header_account_upload(jwt, PRODUCT_ROLES_STAFF, "UT-TEST", "PS12345", MEDIA_PDF)
+ 
+    raw_data = None
+    with open(infile, "rb") as data_file:
+        raw_data = data_file.read()
+        data_file.close()
+    logger.info(f"POST path={create_path}")
+    response = client.post(create_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+    logger.info(response.json)
+    resp_json = response.json
+    valid_id = resp_json.get("identifier")
+    req_path = CHANGE_PATH_PRODUCT.format(prod_code=prod_code, doc_service_id=valid_id) + "?certifiedCopy=true"
+    logger.info(f"GET path={req_path}")
+
+    # test
+    response = client.get(req_path, headers=headers, content_type="application/pdf")
+    # check
+    # logger.info(response.json)
+    assert response.status_code == HTTPStatus.OK
+    assert response.data
+    with open(outfile, "wb") as pdf_file:
+        pdf_file.write(response.data)
+        pdf_file.close()
 
 
 def is_ci_testing() -> bool:

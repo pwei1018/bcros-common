@@ -31,6 +31,26 @@ TEST_DATA_DATE_FORMAT = [
     ("2024-12-05T18:20:20+00:00", True, "December 5, 2024 at 10:20:20 am Pacific time"),
     ("2024-12-20T01:30:30+00:00", True, "December 19, 2024 at 5:30:30 pm Pacific time"),
 ]
+# testdata pattern is ({filename}, {legacy})
+TEST_LEGACY_REPORT_FILENAME = [
+    ("BC1191518-ICORP-FILING.pdf", True),
+    ("BC1191518-ICORP-RECEIPT.pdf", True),
+    ("BC1191518-ICORP-NOA.pdf", True),
+    ("BC1191518-ICORP-CERT.pdf", True),
+    ("changeOfAddress", False),
+    ("BC1191518-annualReport-FILING.pdf", False),
+    ("BC1191518-ANNBC.pdf", False),
+    ("BC1191518-NOA-annualReport.pdf", False),
+    ("BC1191518-FILING-annualReport.pdf", False),
+    ("BC1191518-CERT-annualReport.pdf", False),
+    ("BC1191518-RECEIPT-annualReport.pdf", False),
+]
+
+
+@pytest.mark.parametrize("filename, is_legacy", TEST_LEGACY_REPORT_FILENAME)
+def test_is_legacy_report(session, filename, is_legacy):
+    """Assert that determing if a report is legacy works as expected."""
+    assert is_legacy == report_utils.is_legacy_report(filename)
 
 
 @pytest.mark.parametrize("test_ts,is_timestamp,expected", TEST_DATA_DATE_FORMAT)

@@ -59,6 +59,14 @@ REPORT4 = {
     "name": "test_cert.pdf",
     "datePublished": "2024-07-01T19:00:00+00:00"
 }
+REPORT5 = {
+    "productCode": "BUSINESS",
+    "entityIdentifier": "T0000001",
+    "eventIdentifier": 1000001,
+    "reportType": "RECEIPT",
+    "name": "test_receipt.pdf",
+    "datePublished": "2024-07-02T19:00:00+00:00"
+}
 
 UPDATE_REPORT = {
     "reportType": "MOD_RECEIPT",
@@ -238,7 +246,7 @@ def test_find_by_entity_id(session, id, has_results, product_code):
         save_report.save()
         save_report2: ApplicationReport = ApplicationReport.create_from_json(REPORT3)
         save_report2.save()
-        save_report3: ApplicationReport = ApplicationReport.create_from_json(REPORT4)
+        save_report3: ApplicationReport = ApplicationReport.create_from_json(REPORT5)
         save_report3.save()
         if product_code:
             reports = ApplicationReport.find_by_entity_id(id, product_code)
@@ -246,11 +254,13 @@ def test_find_by_entity_id(session, id, has_results, product_code):
             reports = ApplicationReport.find_by_entity_id(id)
         assert reports
         assert len(reports) >= 3
+        assert reports[0].event_id == REPORT5.get("eventIdentifier")
         for report in reports:
             assert report.entity_id == id
         report_json = ApplicationReport.find_by_entity_id_json(id)
         assert report_json
         assert len(report_json) >= 3
+        assert report_json[0].get("eventIdentifier") == REPORT5.get("eventIdentifier")
         for json in report_json:
             assert json.get("entityIdentifier") == id
             if product_code:

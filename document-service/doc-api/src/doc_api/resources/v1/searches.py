@@ -22,7 +22,7 @@ from doc_api.models.search_utils import get_search_docs
 from doc_api.models.type_tables import RequestTypes
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
-from doc_api.services.authz import is_staff
+from doc_api.services.authz import is_search_authorized, is_staff
 from doc_api.utils.auth import jwt
 from doc_api.utils.logging import logger
 
@@ -47,8 +47,8 @@ def get_searches_by_class(doc_class: str):
         if not info.account_id:
             return resource_utils.account_required_response()
         account_id = info.account_id
-        if not is_staff(jwt):
-            logger.error("User not staff: currently requests are staff only.")
+        if not is_search_authorized(jwt):
+            logger.error("User unuauthorized for this endpoint: not staff or service account.")
             return resource_utils.unauthorized_error_response(account_id)
         # Additional validation not covered by the schema.
         extra_validation_msg = resource_utils.validate_request(info)

@@ -62,6 +62,11 @@ DEFAULT_FILE_TYPE = "pdf"
 STORAGE_DOC_NAME = "{doc_type}-{doc_service_id}.{file_type}"
 STORAGE_REPORT_NAME = "{entity_id}-{event_id}-{report_type}.pdf"
 DEFAULT_FILE_EXTENSION = ".pdf"
+# Expected report types - used in COLIN report migration
+REPORT_TYPE_CERT = "CERT"
+REPORT_TYPE_FILING = "FILING"
+REPORT_TYPE_NOA = "NOA"
+REPORT_TYPE_RECEIPT = "RECEIPT"
 
 
 def now_ts():
