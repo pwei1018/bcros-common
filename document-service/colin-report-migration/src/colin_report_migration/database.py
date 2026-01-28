@@ -33,19 +33,72 @@ select m.corp_num, c.corp_password
    and m.migrated_ts is null
    and c.corp_password is not null
 """
+QUERY_JOB_CORPS_RECENT_BASE = """
+select m.corp_num, c.corp_password, to_char(m.migrated_ts, 'YYYY-MM-DD HH24:MI:SS') as migrated_ts, m.report_count,
+       m.error_count, m.migration_summary
+  from mig_colin_reports m, colin_extract.corporation c
+ where c.corp_num = m.corp_num
+   and m.migrated_ts is not null
+   and c.corp_password is not null
+   and not exists (select cp.id
+                     from colin_extract.corp_processing cp
+                    where cp.corp_num = m.corp_num
+                      and cp.environment = 'prod'
+                      and cp.processed_status = 'COMPLETED')
+   and exists (select f.event_id
+                 from colin_extract.filing f, colin_extract.event e
+                where e.corp_num = m.corp_num
+                  and e.event_id = f.event_id
+                  and e.event_timerstamp > m.migrated_ts
+                  and f.filing_type_cd in ('AMALO','CONVL','REGST','NOAPA','NORVA','NOCAA','AMEND','NOCRX','NOCNX',
+                                           'ACASS','AMALX','RESTL','RESTF','NOLDS','NOCDS','APTRA','NOERA','NOTRA',
+                                           'NOAPL','NOCAL','NOCEL','LIQUR','LQWOS','NWITH','COUTI','CONTO','CONTI',
+                                           'ADVDS','NOCEB','ADCOL','ICORP','TRANS','TRANP','ANNBC','ANNXP','NOCDR',
+                                           'NOCAD','AMALH','AMALV','AMALR','NOALA','NOARM','NOCER','RESXL','RESXF',
+                                           'LQSIN','LQSCO','LQDIS','LQCON','NOCRM','AUCTI','NOFIL','NORSA','CANRG',
+                                           'IAMGO','REGLL','AGMDT','AGMLC','COURT','RESTX','SRCHI','SRCHR','REXTF',
+                                           'REXXL','REXXF','XREFN','REGSN','REGSO','ADVLQ','AM_AR','CO_AR','AM_AT',
+                                           'CO_AT','AM_BC','CO_BC','AM_DI','CO_DI','AM_DO','CO_DO','AM_HO','CO_HO',
+                                           'AM_LI','CO_LI','AM_LR','CO_LR','AM_LQ','CO_LQ','AM_XP','CO_XP','AM_PF',
+                                           'CO_PF','AM_PO','CO_PO','AM_RM','CO_RM','AM_RR','CO_RR','AM_RS','CO_RS',
+                                           'AM_SS','CO_SS','AM_XN','CO_XN','LITAR','AMALL','AM_TR','CO_TR','ADVD2',
+                                           'REGS2','COGS1','AMLRU','AMLVU','AMLHU','CONTU','ICORU','NOALB','NOALU',
+                                           'AUCTU','RUSTF','RUSTL','RUSXF','RUSXL','DISDE','TILMA','RXTF2','RSTX2',
+                                           'RXXL2','NOAMX','CISET','JNPSX','AMLHC','AMLRC','AMLVC','CONTC','ICORC',
+                                           'NOALC','NOCHN','NOCIX','LNKPS','NOAP2','NOCA2','NOCX2','NORV2','NOCR2',
+                                           'NOCB2'))
+"""
+
 QUERY_CORPS_JOB_ID_CLAUSE = " and m.job_id is not null and m.job_id = {job_id}"
 QUERY_CORPS_CORP_STATE_CLAUSE = " and m.op_state_type_cd = '{corp_state}'"
 QUERY_CORPS_YEAR_CLAUSE = " and m.recognition_dts is not null and EXTRACT(year from m.recognition_dts) = {corp_year}"
 QUERY_CORPS_SIZE_LIMIT = " fetch first {job_size} rows only"
-QUERY_FILINGS = """
+QUERY_FILINGS_BASE = """
 select to_char(e.event_timerstamp, 'YYYY-MM-DD HH24:MI:SS') as filing_date, f.event_id, f.filing_type_cd,
        trim(to_char((e.event_timerstamp at time zone 'PST'), 'Month')) ||
        to_char((e.event_timerstamp at time zone 'PST'), ' DD, YYYY') as report_date
   from colin_extract.filing f, colin_extract.event e
  where e.event_id = f.event_id
+   and f.filing_type_cd in ('AMALO','CONVL','REGST','NOAPA','NORVA','NOCAA','AMEND','NOCRX','NOCNX','ACASS','AMALX',
+                            'RESTL','RESTF','NOLDS','NOCDS','APTRA','NOERA','NOTRA','NOAPL','NOCAL','NOCEL','LIQUR',
+                            'LQWOS','NWITH','COUTI','CONTO','CONTI','ADVDS','NOCEB','ADCOL','ICORP','TRANS','TRANP',
+                            'ANNBC','ANNXP','NOCDR','NOCAD','AMALH','AMALV','AMALR','NOALA','NOARM','NOCER','RESXL',
+                            'RESXF','LQSIN','LQSCO','LQDIS','LQCON','NOCRM','AUCTI','NOFIL','NORSA','CANRG','IAMGO',
+                            'REGLL','AGMDT','AGMLC','COURT','RESTX','SRCHI','SRCHR','REXTF','REXXL','REXXF','XREFN',
+                            'REGSN','REGSO','ADVLQ','AM_AR','CO_AR','AM_AT','CO_AT','AM_BC','CO_BC','AM_DI','CO_DI',
+                            'AM_DO','CO_DO','AM_HO','CO_HO','AM_LI','CO_LI','AM_LR','CO_LR','AM_LQ','CO_LQ','AM_XP',
+                            'CO_XP','AM_PF','CO_PF','AM_PO','CO_PO','AM_RM','CO_RM','AM_RR','CO_RR','AM_RS','CO_RS',
+                            'AM_SS','CO_SS','AM_XN','CO_XN','LITAR','AMALL','AM_TR','CO_TR','ADVD2','REGS2','COGS1',
+                            'AMLRU','AMLVU','AMLHU','CONTU','ICORU','NOALB','NOALU','AUCTU','RUSTF','RUSTL','RUSXF',
+                            'RUSXL','DISDE','TILMA','RXTF2','RSTX2','RXXL2','NOAMX','CISET','JNPSX','AMLHC','AMLRC',
+                            'AMLVC','CONTC','ICORC','NOALC','NOCHN','NOCIX','LNKPS','NOAP2','NOCA2','NOCX2','NORV2',
+                            'NOCR2','NOCB2')
    and e.corp_num = '{corp_num}'
- order by f.effective_dt desc
 """
+QUERY_FILINGS_ORDER_BY = " order by f.effective_dt desc"
+QUERY_FILINGS = QUERY_FILINGS_BASE + QUERY_FILINGS_ORDER_BY
+QUERY_FILINGS_RECENT_CLAUSE = "   and e.event_timerstamp > to_timestamp('{migrated_ts}', 'YYYY-MM-DD HH24:MI:SS')"
+QUERY_FILINGS_RECENT = QUERY_FILINGS_BASE + QUERY_FILINGS_RECENT_CLAUSE + QUERY_FILINGS_ORDER_BY
 QUERY_JOB_CORP_UPDATE = """
 update mig_colin_reports
    set migrated_ts = now() at time zone 'utc',
@@ -104,7 +157,7 @@ class Database:  # pylint: disable=too-few-public-methods
     @classmethod
     def get_job_corps_query(cls, config: Config) -> str:
         """Build the job run companies query based on the job env variables"""
-        sql_statement: str = QUERY_JOB_CORPS_BASE
+        sql_statement: str = QUERY_JOB_CORPS_BASE if not config.UPDATE_PREVIOUS else QUERY_JOB_CORPS_RECENT_BASE
         if config.JOB_ID and config.JOB_ID > 0:
             sql_statement += QUERY_CORPS_JOB_ID_CLAUSE.format(job_id=config.JOB_ID)
         if config.JOB_CORP_STATE and config.JOB_CORP_STATE != "":
@@ -124,9 +177,11 @@ class Database:  # pylint: disable=too-few-public-methods
         return Database.bus_db_cursor.fetchall()
 
     @classmethod
-    def get_corp_filings(cls, corp_num: str) -> list:
-        """Get COLIN filing history information for the company."""
+    def get_corp_filings(cls, corp_num: str, migrated_ts: str = None) -> list:
+        """Get COLIN filing history information for the company. Get recent filings if migrated_ts is present."""
         sql_statement: str = QUERY_FILINGS.format(corp_num=corp_num)
+        if migrated_ts:
+            sql_statement = QUERY_FILINGS_RECENT.format(corp_num=corp_num, migrated_ts=migrated_ts)
         Database.bus_db_cursor.execute(sql_statement)
         return Database.bus_db_cursor.fetchall()
 

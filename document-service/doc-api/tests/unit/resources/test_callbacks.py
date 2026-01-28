@@ -55,6 +55,16 @@ TEST_DOC_REC_BUSINESS_API = {
     "consumerReferenceId": "1629808",
     "documentClass": "CORP"
 }
+TEST_DOC_REC_BUSINESS_API_WRAPPED = {
+    "data": {
+        "accountId": "business-api",
+        "consumerDocumentId": None,
+        "consumerIdentifier": "BC0223072",
+        "consumerFilingType": "changeOfReceivers",
+        "consumerReferenceId": 233834,
+        "documentClass": "CORP"
+    }
+}
 
 
 # testdata pattern is ({description}, {payload_json}, {has_key}, {author}, {status}, {ref_id})
@@ -65,6 +75,7 @@ TEST_CREATE_DATA = [
     ("Valid legacy", TEST_DOC_REC_LEGACY, True, "John Smith", HTTPStatus.CREATED, None),
     ("Valid modern", TEST_DOC_REC_MODERN, True, "John Smith", HTTPStatus.CREATED, "9014005"),
     ("Valid business api", TEST_DOC_REC_BUSINESS_API, True, None, HTTPStatus.CREATED, None),
+    ("Valid business api wrapped", TEST_DOC_REC_BUSINESS_API_WRAPPED, True, None, HTTPStatus.CREATED, None),
 ]
 # testdata pattern is ({description}, {payload_json}, {status}, {update_doc_type}, {update_filing_type})
 TEST_UPDATE_DATA = [
@@ -108,6 +119,8 @@ def test_create_doc_rec(session, client, jwt, desc, payload_json, has_key, autho
         assert doc
         doc_json = doc.json
         assert not doc_json.get("scanningInformation")
+        if desc == "Valid business api wrapped":
+            logger.info(doc_json)
 
 
 @pytest.mark.parametrize("desc,payload_json,status,update_doc_type,update_filing_type", TEST_UPDATE_DATA)

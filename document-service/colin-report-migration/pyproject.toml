@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "colin-report-migration"
-version = "0.0.2"
+version = "0.0.3"
 description = ""
 authors = ["dlovett <doug@daxiom.com>"]
 license = "BSD 3"

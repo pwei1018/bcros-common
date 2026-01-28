@@ -38,6 +38,10 @@ def post_document_records():
         info: RequestInfo = RequestInfo(RequestTypes.ADD, req_path, None, None)
         request_json = json.loads(request.get_data().decode("utf-8"))
         # CORP class requests map filing type to doc type if available.
+        logger.info(f"{req_path} payload= {request_json}")
+        if request_json.get("data"):
+            logger.info(f"{req_path} payload wrapped: using data.")
+            request_json = request_json.get("data")
         if request_json.get("documentClass", "") == DocumentClasses.CORP.value and not request_json.get("documentType"):
             doc_type: str = DocumentTypes.FILE.value  # default
             filing_type: str = request_json.get("consumerFilingType", "")
@@ -56,6 +60,7 @@ def post_document_records():
         # Additional validation not covered by the schema.
         extra_validation_msg = resource_utils.validate_request(info)
         if extra_validation_msg != "":
+            logger.info(f"{req_path} validation errors: {extra_validation_msg}")
             return resource_utils.extra_validation_error_response(extra_validation_msg)
         docs = Document.find_by_document_id(request_json.get("consumerDocumentId"))
         if docs:  # For this scenario the document ID should always only have 1 document.

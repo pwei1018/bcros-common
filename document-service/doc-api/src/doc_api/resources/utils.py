@@ -668,7 +668,8 @@ def get_callback_request_info(request_json: dict, info: RequestInfo) -> RequestI
             info.account_id = "SYSTEM"
         info.document_type = request_json.get(PARAM_DOCUMENT_TYPE)
         info.document_class = request_json.get(PARAM_DOCUMENT_CLASS)
-        info.consumer_doc_id = request_json.get(PARAM_CONSUMER_DOC_ID)
+        if request_json.get(PARAM_CONSUMER_DOC_ID) is not None:
+            info.consumer_doc_id = request_json.get(PARAM_CONSUMER_DOC_ID)
         info.consumer_identifier = request_json.get(PARAM_CONSUMER_IDENTIFIER)
         info.consumer_filedate = request_json.get(PARAM_CONSUMER_FILEDATE)
         info.consumer_reference_id = request_json.get(PARAM_CONSUMER_REFERENCE_ID)

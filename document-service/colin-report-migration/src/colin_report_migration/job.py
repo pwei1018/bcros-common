@@ -135,10 +135,12 @@ def save_report(corp_num: str, report_type: str, filing_info: dict, result: dict
         filing_index: int = filing_info.get("filing_index")
         cookies: dict = filing_info.get("cookies")
         report_url = colin_url + REPORT_PATH.format(report_type=report_type, filing_index=filing_index)
-        # logger.info(f"report_url={report_url} storage_name={storage_name}")
         response = requests.get(report_url, cookies=cookies)
-        # logger.info(f"save_report status={response.status_code}")
-        if response.status_code == HTTPStatus.OK:
+        if response.status_code == HTTPStatus.OK and response.text and response.text.find("Error") > 0:
+            result["error_count"] = result.get("error_count") + 1
+            result["error_message"] = result.get("error_message") + f"Report service error getting {storage_name}. "
+            logger.error(f"Report service error trying to retrieve report for {storage_name}.")
+        elif response.status_code == HTTPStatus.OK:
             pdf_data = response.content
             if report_type in (REPORT_TYPE_FILING, REPORT_TYPE_NOA):
                 pdf_data = cleanup_pdf(pdf_data)
@@ -156,7 +158,7 @@ def save_report(corp_num: str, report_type: str, filing_info: dict, result: dict
 
 def migrate_filing(filing_row, corp_num: str, filing_info: dict) -> dict:
     """Migrage reports for a single filing."""
-    result: dict = {"error_count": 0, "report_count": 0}
+    result: dict = {"error_count": 0, "report_count": 0, "error_message": ""}
     try:
         result["filing_date"] = str(filing_row[0])
         result["event_id"] = int(filing_row[1])
@@ -207,7 +209,7 @@ def migrate_reports(config: Config, rows: list) -> dict:
                 }
                 summary_json.append(filing_summary)
             else:
-                filing_rows = Database.get_corp_filings(corp_num)
+                filing_rows = Database.get_corp_filings(corp_num, None)
                 if is_stale_extract(filing_rows, filing_info):
                     filing_summary = {
                         "skipped": True,
@@ -233,17 +235,82 @@ def migrate_reports(config: Config, rows: list) -> dict:
     logger.info(f"Final counts companies={corp_count} errors={total_error_count} reports={total_report_count}.")
 
 
+def migrate_recent_reports(config: Config, rows: list) -> dict:
+    """
+    For companies where the reports have migrated but a filing was created after the last
+    report migration, and the filing has outputs, migrate reports for each company recent filing in the rows list
+    following the steps outlined in the job description.
+
+    Args:
+        config: Job configuration containing environment variables.
+        rows: The business database mig_colin_reports table query results with the set of company identifiers
+              as well as the migrated_ts and current report_count, error_count and migration_summary.
+
+    Returns:
+        Updated status_data with zip file counts zip_file_count and zip_file_error_count
+    """
+    total_error_count: int = 0
+    total_report_count: int = 0
+    corp_num: str = ""
+    corp_count: int = 0
+    filing_summary: dict
+    for row in rows:
+        summary_json = []
+        error_count: int = 0
+        report_count: int = 0
+        corp_count += 1
+        try:
+            corp_num = str(row[0])
+            filing_info: dict = get_corp_filings_page(corp_num, str(row[1]), config.COLIN_URL)
+            if filing_info.get("no_reports"):
+                filing_summary = {
+                    "skipped": True,
+                    "warning_message": "No report links in filing history page. Company state?",
+                }
+                summary_json.append(filing_summary)
+            else:
+                filing_rows = Database.get_corp_filings(corp_num, str(row[2]))
+                if is_stale_extract(filing_rows, filing_info):
+                    filing_summary = {
+                        "skipped": True,
+                        "warning_message": "STALE: page first report date more recent than query first filing date.",
+                    }
+                    summary_json.append(filing_summary)
+                else:
+                    filing_info["filing_index"] = 0
+                    for filing_row in filing_rows:
+                        filing_summary = migrate_filing(filing_row, corp_num, filing_info)
+                        report_count += filing_summary.get("report_count", 0)
+                        error_count += filing_summary.get("error_count", 0)
+                        filing_info["filing_index"] = filing_info.get("filing_index") + 1
+                        summary_json.append(filing_summary)
+                    total_error_count += error_count
+                    total_report_count += report_count
+            report_count += int(row[3])
+            error_count += int(row[4])
+            summary_json.extend(list(row[5]))
+            Database.update_company_migration(corp_num, report_count, error_count, summary_json)
+        except Exception as report_err:
+            logger.error(f"Job {config.JOB_ID} unexpected error for corp_num={corp_num}: {report_err}")
+            total_error_count += 1
+        if corp_count % 15 == 0:
+            logger.info(f"Job {config.JOB_ID} company migration count: {corp_count}")
+    logger.info(f"Final counts companies={corp_count} errors={total_error_count} reports={total_report_count}.")
+
+
 def job(config: Config):
     """
     Execute the job:
         Run a business database mig_colin_reports query to get the company identifiers to migrate filing reports for.
         Depending on the job environment variable values, filter on job id, recognition year, and company state.
         The number of companies to migrate per job run can also be configured by env variable.
+        If environment variable MIGRATION_UPDATE_PREVIOUS is True, only migrate reports for filings that were
+        created since the last report migration for the company, excluding companies that have migrated.
         For each company:
             1. Screen scrape the colin application to get the report links.
             2. Query the business database colin_extract schema to get the company filing history.
             3. Match the query filing to the scraped history link reports.
-            4. Retrieve each filing report with the scraped history link.
+            4. Retrieve each filing report using the scraped history link.
             5. Save the report to the DRS document storage business bucket.
             6. Insert a DRS application_reports table record in the DRS docs database.
 
@@ -255,7 +322,10 @@ def job(config: Config):
     try:
         Database.init_app(config)
         rows = Database.get_job_corps(config)
-        migrate_reports(config, rows)
+        if not config.UPDATE_PREVIOUS:
+            migrate_reports(config, rows)
+        else:
+            migrate_recent_reports(config, rows)
     except (psycopg2.Error, Exception) as err:
         job_message: str = f"Run failed: {str(err)}."
         logger.error(job_message)

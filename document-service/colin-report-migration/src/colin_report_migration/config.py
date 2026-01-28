@@ -71,3 +71,7 @@ class Config:  # pylint: disable=too-few-public-methods
     JOB_YEAR: int = int(os.getenv("MIGRATION_JOB_YEAR", "0"))
     JOB_BATCH_SIZE: int = int(os.getenv("MIGRATION_JOB_BATCH_SIZE", "0"))
     JOB_CORP_STATE: str = os.getenv("MIGRATION_CORP_STATE")
+    # For previously migrated companies, set to True to migrate reports for filings created since the last migration.
+    mig_update_previous: str = os.getenv("MIGRATION_UPDATE_PREVIOUS", "false")
+    mig_update_previous = mig_update_previous.strip().lower()
+    UPDATE_PREVIOUS: bool = mig_update_previous in ("yes", "true", "t", "on", "1")

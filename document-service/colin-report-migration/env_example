@@ -36,3 +36,5 @@ MIGRATION_JOB_YEAR="2019"
 MIGRATION_JOB_BATCH_SIZE="500"
 # Optional - filter companies to migrate by COLIN op corp state: HIS or ACT.
 MIGRATION_CORP_STATE="ACT"
+# Optional - for previously migrated companies periodically migrate reports for filings created since the last migration. 
+MIGRATION_UPDATE_PREVIOUS="False"
