@@ -710,7 +710,7 @@
                     (Transaction ID: {{ item.paymentLineItemId }})
                   </td>
                 <td>{{invoice.get('folioNumber','-')}}</td>
-                <td>{{invoice.createdOn}}</td>
+                <td>{{ invoice.receiptDate or '' }}</td>
                 <td>{{item.refundType}}</td>
                 <td>-${{"%.2f"|format(item.refundAmount)}}</td>
                 </tr>
@@ -758,7 +758,7 @@
                       </td>
                     {% endif %}
                   <td>{{invoice.get('folioNumber','-')}}</td>
-                  <td>{{invoice.createdOn}}</td>
+                  <td>{{ invoice.receiptDate or '' }}</td>
                   <td>{{'-' if isRefundReceipt else '' }}${{"%.2f"|format((item.filingFees+item.futureEffectiveFees+item.priorityFees)) if (item.total) else
                     '0.00'}}</td>
                   <td>{{'-' if isRefundReceipt else '' }}${{"%.2f"|format(item.get('serviceFees', 0))}}</td>
