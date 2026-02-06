@@ -98,6 +98,7 @@ def send_notification(notification: Notification, provider_class) -> Notificatio
 
             history = None
             for response in responses.recipients:
+                logger.info(f"Creating history for notification.id={notification.id}, recipient={response.recipient}")
                 history = NotificationHistory.create_history(notification, response.recipient, response.response_id)
 
             notification.delete_notification()

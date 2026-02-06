@@ -1,6 +1,6 @@
 [project]
 name = "notify-api"
-version = "5.0.0"
+version = "5.0.1"
 description = "This module is the BC Registries Notify API service."
 authors = [{ name = "pwei1018", email = "patrick.wei@gov.bc.ca" }]
 license = { text = "BSD-3-Clause" }
