@@ -51,7 +51,7 @@ def find_notification(notification_id: str):
         return jsonify(notification.json), HTTPStatus.OK
 
     # Check notification history
-    history = NotificationHistory.find_by_notification_id(notification_id)
+    history = NotificationHistory.find_by_notification_id(int(notification_id))
     if history:
         return jsonify(history.json), HTTPStatus.OK
 
