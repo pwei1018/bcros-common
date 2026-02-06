@@ -1,6 +1,6 @@
 [project]
 name = "notify-delivery"
-version = "3.0.0"
+version = "5.0.1"
 description = "This module is the service worker for delivery emails."
 authors = [{ name = "pwei1018", email = "patrick.wei@gov.bc.ca" }]
 license = { text = "BSD-3-Clause" }
