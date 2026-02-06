@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -552,6 +552,18 @@ wheels = [
 ]
 
 [[package]]
+name = "flask-swagger-ui"
+version = "5.21.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flask" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/19/8c/b64b382a061d0c383fdb4c01c4d95b697a5b36a368097108613afae19506/flask_swagger_ui-5.21.0.tar.gz", hash = "sha256:872d038dc11a68eacab88f6f05be3c533aa300453e273775dad3e029b31e03d4", size = 1634350, upload-time = "2025-05-14T10:42:09.386Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/59/94/7cbe53a11c2e36b562320b698605ac642951ac2662e6192f6385e9956955/flask_swagger_ui-5.21.0-py3-none-any.whl", hash = "sha256:5ecff6c284d7c5559f3473bd534a31fa5dfc0022502d63f4a04728c2b10596f6", size = 1650295, upload-time = "2025-05-14T10:42:07.043Z" },
+]
+
+[[package]]
 name = "freezegun"
 version = "1.5.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1066,6 +1078,7 @@ dependencies = [
     { name = "flask-migrate" },
     { name = "flask-pydantic" },
     { name = "flask-sqlalchemy" },
+    { name = "flask-swagger-ui" },
     { name = "gcp-queue" },
     { name = "gunicorn" },
     { name = "httpx" },
@@ -1123,6 +1136,7 @@ requires-dist = [
     { name = "flask-migrate", specifier = ">=4.0.7" },
     { name = "flask-pydantic", specifier = ">=0.12.0" },
     { name = "flask-sqlalchemy", specifier = ">=3.1.1" },
+    { name = "flask-swagger-ui", specifier = ">=4.11.1" },
     { name = "gcp-queue", git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fgcp-queue&branch=main" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "httpx", specifier = ">=0.28.0" },

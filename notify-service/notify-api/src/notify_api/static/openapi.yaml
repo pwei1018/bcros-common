@@ -1,0 +1,377 @@
+openapi: "3.0.3"
+info:
+  title: BC Registries Notify API
+  description: |
+    API for sending and managing notifications in the BC Registries ecosystem.
+    
+    ## Authentication
+    All endpoints require JWT authentication. Include the token in the `Authorization` header:
+    ```
+    Authorization: Bearer <token>
+    ```
+  version: "5.0.0"
+  contact:
+    name: BC Registries
+    email: bcregistries@gov.bc.ca
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: /api/v1
+    description: API Version 1
+  - url: /api/v2
+    description: API Version 2
+
+tags:
+  - name: Notifications (v1)
+    description: Send and retrieve notifications
+  - name: Email Validation (v2)
+    description: Validate email addresses
+  - name: Safe List (v2)
+    description: Manage email safe list
+  - name: Callback (v2)
+    description: GC Notify callback handling
+  - name: Resend (v2)
+    description: Resend failed notifications
+
+paths:
+  /notify:
+    post:
+      tags:
+        - Notifications (v1)
+      summary: Send notification
+      description: Create and send an EMAIL notification
+      operationId: sendNotification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+      responses:
+        '200':
+          description: Notification queued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - insufficient role
+
+  /notify/{notification_id}:
+    get:
+      tags:
+        - Notifications (v1)
+      summary: Get notification by ID
+      description: Retrieve a notification by its ID. Falls back to NotificationHistory if not found.
+      operationId: findNotification
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Notification ID (numeric)
+      responses:
+        '200':
+          description: Notification found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: Invalid notification ID
+        '401':
+          description: Unauthorized
+        '404':
+          description: Notification not found
+
+  /notify/status/{notification_status}:
+    get:
+      tags:
+        - Notifications (v1)
+      summary: Get notifications by status
+      description: Retrieve all notifications with PENDING or FAILURE status
+      operationId: findNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notification_status
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [PENDING, FAILURE]
+          description: Notification status filter
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: Invalid status
+        '401':
+          description: Unauthorized
+
+  /email_validation/:
+    get:
+      tags:
+        - Email Validation (v2)
+      summary: Validate email
+      description: Validate an email address
+      operationId: emailValidation
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+          description: Email address to validate
+      responses:
+        '200':
+          description: Validation result
+        '400':
+          description: Invalid email format
+
+  /safe_list/:
+    get:
+      tags:
+        - Safe List (v2)
+      summary: Get safe list
+      description: Retrieve all emails in the safe list
+      operationId: getSafeList
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of safe emails
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SafeListItem'
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Safe List (v2)
+      summary: Add to safe list
+      description: Add email(s) to the safe list
+      operationId: addToSafeList
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SafeListRequest'
+      responses:
+        '200':
+          description: Emails added
+        '401':
+          description: Unauthorized
+
+  /safe_list/{email}:
+    delete:
+      tags:
+        - Safe List (v2)
+      summary: Remove from safe list
+      description: Remove an email from the safe list
+      operationId: deleteFromSafeList
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Email removed
+        '401':
+          description: Unauthorized
+
+  /callback/:
+    post:
+      tags:
+        - Callback (v2)
+      summary: GC Notify callback
+      description: Receive callback from GC Notify service
+      operationId: callback
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackRequest'
+      responses:
+        '200':
+          description: Callback processed
+        '401':
+          description: Unauthorized
+
+  /resend:
+    post:
+      tags:
+        - Resend (v2)
+      summary: Resend notifications
+      description: Resend failed notifications
+      operationId: resend
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Resend initiated
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from BC Registries authentication
+
+  schemas:
+    NotificationRequest:
+      type: object
+      required:
+        - recipients
+        - content
+      properties:
+        recipients:
+          type: string
+          description: Comma-separated email addresses
+          example: "user@example.com"
+        content:
+          type: object
+          required:
+            - subject
+            - body
+          properties:
+            subject:
+              type: string
+              description: Email subject
+              example: "Important Notification"
+            body:
+              type: string
+              description: Email body (HTML supported)
+              example: "<p>Hello, this is a notification.</p>"
+            attachments:
+              type: array
+              items:
+                type: object
+                properties:
+                  fileName:
+                    type: string
+                  fileBytes:
+                    type: string
+                    format: byte
+                  fileUrl:
+                    type: string
+                    format: uri
+
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Notification ID
+        notificationId:
+          type: integer
+          description: Original notification ID (for history records)
+        recipients:
+          type: string
+        requestDate:
+          type: string
+          format: date-time
+        requestBy:
+          type: string
+        sentDate:
+          type: string
+          format: date-time
+        notifyType:
+          type: string
+          enum: [EMAIL, SMS]
+        notifyStatus:
+          type: string
+          enum: [PENDING, DELIVERED, FAILURE]
+        notifyProvider:
+          type: string
+        gc_notify_response_id:
+          type: string
+        gc_notify_status:
+          type: string
+
+    SafeListRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: array
+          items:
+            type: string
+            format: email
+          description: List of email addresses to add
+
+    SafeListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        created_date:
+          type: string
+          format: date-time
+
+    CallbackRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          description: GC Notify response ID
+        reference:
+          type: string
+        to:
+          type: string
+        status:
+          type: string
+          description: Delivery status from GC Notify
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        sent_at:
+          type: string
+          format: date-time
+        notification_type:
+          type: string

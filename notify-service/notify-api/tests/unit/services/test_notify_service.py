@@ -309,7 +309,13 @@ class TestNotifyServiceQueueOperations:
                 patch.object(service, "get_provider", return_value="GC_NOTIFY"),
                 patch.object(service, "_filter_safe_recipients", return_value=["test@example.com"]),
                 patch.object(NotifyService, "_get_delivery_topic", return_value="test-topic"),
-                patch.object(NotifyService, "_process_single_recipient", return_value=True),
+                patch.object(
+                    NotifyService,
+                    "_process_single_recipient",
+                    return_value=Mock(
+                        recipients="test@example.com", status_code=Notification.NotificationStatus.QUEUED
+                    ),
+                ),
             ):
                 result = service.queue_publish(mock_request)
 
@@ -406,7 +412,7 @@ class TestNotifyServiceQueueOperations:
                 "test@example.com", mock_request, "GC_NOTIFY", "test-topic", notification_data
             )
 
-        assert result is True
+        assert result == mock_notification
         mock_notification_class.create_notification.assert_called_once_with(
             mock_request, "test@example.com", "GC_NOTIFY"
         )
@@ -426,7 +432,7 @@ class TestNotifyServiceQueueOperations:
             "test@example.com", mock_request, "GC_NOTIFY", "test-topic", notification_data
         )
 
-        assert result is False
+        assert result is None
 
     @staticmethod
     @patch("notify_api.services.notify_service.Notification")

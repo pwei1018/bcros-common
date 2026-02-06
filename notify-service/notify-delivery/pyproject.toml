@@ -5,7 +5,7 @@ description = "This module is the service worker for delivery emails."
 authors = [{ name = "pwei1018", email = "patrick.wei@gov.bc.ca" }]
 license = { text = "BSD-3-Clause" }
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12, <3.14"
 dependencies = [
     "notify-api",
     "cloud-sql-connector",

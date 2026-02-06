@@ -88,6 +88,18 @@ def create_app(run_mode: str = APP_RUNNING_ENVIRONMENT) -> Flask:
         v1_endpoint.init_app(app)
         v2_endpoint.init_app(app)
 
+        # Swagger UI
+        from flask_swagger_ui import get_swaggerui_blueprint
+
+        swagger_url = "/docs"
+        api_url = "/static/openapi.yaml"
+        swaggerui_blueprint = get_swaggerui_blueprint(
+            swagger_url,
+            api_url,
+            config={"app_name": "BC Registries Notify API"},
+        )
+        app.register_blueprint(swaggerui_blueprint, url_prefix=swagger_url)
+
         ExceptionHandler(app)
         setup_jwt_manager(app, jwt)
         register_shellcontext(app)
