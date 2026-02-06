@@ -75,7 +75,7 @@ def test_find_notification_returns_history_fallback(client, session, jwt):
         # Check new/fallback fields exist
         assert "gc_notify_status" in data
 
-        mock_history.find_by_notification_id.assert_called_with(str(notify_id))
+        mock_history.find_by_notification_id.assert_called_with(int(notify_id))
 
 
 def test_find_notification_not_found(client, session, jwt):
