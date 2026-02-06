@@ -35,6 +35,7 @@ class NotificationHistory(db.Model):
     provider_code = db.Column(db.String(15), nullable=False)
     gc_notify_response_id = db.Column(db.String, nullable=True)
     gc_notify_status = db.Column(db.String, nullable=True)
+    notification_id = db.Column(db.Integer, db.ForeignKey("notification.id"), nullable=True, index=True)
 
     @property
     def json(self) -> dict:
@@ -42,15 +43,16 @@ class NotificationHistory(db.Model):
         return {
             "id": self.id,
             "recipients": self.recipients,
-            "requestDate": self.request_date.isoformat(),
+            "requestDate": self.request_date.isoformat() if self.request_date else None,
             "requestBy": self.request_by,
-            "sentDate": self.request_date.isoformat(),
+            "sentDate": self.sent_date.isoformat() if self.sent_date else None,
             "subject": self.subject,
             "notifyType": self.type_code,
             "notifyStatus": self.status_code,
             "notifyProvider": self.provider_code,
             "gc_notify_response_id": self.gc_notify_response_id,
             "gc_notify_status": self.gc_notify_status,
+            "notificationId": self.notification_id,
         }
 
     @classmethod
@@ -66,12 +68,23 @@ class NotificationHistory(db.Model):
             status_code=notification.status_code.upper(),
             provider_code=notification.provider_code.upper(),
             gc_notify_response_id=response_id,
+            notification_id=notification.id,
         )
         db.session.add(db_history)
         db.session.commit()
         db.session.refresh(db_history)
 
         return db_history
+
+    @classmethod
+    def find_by_notification_id(cls, notification_id: int):
+        """Return a NotificationHistory by the notification id."""
+        return cls.query.filter_by(notification_id=notification_id).first()
+
+    @classmethod
+    def find_by_status(cls, status: str):
+        """Return all NotificationHistory by the status."""
+        return cls.query.filter_by(status_code=status).all()
 
     @classmethod
     def find_by_response_id(cls, response_id: str | None = None):

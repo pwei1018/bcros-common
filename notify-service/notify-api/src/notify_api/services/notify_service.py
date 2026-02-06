@@ -60,7 +60,7 @@ class NotifyService:
         if not isinstance(request_by, str):
             logger.warning(f"Invalid request_by parameter type: {type(request_by)}, defaulting to GC_NOTIFY")
             return Notification.NotificationProvider.GC_NOTIFY
-            
+
         # Rule-based provider selection
         provider_rules = [
             (
@@ -292,7 +292,7 @@ class NotifyService:
                 "notificationRequest": notification_request.model_dump_json(),
             }
 
-            successful_recipients = []
+            successful_notifications = []
 
             # Process each recipient
             for recipient in safe_recipients:
@@ -300,10 +300,11 @@ class NotifyService:
                 if not clean_recipient:
                     continue
 
-                if NotifyService._process_single_recipient(
+                notification = NotifyService._process_single_recipient(
                     clean_recipient, notification_request, provider, delivery_topic, notification_data
-                ):
-                    successful_recipients.append(clean_recipient)
+                )
+                if notification:
+                    successful_notifications.append(notification)
                 else:
                     logger.error(f"Failed to process notification for recipient: {clean_recipient}")
                     notification = Notification()
@@ -311,9 +312,15 @@ class NotifyService:
                     notification.status_code = Notification.NotificationStatus.FAILURE
                     return notification
 
-            logger.info(f"Successfully queued notifications for {len(successful_recipients)} recipients")
+            logger.info(f"Successfully queued notifications for {len(successful_notifications)} recipients")
+
+            # Return the first notification to match expected response format
+            # If multiple recipients were handled, they are all queued, but API returns one object structure
+            if successful_notifications:
+                return successful_notifications[0]
+
             notification = Notification()
-            notification.recipients = ",".join(successful_recipients)
+            notification.recipients = ",".join(safe_recipients)
             notification.status_code = Notification.NotificationStatus.QUEUED
             return notification
 
@@ -331,7 +338,7 @@ class NotifyService:
         provider: str,
         delivery_topic: str,
         notification_data: dict,
-    ) -> bool:
+    ) -> Notification | None:
         """Process notification for a single recipient.
 
         Args:
@@ -342,7 +349,7 @@ class NotifyService:
             notification_data: The notification data template
 
         Returns:
-            True if successful, False otherwise
+            The created Notification object if successful, None otherwise
         """
         try:
             # Create notification record
@@ -361,7 +368,7 @@ class NotifyService:
             # Update notification status
             NotifyService._update_notification_status(notification, provider, Notification.NotificationStatus.QUEUED)
 
-            return True
+            return notification
 
         except Exception as err:
             logger.error(f"Error processing notification for {recipient}: {err}")
@@ -375,7 +382,7 @@ class NotifyService:
             except Exception as update_err:
                 logger.error(f"Failed to update notification status for {recipient}: {update_err}")
 
-            return False
+            return None
 
     @staticmethod
     def queue_republish() -> None:

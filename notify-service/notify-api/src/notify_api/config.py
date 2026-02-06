@@ -146,6 +146,7 @@ class UnitTestingConfig(Config):  # pylint: disable=too-few-public-methods
     # JWT_OIDC_TEST_MODE will set jwt_manager to use
     JWT_OIDC_TEST_MODE = True
     JWT_OIDC_TEST_AUDIENCE = "example"
+    JWT_OIDC_AUDIENCE = "example"
     JWT_OIDC_TEST_ISSUER = "https://example.localdomain/auth/realms/example"
     JWT_OIDC_TEST_KEYS: ClassVar[dict] = {
         "keys": [

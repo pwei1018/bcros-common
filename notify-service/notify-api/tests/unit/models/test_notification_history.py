@@ -194,13 +194,14 @@ class TestNotificationHistoryModel:
             "recipients": "history@example.com",
             "requestDate": "2024-01-01T10:00:00+00:00",
             "requestBy": "history_user",
-            "sentDate": "2024-01-01T10:00:00+00:00",  # Corrected to use sent_date
+            "sentDate": "2024-01-01T10:05:00+00:00",  # Matches sample_history fixture
             "subject": "History Subject",
             "notifyType": "EMAIL",
             "notifyStatus": "DELIVERED",
             "notifyProvider": "GC_NOTIFY",
             "gc_notify_response_id": "gc_123",
             "gc_notify_status": "delivered",
+            "notificationId": None,
         }
 
         assert json_data == expected_json

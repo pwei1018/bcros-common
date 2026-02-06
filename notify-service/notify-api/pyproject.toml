@@ -32,6 +32,7 @@ dependencies = [
     "gcp-queue",
     "structured-logging",
     "cloud-sql-connector",
+    "flask-swagger-ui>=4.11.1",
 ]
 
 [dependency-groups]

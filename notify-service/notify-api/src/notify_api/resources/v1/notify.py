@@ -18,7 +18,7 @@ from http import HTTPStatus
 from flask import Blueprint, jsonify
 from flask_pydantic import validate
 
-from notify_api.models import Notification, NotificationRequest
+from notify_api.models import Notification, NotificationHistory, NotificationRequest
 from notify_api.services import notify
 from notify_api.utils.auth import jwt
 from notify_api.utils.enums import Role
@@ -47,10 +47,15 @@ def find_notification(notification_id: str):
         return {"error": "Requires a valid notification id."}, HTTPStatus.BAD_REQUEST
 
     notification = Notification.find_notification_by_id(notification_id)
-    if notification is None:
-        return {"error": "Notification not found."}, HTTPStatus.NOT_FOUND
+    if notification:
+        return jsonify(notification.json), HTTPStatus.OK
 
-    return jsonify(notification.json), HTTPStatus.OK
+    # Check notification history
+    history = NotificationHistory.find_by_notification_id(notification_id)
+    if history:
+        return jsonify(history.json), HTTPStatus.OK
+
+    return {"error": "Notification not found."}, HTTPStatus.NOT_FOUND
 
 
 @bp.route("/status/<string:notification_status>", methods=["GET", "OPTIONS"])
@@ -66,5 +71,13 @@ def find_notifications(notification_status: str):
 
     notifications = Notification.find_notifications_by_status(notification_status.upper())
 
+    # Check notification history
+    from notify_api.models import NotificationHistory
+
+    history = NotificationHistory.find_by_status(notification_status.upper())
+
     response_list = [notification.json for notification in notifications]
+    if history:
+        response_list.extend([h.json for h in history])
+
     return jsonify(notifications=response_list), HTTPStatus.OK

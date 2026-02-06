@@ -23,6 +23,7 @@ from notify_api.utils.enums import MillionverifierResult
 
 logger = StructuredLogging.get_logger()
 
+
 class EmailValidator(BaseModel):
     """Provides email validation."""
 
