@@ -60,6 +60,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Install/update dependencies
 uv sync  # This will install all dependencies defined in pyproject.toml
 uv sync --no-default-groups # Production environment, no dev dependencies
+uv sync --upgrade # Upgrade all dependencies
 
 # Add new dependency
 uv add <package-name>
