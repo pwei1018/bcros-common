@@ -35,7 +35,7 @@ class NotificationHistory(db.Model):
     provider_code = db.Column(db.String(15), nullable=False)
     gc_notify_response_id = db.Column(db.String, nullable=True)
     gc_notify_status = db.Column(db.String, nullable=True)
-    notification_id = db.Column(db.Integer, db.ForeignKey("notification.id"), nullable=True, index=True)
+    notification_id = db.Column(db.Integer, nullable=True, index=True)
 
     @property
     def json(self) -> dict:
