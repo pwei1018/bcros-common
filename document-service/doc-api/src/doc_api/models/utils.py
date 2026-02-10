@@ -24,6 +24,8 @@ import pytz
 from datedelta import datedelta
 from flask import current_app
 
+from doc_api.utils.logging import logger
+
 # Local timzone
 LOCAL_TZ = pytz.timezone("America/Los_Angeles")
 CONTENT_TYPE_CSV = "text/csv"
@@ -81,7 +83,7 @@ def format_ts(time_stamp):
         try:
             formatted_ts = time_stamp.replace(tzinfo=timezone.utc).replace(microsecond=0).isoformat()
         except Exception as format_exception:  # noqa: B902; return nicer error
-            current_app.logger.error("format_ts exception: " + str(format_exception))
+            logger.error("format_ts exception: " + str(format_exception))
             formatted_ts = time_stamp.isoformat()
     return formatted_ts
 
@@ -99,7 +101,7 @@ def format_local_date(base_date):
         local_ts = LOCAL_TZ.localize(base_ts)
         formatted_ts = local_ts.replace(tzinfo=LOCAL_TZ).replace(microsecond=0).isoformat()
     except Exception as format_exception:  # noqa: B902; return nicer error
-        current_app.logger.error(f"format_local_date exception ({base_date.isoformat()}): " + str(format_exception))
+        logger.error(f"format_local_date exception ({base_date.isoformat()}): " + str(format_exception))
         formatted_ts = base_date.isoformat()
     return formatted_ts  # [0:10]
 
@@ -107,7 +109,7 @@ def format_local_date(base_date):
 def ts_from_iso_date_noon(timestamp_iso: str):
     """Create a datetime object from a date string in the ISO format set to 12:00 PM using the local time zone."""
     local_time = time(12, 0, 0, tzinfo=None)
-    base_date = date_from_iso_format(timestamp_iso)
+    base_date = local_date_from_iso_format(timestamp_iso)
     ts = _datetime.combine(base_date, local_time)
     local_ts = LOCAL_TZ.localize(ts, is_dst=True)
     # Return as UTC
@@ -117,7 +119,7 @@ def ts_from_iso_date_noon(timestamp_iso: str):
 def ts_from_iso_date_start(timestamp_iso: str):
     """Create a datetime object from a date string in the ISO format set to 12:00 PM using the local time zone."""
     local_time = time(0, 0, 0, tzinfo=None)
-    base_date = date_from_iso_format(timestamp_iso)
+    base_date = local_date_from_iso_format(timestamp_iso)
     ts = _datetime.combine(base_date, local_time)
     local_ts = LOCAL_TZ.localize(ts, is_dst=True)
     # Return as UTC
@@ -127,7 +129,7 @@ def ts_from_iso_date_start(timestamp_iso: str):
 def ts_from_iso_date_end(timestamp_iso: str):
     """Create a datetime object from a date string in the ISO format set to 12:00 PM using the local time zone."""
     local_time = time(23, 59, 59, tzinfo=None)
-    base_date = date_from_iso_format(timestamp_iso)
+    base_date = local_date_from_iso_format(timestamp_iso)
     ts = _datetime.combine(base_date, local_time)
     local_ts = LOCAL_TZ.localize(ts, is_dst=True)
     # Return as UTC
@@ -223,6 +225,14 @@ def date_from_iso_format(date_iso: str):
     """Create a date object from a date string in the ISO format."""
     if len(date_iso) > 10:
         return date.fromisoformat(date_iso[0:10])
+    return date.fromisoformat(date_iso)
+
+
+def local_date_from_iso_format(date_iso: str):
+    """Create a date object in the local time zone from a date/timestamp string in the ISO format."""
+    if len(date_iso) > 10:
+        local_ts = to_local_timestamp(ts_from_iso_format(date_iso))
+        return date(local_ts.year, local_ts.month, local_ts.day)
     return date.fromisoformat(date_iso)
 
 

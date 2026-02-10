@@ -75,8 +75,7 @@ QUERY_CORPS_YEAR_CLAUSE = " and m.recognition_dts is not null and EXTRACT(year f
 QUERY_CORPS_SIZE_LIMIT = " fetch first {job_size} rows only"
 QUERY_FILINGS_BASE = """
 select to_char(e.event_timerstamp, 'YYYY-MM-DD HH24:MI:SS') as filing_date, f.event_id, f.filing_type_cd,
-       trim(to_char((e.event_timerstamp at time zone 'PST'), 'Month')) ||
-       to_char((e.event_timerstamp at time zone 'PST'), ' DD, YYYY') as report_date
+       trim(to_char(e.event_timerstamp, 'Month')) || to_char(e.event_timerstamp, ' DD, YYYY') as report_date
   from colin_extract.filing f, colin_extract.event e
  where e.event_id = f.event_id
    and f.filing_type_cd in ('AMALO','CONVL','REGST','NOAPA','NORVA','NOCAA','AMEND','NOCRX','NOCNX','ACASS','AMALX',

@@ -23,7 +23,7 @@ from doc_api.models.type_tables import DocumentClasses, DocumentTypeClass, Filin
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
 from doc_api.resources.v1.pdf_conversions import get_filename, validate_content_type
-from doc_api.services.authz import is_staff
+from doc_api.services.authz import is_document_authorized, is_staff
 from doc_api.services.pdf_convert import MediaTypes, PdfConvert
 from doc_api.utils.auth import jwt
 from doc_api.utils.logging import logger
@@ -60,8 +60,8 @@ def post_documents(doc_class: str, doc_type: str):
         if not info.account_id:
             return resource_utils.account_required_response()
         account_id = info.account_id
-        if not is_staff(jwt):
-            logger.error("User not staff: currently requests are staff only.")
+        if not is_document_authorized(jwt):
+            logger.error("User not authorized for this endpoint: currently requests are staff/system only.")
             return resource_utils.unauthorized_error_response(account_id)
         # Additional validation not covered by the schema.
         extra_validation_msg = validate_new_doc_request(info)
@@ -90,8 +90,8 @@ def update_document_info(doc_service_id: str):
         if account_id is None:
             return resource_utils.account_required_response()
         logger.info(f"Starting update document record request {req_path}, account={account_id}")
-        if not is_staff(jwt):
-            logger.error("User not staff: currently requests are staff only.")
+        if not is_document_authorized(jwt):
+            logger.error("User not authorized for this endpoint: currently requests are staff/system only.")
             return resource_utils.unauthorized_error_response(account_id)
         document: Document = Document.find_by_doc_service_id(doc_service_id)
         if not document:
@@ -130,8 +130,8 @@ def replace_document(doc_service_id: str):
         if account_id is None:
             return resource_utils.account_required_response()
         logger.info(f"Starting add/replace document request {req_path}, account={account_id}")
-        if not is_staff(jwt):
-            logger.error("User not staff: currently requests are staff only.")
+        if not is_document_authorized(jwt):
+            logger.error("User not authorized for this endpoint: currently requests are staff/system only.")
             return resource_utils.unauthorized_error_response(account_id)
         document: Document = Document.find_by_doc_service_id(doc_service_id)
         if not document:
@@ -169,8 +169,8 @@ def delete_document(doc_service_id: str):
         if account_id is None:
             return resource_utils.account_required_response()
         logger.info(f"Starting delete document request {req_path}, account={account_id}")
-        if not is_staff(jwt):
-            logger.error("User not staff: currently requests are staff only.")
+        if not is_document_authorized(jwt):
+            logger.error("User not authorized for this endpoint: currently requests are staff/system only.")
             return resource_utils.unauthorized_error_response(account_id)
         document: Document = Document.find_by_doc_service_id(doc_service_id)
         if not document:
@@ -209,8 +209,8 @@ def verify_document_id(consumer_doc_id: str):
         if account_id is None:
             return resource_utils.account_required_response()
         logger.info(f"Starting verify document consumer ID request {req_path}, account={account_id}")
-        if not is_staff(jwt):
-            logger.error("User not staff: currently requests are staff only.")
+        if not is_document_authorized(jwt):
+            logger.error("User not authorized for this endpoint: currently requests are staff/system only.")
             return resource_utils.unauthorized_error_response(account_id)
         documents = Document.find_by_document_id(consumer_doc_id)
         if not documents:
@@ -245,8 +245,8 @@ def get_doc_types():
         if account_id is None:
             return resource_utils.account_required_response()
         logger.info(f"Starting get document types, account={account_id}")
-        if not is_staff(jwt):
-            logger.error("User not staff: currently requests are staff only.")
+        if not is_document_authorized(jwt):
+            logger.error("User not authorized for this endpoint: currently requests are staff/system only.")
             return resource_utils.unauthorized_error_response(account_id)
         response_json = DocumentTypeClass.find_all_json()
         if not response_json:

@@ -24,7 +24,7 @@ from flask import current_app
 from doc_api.models import Document
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, DocumentTypes
-from doc_api.services.authz import BC_REGISTRY, COLIN_ROLE, STAFF_ROLE
+from doc_api.services.authz import BC_REGISTRY, COLIN_ROLE, STAFF_ROLE, SYSTEM_ROLE
 from doc_api.services.pdf_convert import MediaTypes
 from doc_api.utils.logging import logger
 from tests.unit.services.utils import (
@@ -40,6 +40,7 @@ TEST_FILENAME = "updated_name.pdf"
 PARAM_TEST_FILENAME = "?consumerFilename=updated_name.pdf"
 MOCK_AUTH_URL = "https://test.api.connect.gov.bc.ca/mockTarget/auth/api/v1/"
 STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
+SA_ROLES = [SYSTEM_ROLE, BC_REGISTRY]
 INVALID_ROLES = [COLIN_ROLE]
 DOC_CLASS1 = DocumentClasses.CORP.value
 DOC_TYPE1 = DocumentTypes.CORR.value
@@ -73,6 +74,7 @@ TEST_CREATE_DATA = [
     ("Staff missing account", MEDIA_PDF, STAFF_ROLES, None, DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST, None),
     ("Invalid role", MEDIA_PDF, INVALID_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.UNAUTHORIZED, None),
     ("Valid staff", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED, "UT0001"),
+    ("Valid SA", MEDIA_PDF, SA_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED, "UT0001"),
     ("Valid no payload", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED, "UT0002"),
     ("Valid CORP class filingType", MEDIA_PDF, STAFF_ROLES, "UT1234", "CORP", "FILE", HTTPStatus.CREATED, "UT0003"),
     ("Valid image", MediaTypes.CONTENT_TYPE_SVG.value, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED, "UT0001"),
@@ -83,7 +85,9 @@ TEST_PATCH_DATA = [
     ("Invalid role", INVALID_ROLES, "UT1234", "INVALID", PATCH_PAYLOAD, HTTPStatus.UNAUTHORIZED),
     ("Invalid doc service id", STAFF_ROLES, "UT1234", "INVALID", PATCH_PAYLOAD, HTTPStatus.NOT_FOUND),
     ("Valid staff", STAFF_ROLES, "UT1234", None, PATCH_PAYLOAD, HTTPStatus.OK),
+    ("Valid SA", SA_ROLES, "UT1234", None, PATCH_PAYLOAD, HTTPStatus.OK),
     ("Valid staff removed", STAFF_ROLES, "UT1234", None, PATCH_REMOVE_PAYLOAD, HTTPStatus.OK),
+    ("Valid SA removed", SA_ROLES, "UT1234", None, PATCH_REMOVE_PAYLOAD, HTTPStatus.OK),
 ]
 # testdata pattern is ({description}, {roles}, {account}, {doc_service_id}, {status}, {content_type})
 TEST_PUT_DATA = [
@@ -93,6 +97,7 @@ TEST_PUT_DATA = [
     ("Invalid content type", STAFF_ROLES, "UT1234", None, HTTPStatus.BAD_REQUEST, "XXXXX"),
     ("Invalid no payload", STAFF_ROLES, "UT1234", None, HTTPStatus.BAD_REQUEST, MEDIA_PDF),
     ("Valid staff", STAFF_ROLES, "UT1234", None, HTTPStatus.OK, MEDIA_PDF),
+    ("Valid SA", SA_ROLES, "UT1234", None, HTTPStatus.OK, MEDIA_PDF),
     ("Valid image", STAFF_ROLES, "UT1234", None, HTTPStatus.OK, MediaTypes.CONTENT_TYPE_SVG),
 ]
 # testdata pattern is ({description}, {roles}, {account}, {doc_id}, {status})
@@ -108,13 +113,15 @@ TEST_DELETE_DATA = [
     ("Invalid doc type", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, "JUNK", HTTPStatus.BAD_REQUEST),
     ("Staff missing account", MEDIA_PDF, STAFF_ROLES, None, DOC_CLASS1, DOC_TYPE1, HTTPStatus.BAD_REQUEST),
     ("Invalid role", MEDIA_PDF, INVALID_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.UNAUTHORIZED),
-    ("Valid staff", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED)
+    ("Valid staff", MEDIA_PDF, STAFF_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED),
+    ("Valid SA", MEDIA_PDF, SA_ROLES, "UT1234", DOC_CLASS1, DOC_TYPE1, HTTPStatus.CREATED)
 ]
 # testdata pattern is ({description}, {roles}, {account}, {status})
 TEST_TYPE_DATA = [
     ("Staff missing account", STAFF_ROLES, None, HTTPStatus.BAD_REQUEST),
     ("Invalid role", INVALID_ROLES, "UT1234", HTTPStatus.UNAUTHORIZED),
     ("Valid staff", STAFF_ROLES, "UT1234", HTTPStatus.OK),
+    ("Valid SA", SA_ROLES, "UT1234", HTTPStatus.OK),
 ]
 
 
@@ -201,7 +208,7 @@ def test_update(session, client, jwt, desc, roles, account, doc_service_id, payl
     # logger.info(response.json)
     assert response.status_code == status
     if response.status_code == HTTPStatus.OK:
-        if desc != "Valid staff removed":
+        if desc not in ("Valid staff removed", "Valid SA removed"):
             doc_json = response.json
             assert doc_json
             assert doc_json.get("documentServiceId")

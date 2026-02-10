@@ -221,6 +221,15 @@ def is_staff(jwt: JwtManager) -> bool:
     return False
 
 
+def is_document_authorized(jwt: JwtManager) -> bool:
+    """Return True if the user token can submit document requests: staff or service account only."""
+    if not jwt:
+        return False
+    if jwt.validate_roles([STAFF_ROLE]) or jwt.validate_roles([PPR_STAFF_ROLE]) or jwt.validate_roles([SYSTEM_ROLE]):
+        return True
+    return False
+
+
 def is_report_authorized(jwt: JwtManager) -> bool:
     """Return True if the user can submit application report requests: staff or service account."""
     if not jwt:
