@@ -34,8 +34,20 @@ def send_notification(body: NotificationRequest):
     """Create and send EMAIL notification endpoint."""
     body.notify_type = Notification.NotificationType.EMAIL
     notification = notify.queue_publish(body)
-
-    return jsonify(notification.json), HTTPStatus.OK
+    # Eagerly build response dict to avoid ObjectDeletedError if the
+    # delivery service processes and deletes the row before we respond.
+    try:
+        response = notification.json
+    except Exception:
+        # Fallback if the notification row was already deleted
+        response = {
+            "id": getattr(notification, "id", None),
+            "recipients": getattr(notification, "recipients", None),
+            "notifyStatus": getattr(notification.status_code, "name", None)
+            if hasattr(notification, "status_code") and notification.status_code
+            else None,
+        }
+    return jsonify(response), HTTPStatus.OK
 
 
 @bp.route("/<string:notification_id>", methods=["GET", "OPTIONS"])

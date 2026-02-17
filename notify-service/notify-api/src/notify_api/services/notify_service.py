@@ -28,6 +28,7 @@ from notify_api.models import (
     NotificationRequest,
     SafeList,
 )
+from notify_api.models.db import db
 from notify_api.services.gcp_queue import GcpQueue, queue
 
 logger = StructuredLogging.get_logger()
@@ -367,6 +368,11 @@ class NotifyService:
 
             # Update notification status
             NotifyService._update_notification_status(notification, provider, Notification.NotificationStatus.QUEUED)
+
+            # Expunge from session so accessing attributes later won't trigger
+            # a lazy-load SELECT (which would fail if the delivery service
+            # already processed and deleted the row).
+            db.session.expunge(notification)
 
             return notification
 

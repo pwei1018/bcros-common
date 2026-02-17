@@ -383,10 +383,11 @@ class TestNotifyServiceQueueOperations:
             assert result.status_code == Notification.NotificationStatus.FAILURE
 
     @staticmethod
+    @patch("notify_api.services.notify_service.db")
     @patch("notify_api.services.notify_service.queue")
     @patch("notify_api.services.notify_service.GcpQueue")
     @patch("notify_api.services.notify_service.Notification")
-    def test_process_single_recipient_success(mock_notification_class, mock_gcp_queue, mock_queue):
+    def test_process_single_recipient_success(mock_notification_class, mock_gcp_queue, mock_queue, mock_db):
         """Test successful single recipient processing."""
         # Setup mocks
         mock_notification = Mock()
@@ -417,6 +418,7 @@ class TestNotifyServiceQueueOperations:
             mock_request, "test@example.com", "GC_NOTIFY"
         )
         mock_update_status.assert_called_once()
+        mock_db.session.expunge.assert_called_once_with(mock_notification)
 
     @staticmethod
     @patch("notify_api.services.notify_service.queue")
