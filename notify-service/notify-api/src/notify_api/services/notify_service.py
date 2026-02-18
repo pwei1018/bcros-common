@@ -28,7 +28,6 @@ from notify_api.models import (
     NotificationRequest,
     SafeList,
 )
-from notify_api.models.db import db
 from notify_api.services.gcp_queue import GcpQueue, queue
 
 logger = StructuredLogging.get_logger()
@@ -355,7 +354,13 @@ class NotifyService:
         try:
             # Create notification record
             notification = Notification.create_notification(notification_request, recipient, provider)
-            notification_data["notificationId"] = notification.id
+
+            # Capture notification ID while attributes are fresh (before any
+            # commit expires them).  Store a cached response dict so the API
+            # endpoint can return it even if the row is later deleted or the
+            # session state is expired/detached.
+            cached_id = notification.id
+            notification_data["notificationId"] = cached_id
 
             # Create and publish cloud event
             cloud_event = NotifyService._create_cloud_event(provider, notification_data)
@@ -369,10 +374,14 @@ class NotifyService:
             # Update notification status
             NotifyService._update_notification_status(notification, provider, Notification.NotificationStatus.QUEUED)
 
-            # Expunge from session so accessing attributes later won't trigger
-            # a lazy-load SELECT (which would fail if the delivery service
-            # already processed and deleted the row).
-            db.session.expunge(notification)
+            # Attach a cached response so the caller can safely build a JSON
+            # reply without touching SQLAlchemy-managed attributes (which may
+            # be expired or belong to a deleted row by now).
+            notification._cached_response = {
+                "id": cached_id,
+                "recipients": recipient,
+                "notifyStatus": Notification.NotificationStatus.QUEUED.name,
+            }
 
             return notification
 

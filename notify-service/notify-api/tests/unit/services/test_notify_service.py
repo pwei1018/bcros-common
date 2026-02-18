@@ -383,17 +383,18 @@ class TestNotifyServiceQueueOperations:
             assert result.status_code == Notification.NotificationStatus.FAILURE
 
     @staticmethod
-    @patch("notify_api.services.notify_service.db")
     @patch("notify_api.services.notify_service.queue")
     @patch("notify_api.services.notify_service.GcpQueue")
     @patch("notify_api.services.notify_service.Notification")
-    def test_process_single_recipient_success(mock_notification_class, mock_gcp_queue, mock_queue, mock_db):
+    def test_process_single_recipient_success(mock_notification_class, mock_gcp_queue, mock_queue):
         """Test successful single recipient processing."""
         # Setup mocks
         mock_notification = Mock()
         mock_notification.id = "test-notification-id"
         mock_notification_class.create_notification.return_value = mock_notification
-        mock_notification_class.NotificationStatus.QUEUED = "QUEUED"
+        mock_queued_status = Mock()
+        mock_queued_status.name = "QUEUED"
+        mock_notification_class.NotificationStatus.QUEUED = mock_queued_status
 
         mock_gcp_queue.to_queue_message.return_value = "test-queue-message"
         mock_queue.publish.return_value = "test-future"
@@ -418,7 +419,9 @@ class TestNotifyServiceQueueOperations:
             mock_request, "test@example.com", "GC_NOTIFY"
         )
         mock_update_status.assert_called_once()
-        mock_db.session.expunge.assert_called_once_with(mock_notification)
+        # Verify cached response is set for safe access after session expiry
+        assert result._cached_response["id"] == "test-notification-id"
+        assert result._cached_response["recipients"] == "test@example.com"
 
     @staticmethod
     @patch("notify_api.services.notify_service.queue")
