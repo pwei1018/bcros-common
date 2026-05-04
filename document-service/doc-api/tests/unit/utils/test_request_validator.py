@@ -389,6 +389,42 @@ TEST_DATA_DOC_MODIFIED = [
     ("Author no change", False, TEST_DOC1, TEST_DOC_UPDATE9),
     ("Author change", True, TEST_DOC1, TEST_DOC_UPDATE10),
 ]
+# test data pattern is ({description},{rep_type},{doc_type},{filename},{message_content})
+TEST_DATA_APP_EVENT_ALL = [
+    ("Valid report", "FILING", None, "file.pdf", None),
+    ("Valid document", None, "FILE", "file.pdf", None),
+    ("Invalid no report or document", None, None, "file.pdf", validator.MISSING_REP_DOC_TYPE.format(index=1)),
+    ("Invalid no report or document", "", "", "file.pdf", validator.MISSING_REP_DOC_TYPE.format(index=1)),
+    ("Invalid both report and document", "FILING", "FILE", "file.pdf", validator.INVALID_REP_DOC_TYPE.format(index=1)),
+    ("Invalid missing filename", "FILING", None, None, validator.MISSING_REP_FILENAME.format(index=1)),
+    ("Invalid missing filename", "FILING", None, "", validator.MISSING_REP_FILENAME.format(index=1)),
+    ("Invalid filename", "FILING", None, "X", validator.INVALID_FILENAME.format(filename="X")),
+    ("Invalid report type", "X", None, "file.pdf", validator.INVALID_REPORT_TYPE.format(report_type="X")),
+]
+
+
+@pytest.mark.parametrize("desc,rep_type,doc_type,filename,message_content", TEST_DATA_APP_EVENT_ALL)
+def test_validate_event_all(session, desc, rep_type, doc_type, filename, message_content):
+    """Assert that the get all application filing documents payload check works as expected."""
+    payload_rep = {}
+    if rep_type is not None:
+        payload_rep["reportType"] = rep_type
+    if doc_type is not None:
+        payload_rep["documentType"] = doc_type
+    if filename is not None:
+        payload_rep["name"] = filename
+    request_json = {
+        "productCode": "BUSINESS",
+        "isGet": True,
+        "payloadEventAll": [payload_rep]
+    }
+    error_msg = ""
+    validation_errors = validator.validate_event_all(request_json, error_msg)
+    if not message_content:
+        assert not validation_errors
+    else:
+        assert validation_errors
+        assert validation_errors.find(message_content) > -1
 
 
 @pytest.mark.parametrize("desc,modified,existing,update", TEST_DATA_DOC_MODIFIED)

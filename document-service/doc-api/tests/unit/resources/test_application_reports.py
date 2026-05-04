@@ -24,8 +24,13 @@ from flask import current_app
 
 from doc_api.models import ApplicationReport, Document
 from doc_api.models import utils as model_utils
-from doc_api.resources.v1.application_reports import is_certified_copy_request
+from doc_api.resources.v1.application_reports import (
+    build_event_zip, get_zip_filename,
+    is_certified_copy_report_type,
+    is_certified_copy_request
+)
 from doc_api.services.authz import BC_REGISTRY, COLIN_ROLE, STAFF_ROLE, SYSTEM_ROLE
+from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils.logging import logger
 from tests.unit.services.utils import (
     create_header_account,
@@ -49,6 +54,7 @@ TEST_DOC1 = {
     "author": "John Smith",
     "consumerReferenceId": "3333001"
 }
+TEST_STORAGE_FILE = "unit_test/unit_test.pdf"
 TEST_DATAFILE = "tests/unit/services/unit_test.pdf"
 TEST_DATAFILE_FILING = "tests/unit/reports/data/filing.pdf"
 TEST_DATAFILE_FILING_2 = "tests/unit/reports/data/legacy-filing.pdf"
@@ -65,6 +71,7 @@ HISTORY_PATH = "/api/v1/application-reports/history/{entity_id}"
 PATH_PRODUCT: str = "/api/v1/application-reports/{prod_code}/{entity_id}/{event_id}/{report_type}"
 CHANGE_PATH_PRODUCT = "/api/v1/application-reports/{prod_code}/{doc_service_id}"
 EVENT_PATH_PRODUCT = "/api/v1/application-reports/events/{prod_code}/{entity_id}/{event_id}"
+EVENT_ALL_PATH_PRODUCT = "/api/v1/application-reports/all/{prod_code}/{entity_id}/{event_id}"
 HISTORY_PATH_PRODUCT = "/api/v1/application-reports/history/{prod_code}/{entity_id}"
 PATCH_PAYLOAD_EMPTY = {}
 PATCH_PAYLOAD = {
@@ -87,6 +94,41 @@ PATCH_PAYLOAD3 = {
     "datePublished": "2022-10-31T19:00:00+00:00",
     "reportType": "N"
 }
+ZIP_NAMES = [
+    {"name": "receipt-name.pdf", "reportType": "RECEIPT"},
+    {"name": "cert-name.pdf", "reportType": "CERT"},
+    {"name": "filing-name.pdf", "reportType": "FILING"},
+    {"name": "filing-2-name.pdf", "reportType": "FILING-2"},
+    {"name": "noa-name.pdf", "reportType": "NOA"},
+    {"name": "addr-name.pdf", "documentType": "ADDR"},
+]
+ZIP_REPORT_RECEIPT= {
+    "productCode": "BUSINESS",
+    "entityIdentifier": "UT-000001",
+    "eventIdentifier": 9990000,
+    "reportType": "RECEIPT",
+    "name": "test-receipt.pdf",
+    "datePublished": "2024-07-01T19:00:00+00:00",
+}
+ZIP_REPORT_FILING= {
+    "productCode": "BUSINESS",
+    "entityIdentifier": "UT-000001",
+    "eventIdentifier": 9990000,
+    "reportType": "FILING",
+    "name": "test-filing.pdf",
+    "datePublished": "2024-07-01T19:00:00+00:00",
+}
+PAYLOAD_ZIP1 = [
+    {"name": "filing-name.pdf", "reportType": "FILING"}
+]
+PAYLOAD_ZIP2 = [
+    {"name": "filing-name.pdf", "reportType": "X"}
+]
+REPORT_TYPES_ZIP = ["CERT", "FILING", "NOA", "RECEIPT"]
+REPORT_TYPES_ZIP2 = ["FILING", "FILING-3", "RECEIPT"]
+PAYLOAD_EMPTY = []
+OUTFILE_ZIP1 = "tests/unit/resources/test-event-all.zip"
+OUTFILE_ZIP2 = "tests/unit/resources/test-event-all-2.zip"
 CC_NOA_LEGACY_INFILE = "tests/unit/reports/data/legacy-noa.pdf"
 CC_NOA_LEGACY_OUTFILE = "tests/unit/resources/legacy-noa-certified.pdf"
 CC_FILING_LEGACY_INFILE = "tests/unit/reports/data/legacy-filing.pdf"
@@ -209,9 +251,21 @@ TEST_CERTIFIED_COPY_REQUEST_DATA = [
     ("FILING additional 2 not certified", model_utils.REPORT_TYPE_FILING_2, False, False),
     ("FILING additional 2 certified", model_utils.REPORT_TYPE_FILING_2, True, True),
     ("FILING additional 3 not certified", model_utils.REPORT_TYPE_FILING_3, False, False),
-    ("FILING additional 3 certified", model_utils.REPORT_TYPE_FILING_3, True, True),
+    ("FILING additional 3 certified requested", model_utils.REPORT_TYPE_FILING_3, True, False),
     ("FILING additional 4 not certified", model_utils.REPORT_TYPE_FILING_4, False, False),
     ("FILING additional 4 certified", model_utils.REPORT_TYPE_FILING_4, True, True),
+]
+# testdata pattern is ({description}, {report_type}, {certified})
+TEST_CERTIFIED_COPY_TYPE_DATA = [
+    ("NOA certified", model_utils.REPORT_TYPE_NOA, True),
+    ("FILING certified", model_utils.REPORT_TYPE_FILING, True),
+    ("RECEIPT not certified", model_utils.REPORT_TYPE_RECEIPT, False),
+    ("CERT not certified", model_utils.REPORT_TYPE_CERT, False),
+    ("FILING additional 2 certified", model_utils.REPORT_TYPE_FILING_2, True),
+    ("FILING additional 3 not certified", model_utils.REPORT_TYPE_FILING_3, False),
+    ("FILING additional 4 certified", model_utils.REPORT_TYPE_FILING_4, True),
+    ("None not certified", None, False),
+    ("Ad hoc not certified", None, False),
 ]
 # testdata pattern is ({description}, {entity_id}, {event_id}, {rtype}, {status}, {prod_code}, {roles})
 TEST_PUT_DATA_PRODUCT = [
@@ -222,6 +276,31 @@ TEST_PUT_DATA_PRODUCT = [
     ("Invalid role", "UT-123456", "123456", "FILING", HTTPStatus.UNAUTHORIZED, "BUSINESS", PRODUCT_ROLES_COLIN),
     ("Invalid product code", "UT-123456", "123456", "FILING", HTTPStatus.BAD_REQUEST, "XXX", PRODUCT_ROLES_SYSTEM),
     ("Valid SA", "UT-123456", "123456", "FILING", HTTPStatus.CREATED, "BUSINESS", PRODUCT_ROLES_SYSTEM),
+]
+# testdata pattern is ({description}, {request_data}, {app_rep_type}, {app_doc_type}, {app_filename}, {filename})
+TEST_ZIP_NAME_REQUEST_DATA = [
+    ("Request receipt name", ZIP_NAMES, "RECEIPT", None, "drs-receipt.pdf", "receipt-name.pdf"),
+    ("DRS receipt name", [], "RECEIPT", None, "drs-receipt.pdf", "drs-receipt.pdf"),
+    ("Request cert name", ZIP_NAMES, "CERT", None, "drs-cert.pdf", "cert-name.pdf"),
+    ("DRS cert name", [], "CERT", None, "drs-cert.pdf", "drs-cert.pdf"),
+    ("Request noa name", ZIP_NAMES, "NOA", None, "drs-noa.pdf", "noa-name.pdf"),
+    ("DRS noa name", [], "NOA", None, "drs-noa.pdf", "drs-noa.pdf"),
+    ("Request filing name", ZIP_NAMES, "FILING", None, "drs-filing.pdf", "filing-name.pdf"),
+    ("DRS filing name", [], "FILING", None, "drs-filing.pdf", "drs-filing.pdf"),
+    ("Request filing 2 name", ZIP_NAMES, "FILING-2", None, "drs-filing-2.pdf", "filing-2-name.pdf"),
+    ("DRS filing 2 name", [], "FILING-2", None, "drs-filing-2.pdf", "drs-filing-2.pdf"),
+    ("Request doc addr name", ZIP_NAMES, None, "ADDR", "drs-addr.pdf", "addr-name.pdf"),
+    ("DRS doc addr name", [], None, "ADDR", "drs-addr.pdf", "drs-addr.pdf"),
+    ("DRS default name", [], "FILING", None, "", "BC11111-22222-filing.pdf"),
+]
+# testdata pattern is ({description}, {entity_id}, {event_id}, {rtypes}, {status}, {prod_code}, {roles}, {payload}, {outfile})
+TEST_GET_EVENT_DATA_PRODUCT_ALL = [
+    ("Invalid not found", "UT-123456", "123456", REPORT_TYPES_ZIP, HTTPStatus.NOT_FOUND, "BUSINESS", PRODUCT_ROLES_SYSTEM, PAYLOAD_EMPTY, ""),
+    ("Invalid payload", "UT-123456", "123456", REPORT_TYPES_ZIP, HTTPStatus.BAD_REQUEST, "BUSINESS", PRODUCT_ROLES_SYSTEM, PAYLOAD_ZIP2, ""),
+    ("Valid", "UT-123456", "123456", REPORT_TYPES_ZIP, HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_SYSTEM, ZIP_NAMES, OUTFILE_ZIP1),
+    ("Valid no payload", "UT-123456", "123456", REPORT_TYPES_ZIP2, HTTPStatus.OK, "BUSINESS", PRODUCT_ROLES_STAFF, PAYLOAD_EMPTY, OUTFILE_ZIP2),
+    ("Invalid role", "UT-123456", "123456", REPORT_TYPES_ZIP, HTTPStatus.UNAUTHORIZED, "BUSINESS", USER_ROLES, PAYLOAD_EMPTY, ""),
+    ("Invalid product code", "UT-123456", REPORT_TYPES_ZIP, "FILING", HTTPStatus.BAD_REQUEST, "XXX", PRODUCT_ROLES_SYSTEM, PAYLOAD_EMPTY, ""),
 ]
 
 
@@ -462,6 +541,43 @@ def test_get_product_event_id(session, client, jwt, desc, entity_id, event_id, r
                 assert not report.get("url")
             else:
                 assert report.get("url")
+
+
+@pytest.mark.parametrize("desc,entity_id,event_id,report_types,status,prod_code,roles,payload,outfile", TEST_GET_EVENT_DATA_PRODUCT_ALL)
+def test_get_product_event_all(session, client, jwt, desc, entity_id, event_id, report_types, status, prod_code, roles, payload, outfile):
+    """Assert that a request to get all product documents as an archive zip file data by an event ID works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    if status == HTTPStatus.OK:  # Create.
+        headers = create_header_account_upload(jwt, roles, "UT-TEST", "PS12345", MEDIA_PDF)
+        # Set up existing app report records. Using the same file is fine for testing.
+        for report_type in report_types:
+            rep_json = copy.deepcopy(ZIP_REPORT_RECEIPT)
+            rep_json["entityIdentifier"] = entity_id
+            rep_json["eventIdentifier"] = event_id
+            rep_json["reportType"] = report_type
+            rep_json["name"] = f"{entity_id}-unit-test-{event_id}-{report_type}.pdf"
+            app_report: ApplicationReport = ApplicationReport.create_from_json(rep_json)
+            app_report.doc_storage_url = TEST_STORAGE_FILE
+            app_report.save()
+    else:
+        headers = create_header_account(jwt, roles, "UT-TEST", "PS12345")
+    req_path = EVENT_ALL_PATH_PRODUCT.format(prod_code=prod_code, entity_id=entity_id, event_id=event_id)
+
+    # test
+    # logger.info(req_path)
+    response = client.post(req_path, json=payload, headers=headers, content_type="application/json")
+    # check
+    # logger.info(response.json)
+    assert response.status_code == status
+    if status == HTTPStatus.OK:
+        assert response.data
+        assert len(response.data) > 0
+        if outfile:
+            with open(outfile, "wb") as pdf_file:
+                pdf_file.write(response.data)
+                pdf_file.close()
 
 
 @pytest.mark.parametrize("desc,entity_id,event_id,report_type,status,prod_code,roles,include_docs", TEST_GET_HISTORY_DATA_PRODUCT)
@@ -710,12 +826,57 @@ def test_get_certified_copy(session, client, jwt, desc, entity_id, event_id, rep
         pdf_file.close()
 
 
+@pytest.mark.parametrize("desc,report_type,certified", TEST_CERTIFIED_COPY_TYPE_DATA)
+def test_certified_copy_type(session, client, jwt, desc, report_type, certified):
+    """Assert that the certified copy report type check works as expected."""
+    result: bool = is_certified_copy_report_type(report_type)
+    assert result == certified
+
+
 @pytest.mark.parametrize("desc,report_type,certified_requested,certified_allowed", TEST_CERTIFIED_COPY_REQUEST_DATA)
-def test_certified_copy(session, client, jwt, desc, report_type, certified_requested, certified_allowed):
-    """Assert that the certified copy check for a report type works as expected."""
+def test_certified_copy_request(session, client, jwt, desc, report_type, certified_requested, certified_allowed):
+    """Assert that the certified copy request for a report type works as expected."""
     app_report: ApplicationReport = ApplicationReport(report_type=report_type)
     result: bool = is_certified_copy_request(app_report, certified_requested)
     assert result == certified_allowed
+
+
+@pytest.mark.parametrize("desc,request_data,app_rep_type,app_doc_type,app_filename,filename", TEST_ZIP_NAME_REQUEST_DATA)
+def test_zip_filename(session, client, jwt, desc, request_data, app_rep_type, app_doc_type, app_filename, filename):
+    """Assert that deriving a zip file doc filename works as expected."""
+    app_rep_json: dict = {
+        "entityIdentifier": "BC11111",
+        "eventIdentifier": 22222,
+        "name": app_filename
+    }
+    if app_rep_type:
+        app_rep_json["reportType"] = app_rep_type
+    else:
+        app_rep_json["documentType"] = app_doc_type
+    test_filename = get_zip_filename(request_data, app_rep_json)
+    assert test_filename == filename
+
+
+def test_build_event_zip(session, client, jwt):
+    """Assert that building a filing zip file containing all reports and documents works as expected."""
+    if is_ci_testing():
+        return
+    receipt_report: ApplicationReport = ApplicationReport.create_from_json(ZIP_REPORT_RECEIPT)
+    receipt_report.doc_storage_url = TEST_STORAGE_FILE
+    receipt_report.save()
+    filing_report: ApplicationReport = ApplicationReport.create_from_json(ZIP_REPORT_FILING)
+    filing_report.doc_storage_url = TEST_STORAGE_FILE
+    filing_report.save()
+    reports_json = [
+        receipt_report.json,
+        filing_report.json
+    ]
+    zip_data = build_event_zip(ZIP_NAMES, reports_json, "BUSINESS")
+    assert zip_data
+    assert len(zip_data) > 0
+    with open("tests/unit/resources/test-event.zip", "wb") as zip_file:
+        zip_file.write(zip_data)
+        zip_file.close()
 
 
 def is_ci_testing() -> bool:

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """API endpoints for requests to maintain application reports."""
-
+import io
+import zipfile
 from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request
@@ -36,8 +37,10 @@ POST_REQUEST_PATH_PRODUCT = "/application-reports/{product_code}/{entity_id}/{ev
 CHANGE_REQUEST_PATH_PRODUCT = "/application-reports/{product_code}/{doc_service_id}"
 HISTORY_REQUEST_PATH_PRODUCT = "/application-reports/history/{product_code}/{entity_id}"
 EVENT_REQUEST_PATH_PRODUCT = "/application-reports/events/{product_code}/{entity_id}/{event_id}"
+EVENT_ALL_REQUEST_PATH_PRODUCT = "/application-reports/all/{product_code}/{entity_id}/{event_id}"
 CONTENT_JSON = {"Content-Type": "application/json"}
 CONTENT_PDF = {"Content-Type": "application/pdf"}
+CONTENT_ZIP = {"Content-Type": "application/zip"}
 PARAM_CERTIFIED_COPY = "certifiedCopy"
 
 bp = Blueprint("APP_REPORTS1", __name__, url_prefix="/application-reports")  # pylint: disable=invalid-name
@@ -177,6 +180,51 @@ def get_individual_product_report(prod_code: str, doc_service_id: str):
         return resource_utils.default_exception_response(default_exception)
 
 
+@bp.route("/all/<string:prod_code>/<string:entity_id>/<int:event_id>", methods=["POST", "OPTIONS"])
+@jwt.requires_auth
+def get_product_event_reports_all(prod_code: str, entity_id: str, event_id: int):
+    """
+    Get all filing reports and client documents associated with a product entity ID and event ID.
+    Return a zip file containing all the avaiable documents including client submitted ones.
+    """
+    try:
+        account_id = resource_utils.get_account_id(request)
+        if not is_report_authorized(jwt):
+            logger.error("User unuauthorized for this endpoint: not staff or service account.")
+            return resource_utils.unauthorized_error_response(account_id)
+        req_path: str = EVENT_ALL_REQUEST_PATH_PRODUCT.format(
+            product_code=prod_code, entity_id=entity_id, event_id=event_id
+        )
+        logger.info(f"Starting get all product reports event request {req_path}, account={account_id}")
+        payload_json = request.get_json(silent=True)
+        request_json: dict = {
+            "productCode": prod_code,
+            "isGet": True,
+            "entityIdentifier": entity_id,
+            "requestEventIdentifier": event_id,
+            "payloadEventAll": payload_json,
+        }
+        extra_validation_msg = resource_utils.validate_report_request(request_json, False)
+        if extra_validation_msg != "":
+            return resource_utils.extra_validation_error_response(extra_validation_msg)
+        reports_json = ApplicationReport.find_by_event_id_json(event_id, entity_id, prod_code)
+        reports_json = add_event_documents(entity_id, event_id, reports_json)
+        if not reports_json:
+            logger.warning(f"No {prod_code} report records found for {entity_id} event id={event_id}.")
+            return resource_utils.not_found_error_response(
+                f"GET all report information by entity ID {entity_id}", str(event_id)
+            )
+        return build_event_zip(payload_json, reports_json, prod_code), HTTPStatus.OK, CONTENT_ZIP
+    except DatabaseException as db_exception:
+        return resource_utils.db_exception_response(
+            db_exception, account_id, f"GET all {entity_id} report information by event ID {event_id}"
+        )
+    except BusinessException as exception:
+        return resource_utils.business_exception_response(exception)
+    except Exception as default_exception:  # noqa: B902; return nicer default error
+        return resource_utils.default_exception_response(default_exception)
+
+
 @bp.route("/events/<string:prod_code>/<string:entity_id>/<int:event_id>", methods=["GET", "OPTIONS"])
 @jwt.requires_auth
 def get_product_event_reports(prod_code: str, entity_id: str, event_id: int):
@@ -195,7 +243,8 @@ def get_product_event_reports(prod_code: str, entity_id: str, event_id: int):
         if extra_validation_msg != "":
             return resource_utils.extra_validation_error_response(extra_validation_msg)
         reports_json: list = ApplicationReport.find_by_event_id_json(event_id, entity_id, prod_code)
-        reports_json = add_event_documents(request, entity_id, event_id, reports_json)
+        if is_include_docs_request(request.args.get("includeDocuments")):
+            reports_json = add_event_documents(entity_id, event_id, reports_json)
         if not reports_json:
             logger.warning(f"No {prod_code} report records found for {entity_id} event id={event_id}.")
             return resource_utils.not_found_error_response(
@@ -207,7 +256,7 @@ def get_product_event_reports(prod_code: str, entity_id: str, event_id: int):
         return jsonify(response_json), HTTPStatus.OK, CONTENT_JSON
     except DatabaseException as db_exception:
         return resource_utils.db_exception_response(
-            db_exception, account_id, "GET {prod_code} report information by event ID"
+            db_exception, account_id, f"GET {entity_id} report information by event ID {event_id}"
         )
     except BusinessException as exception:
         return resource_utils.business_exception_response(exception)
@@ -412,10 +461,13 @@ def add_documents(req: request, entity_id: str, reports_json: list) -> list:
     return all_json
 
 
-def add_event_documents(req: request, entity_id: str, event_id: int, reports_json: list) -> list:
+def is_include_docs_request(include_docs) -> bool:
+    """Determine if application report filing request includes client submitted documents."""
+    return include_docs and bool(include_docs) and bool(include_docs) is True
+
+
+def add_event_documents(entity_id: str, event_id: int, reports_json: list) -> list:
     """Conditionally include documents to the entity identifier filing event request."""
-    if not req.args.get("includeDocuments", False):
-        return reports_json
     docs_json = Document.find_history_by_consumer_id(entity_id)
     if not docs_json:
         return reports_json
@@ -503,9 +555,7 @@ def get_report_links(reports_json: list, product_code: str) -> list:
     for report_json in reports_json:
         storage_name: str = report_json.get("url")
         report_type: str = report_json.get("reportType")
-        if storage_name and (
-            report_type == model_utils.REPORT_TYPE_NOA or report_type.startswith(model_utils.REPORT_TYPE_FILING)
-        ):
+        if storage_name and is_certified_copy_report_type(report_type):
             report_json["url"] = ""
         elif storage_name:
             logger.debug(f"getting link for type={storage_type} name={storage_name}...")
@@ -514,17 +564,23 @@ def get_report_links(reports_json: list, product_code: str) -> list:
     return reports_json
 
 
+def is_certified_copy_report_type(report_type: str) -> bool:
+    """Determine if a report type is a certified copy type."""
+    if not report_type:
+        return False
+    if report_type in (
+        model_utils.REPORT_TYPE_CERT,
+        model_utils.REPORT_TYPE_RECEIPT,
+        model_utils.REPORT_TYPE_FILING_3,  # FILING 3 specifies not certified copy.
+    ):
+        return False
+    # Allow certified copies of any application filing report where the report type starts with "FILING".
+    return report_type == model_utils.REPORT_TYPE_NOA or report_type.startswith(model_utils.REPORT_TYPE_FILING)
+
+
 def is_certified_copy_request(report_data: ApplicationReport, certified_copy) -> bool:
     """Verify a report request is for a certified copy of the report."""
-    # Allow certified copies of any application filing report where the report type starts with "FILING".
-    if not report_data.report_type:
-        return False
-    if report_data.report_type not in (
-        model_utils.REPORT_TYPE_NOA,
-        model_utils.REPORT_TYPE_FILING,
-    ) and not str(
-        report_data.report_type
-    ).startswith(model_utils.REPORT_TYPE_FILING):
+    if not is_certified_copy_report_type(report_data.report_type):
         return False
     return certified_copy and bool(certified_copy) and bool(certified_copy) is True
 
@@ -534,3 +590,51 @@ def remove_urls(reports_json: list) -> list:
     for report_json in reports_json:
         report_json["url"] = ""
     return reports_json
+
+
+def get_zip_filename(request_json: dict, report_json: dict) -> str:
+    """Get document filename from first the request then the DRS record."""
+    filename: str = report_json.get("name")
+    doc_type: str = report_json.get("reportType") if report_json.get("reportType") else report_json.get("documentType")
+    if request_json:
+        for doc in request_json:
+            if doc.get("reportType") and doc.get("reportType") == doc_type:
+                filename = doc.get("name")
+                break
+            if doc.get("documentType") and doc.get("documentType") == doc_type:
+                filename = doc.get("name")
+                break
+    if not filename:
+        filename = model_utils.STORAGE_REPORT_NAME.format(
+            entity_id=report_json.get("entityIdentifier"),
+            event_id=report_json.get("eventIdentifier"),
+            report_type=doc_type.lower(),
+        )
+    return filename
+
+
+def build_event_zip(request_json: dict, reports_json: dict, prod_code: str) -> bytes:
+    """Build a zip file binary data for all the filing event documents. Use the request filenames if available."""
+    zip_buffer = io.BytesIO()
+    storage_type: str = resource_utils.STORAGE_TYPE_DEFAULT.value
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_data:
+        for report in reports_json:
+            rep_type: str = report.get("reportType", "")
+            if storage_name := report.get("url"):
+                storage_type = resource_utils.get_product_storage_type(prod_code)
+                if report.get("documentClass"):
+                    storage_type = resource_utils.get_doc_storage_type(report.get("documentClass"))
+                filename: str = get_zip_filename(request_json, report)
+                rep_data = GoogleStorageService.get_document(storage_name, storage_type.value)
+                if is_certified_copy_report_type(rep_type):
+                    # Add certified copy
+                    is_legacy_report: bool = report_utils.is_legacy_report(report.get("name"))
+                    is_conversion: bool = False
+                    if is_legacy_report and rep_type == model_utils.REPORT_TYPE_FILING:
+                        is_conversion = report_utils.is_conversion_report(report.get("name"))
+                    updated_data = report_utils.add_certified_copy(rep_data, is_legacy_report, is_conversion)
+                    zip_data.writestr(filename, updated_data)
+                else:
+                    zip_data.writestr(filename, rep_data)
+    zip_buffer.seek(0)
+    return zip_buffer.getvalue()

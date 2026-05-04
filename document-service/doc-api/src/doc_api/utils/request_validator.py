@@ -72,6 +72,9 @@ MISSING_EXISTING_SCAN = "Request invalid: no document scanning information exist
 INVALID_PRODUCT_CODE = "Request invalid: unknown product code {product_code}. "
 MISSING_PAYLOAD_APP = "Request invalid: add application document missing required payload. "
 INVALID_FILING_DATE_APP = "Request invalid: datePublished format invalid {param_date}. "
+MISSING_REP_DOC_TYPE = "Request invalid: list item {index} either reportType or documentType is required. "
+INVALID_REP_DOC_TYPE = "Request invalid: list item {index} only one of reportType and documentType is allowed. "
+MISSING_REP_FILENAME = "Request invalid: list item {index} missing required name (filename). "
 
 
 def validate_request(info: RequestInfo) -> str:
@@ -146,7 +149,7 @@ def validate_report_request(request_json: dict, is_create: bool) -> str:
         if request_json.get("productCode") and request_json.get("productCode") not in ProductCodes:
             error_msg += INVALID_PRODUCT_CODE.format(product_code=request_json.get("productCode"))
         if request_json.get("isGet"):
-            return error_msg
+            return validate_event_all(request_json, error_msg) if request_json.get("payloadEventAll") else error_msg
         if not is_create and not request_json:
             logger.info("PATCH with no payload: request invalid.")
             return INVALID_REPORT_UPDATE
@@ -291,6 +294,34 @@ def validate_put(info: RequestInfo, error_msg: str) -> str:
             error_msg += MISSING_PAYLOAD
     except Exception as validation_exception:  # noqa: B902; eat all errors
         logger.error("validate_put exception: " + str(validation_exception))
+        error_msg += VALIDATOR_ERROR
+    return error_msg
+
+
+def validate_event_all(request_json: dict, error_msg: str) -> str:
+    """Validate payload for requests to get all documents for an application filing."""
+    try:
+        if not request_json or not request_json.get("payloadEventAll"):
+            return error_msg
+        rep_list: list = request_json.get("payloadEventAll")
+        index: int = 0
+        for rep in rep_list:
+            index += 1
+            report_type = rep.get("reportType")
+            filename = rep.get("name")
+            if not report_type and not rep.get("documentType"):
+                error_msg += MISSING_REP_DOC_TYPE.format(index=index)
+            if report_type and rep.get("documentType"):
+                error_msg += INVALID_REP_DOC_TYPE.format(index=index)
+            if not filename:
+                error_msg += MISSING_REP_FILENAME.format(index=index)
+            # Not storing anywhere, just matching so minimal validation
+            elif len(filename) < FILENAME_MIN or len(filename) > FILENAME_MAX:
+                error_msg += INVALID_FILENAME.format(filename=filename)
+            if report_type and (len(report_type) < REPORT_TYPE_MIN or len(report_type) > REPORT_TYPE_MAX):
+                error_msg += INVALID_REPORT_TYPE.format(report_type=report_type)
+    except Exception as validation_exception:  # noqa: B902; eat all errors
+        logger.error("validate_event_all exception: " + str(validation_exception))
         error_msg += VALIDATOR_ERROR
     return error_msg
 
