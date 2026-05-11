@@ -56,11 +56,12 @@ class TestEmailSMTPService(unittest.TestCase):
         """Test EmailSMTP initialization."""
         # Arrange
         mock_config = MagicMock()
-        mock_config.get.side_effect = {
+        smtp_config = {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": self.TEST_SMTP_PORT,
             "MAIL_FROM_ID": "sender@example.com",
-        }.get
+        }
+        mock_config.get.side_effect = smtp_config.get
         mock_current_app.config = mock_config
 
         # Act

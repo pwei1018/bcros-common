@@ -89,9 +89,7 @@ class TestGCNotify(unittest.TestCase):
             "personalisation"
         ]
         self.assertIn("attachment1", personalisation)
-        self.assertEqual(
-            personalisation["attachment1"]["filename"], "test.pdf"
-        )
+        self.assertEqual(personalisation["attachment1"]["filename"], "test.pdf")
 
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
     def test_send_multiple_recipients(self, mock_notifications_client):
@@ -113,9 +111,7 @@ class TestGCNotify(unittest.TestCase):
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
     def test_send_exception_handling(self, mock_notifications_client):
         """Test exception handling during send."""
-        mock_notifications_client.return_value.send_email_notification.side_effect = Exception(
-            "Test error"
-        )
+        mock_notifications_client.return_value.send_email_notification.side_effect = Exception("Test error")
         content = MagicMock(spec=NotificationContent)
         content.subject = "Test Subject"
         content.body = "Test Body"

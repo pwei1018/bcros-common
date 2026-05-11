@@ -27,3 +27,13 @@ timeout = int(os.environ.get("GUNICORN_TIMEOUT", "0"))  # pylint: disable=invali
 
 forwarded_allow_ips = "*"  # pylint: disable=invalid-name
 secure_scheme_headers = {"X-Forwarded-Proto": "https"}  # pylint: disable=invalid-name
+
+
+def worker_exit(server, worker):  # pylint: disable=invalid-name
+    """Gracefully dispose the connection pool when Gunicorn shuts down a worker."""
+    app = worker.app.callable
+    if hasattr(app, "extensions") and "sqlalchemy" in app.extensions:
+        with app.app_context():
+            from notify_api.models import db  # noqa: PLC0415
+
+            db.engine.dispose(close=False)

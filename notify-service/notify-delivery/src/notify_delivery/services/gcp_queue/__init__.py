@@ -32,6 +32,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """This module contains all the services used. This module will replace by sbc-connect-common/python/gcp-queue."""
+
 from gcp_queue import GcpQueue
 
 queue = GcpQueue()

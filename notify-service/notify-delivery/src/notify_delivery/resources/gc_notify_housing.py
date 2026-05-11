@@ -52,7 +52,5 @@ def worker():
         logger.error(f"Validation error processing queue message: {validation_error}")
         return {}, HTTPStatus.BAD_REQUEST
     except Exception as error:
-        logger.error(
-            f"Unexpected error processing queue message: {error}", exc_info=True
-        )
+        logger.error(f"Unexpected error processing queue message: {error}", exc_info=True)
         return {}, HTTPStatus.INTERNAL_SERVER_ERROR
