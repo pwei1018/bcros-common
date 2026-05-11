@@ -14,9 +14,10 @@
 """Test suite for GC Notify service provider."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from flask import Flask
+from notifications_python_client.errors import HTTPError
 from notify_api.models import Notification
 from notify_api.models.content import Content as NotificationContent
 
@@ -122,3 +123,95 @@ class TestGCNotify(unittest.TestCase):
         gc_notify = GCNotify(notification)
         responses = gc_notify.send()
         self.assertEqual(len(responses.recipients), 0)
+
+    @patch("notify_delivery.services.providers.gc_notify.time.sleep")
+    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
+    def test_send_retries_on_rate_limit(self, mock_notifications_client, mock_sleep):
+        """Test that 429 rate limit errors trigger retry with backoff."""
+        mock_response = Mock()
+        mock_response.status_code = 429
+        mock_response.json.return_value = {"errors": [{"error": "RateLimitError", "message": "Exceeded rate limit"}]}
+        rate_limit_error = HTTPError(response=mock_response)
+
+        mock_client = mock_notifications_client.return_value
+        mock_client.send_email_notification.side_effect = [
+            rate_limit_error,
+            rate_limit_error,
+            {"id": "success-id"},
+        ]
+
+        content = MagicMock(spec=NotificationContent)
+        content.subject = "Test Subject"
+        content.body = "Test Body"
+        content.attachments = None
+        notification = MagicMock(spec=Notification)
+        notification.recipients = "test@example.com"
+        notification.content = [content]
+
+        gc_notify = GCNotify(notification)
+        responses = gc_notify.send()
+
+        self.assertEqual(len(responses.recipients), 1)
+        self.assertEqual(responses.recipients[0].response_id, "success-id")
+        self.assertEqual(mock_client.send_email_notification.call_count, 3)
+        self.assertEqual(mock_sleep.call_count, 2)
+        mock_sleep.assert_any_call(10)
+        mock_sleep.assert_any_call(20)
+
+    @patch("notify_delivery.services.providers.gc_notify.time.sleep")
+    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
+    def test_send_raises_after_max_retries(self, mock_notifications_client, mock_sleep):
+        """Test that 429 errors raise after exhausting retries."""
+        mock_response = Mock()
+        mock_response.status_code = 429
+        mock_response.json.return_value = {"errors": [{"error": "RateLimitError", "message": "Exceeded rate limit"}]}
+        rate_limit_error = HTTPError(response=mock_response)
+
+        mock_client = mock_notifications_client.return_value
+        mock_client.send_email_notification.side_effect = rate_limit_error
+
+        content = MagicMock(spec=NotificationContent)
+        content.subject = "Test Subject"
+        content.body = "Test Body"
+        content.attachments = None
+        notification = MagicMock(spec=Notification)
+        notification.recipients = "test@example.com"
+        notification.content = [content]
+
+        gc_notify = GCNotify(notification)
+        responses = gc_notify.send()
+
+        self.assertEqual(len(responses.recipients), 0)
+        self.assertEqual(mock_client.send_email_notification.call_count, 4)  # 1 initial + 3 retries
+        self.assertEqual(mock_sleep.call_count, 3)
+
+    @patch("notify_delivery.services.providers.gc_notify.time.sleep")
+    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
+    def test_send_retries_on_503_server_error(self, mock_notifications_client, mock_sleep):
+        """Test that 503 server errors trigger retry with backoff."""
+        mock_response = Mock()
+        mock_response.status_code = 503
+        mock_response.json.return_value = {"errors": [{"error": "ServerError", "message": "Request failed"}]}
+        server_error = HTTPError(response=mock_response)
+
+        mock_client = mock_notifications_client.return_value
+        mock_client.send_email_notification.side_effect = [
+            server_error,
+            {"id": "success-after-503"},
+        ]
+
+        content = MagicMock(spec=NotificationContent)
+        content.subject = "Test Subject"
+        content.body = "Test Body"
+        content.attachments = None
+        notification = MagicMock(spec=Notification)
+        notification.recipients = "test@example.com"
+        notification.content = [content]
+
+        gc_notify = GCNotify(notification)
+        responses = gc_notify.send()
+
+        self.assertEqual(len(responses.recipients), 1)
+        self.assertEqual(responses.recipients[0].response_id, "success-after-503")
+        self.assertEqual(mock_client.send_email_notification.call_count, 2)
+        mock_sleep.assert_called_once_with(10)
