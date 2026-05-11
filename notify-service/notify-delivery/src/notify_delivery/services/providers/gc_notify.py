@@ -14,6 +14,7 @@
 """This provides send email through GC Notify Service."""
 
 import base64
+import time
 
 from flask import current_app
 from notifications_python_client import NotificationsAPIClient
@@ -31,6 +32,11 @@ logger = StructuredLogging.get_logger()
 
 class GCNotify:
     """Send notification via GC Notify service."""
+
+    # Retry configuration for rate limiting and transient errors
+    MAX_RETRIES = 3
+    RETRY_BASE_DELAY = 10  # seconds
+    RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
     def __init__(self, notification: Notification) -> None:
         """Construct object."""
@@ -84,16 +90,34 @@ class GCNotify:
 
         for recipient in recipients:
             try:
-                response = self.client.send_email_notification(
-                    email_address=recipient,
-                    template_id=self.gc_notify_template_id,
-                    personalisation=personalisation,
-                    email_reply_to_id=self.gc_notify_email_reply_to_id,
-                )
-                response_list.append(NotificationSendResponse(response_id=response["id"], recipient=recipient))
+                response = self._send_with_retry(recipient, personalisation)
+                if response:
+                    response_list.append(NotificationSendResponse(response_id=response["id"], recipient=recipient))
             except HTTPError as e:
                 logger.error(f"Error sending email to {recipient}: {e}")
             except Exception as e:
                 logger.error(f"An unexpected error occurred when sending email to {recipient}: {e}")
 
         return NotificationSendResponses(recipients=response_list)
+
+    def _send_with_retry(self, recipient: str, personalisation: dict) -> dict | None:
+        """Send email with retry on rate limit (429) and transient server errors (5xx)."""
+        for attempt in range(self.MAX_RETRIES + 1):
+            try:
+                return self.client.send_email_notification(
+                    email_address=recipient,
+                    template_id=self.gc_notify_template_id,
+                    personalisation=personalisation,
+                    email_reply_to_id=self.gc_notify_email_reply_to_id,
+                )
+            except HTTPError as e:
+                if e.status_code in self.RETRYABLE_STATUS_CODES and attempt < self.MAX_RETRIES:
+                    delay = self.RETRY_BASE_DELAY * (2**attempt)
+                    logger.warning(
+                        f"Retryable error ({e.status_code}) sending to {recipient}, retrying in {delay}s "
+                        f"(attempt {attempt + 1}/{self.MAX_RETRIES})"
+                    )
+                    time.sleep(delay)
+                else:
+                    raise
+        return None

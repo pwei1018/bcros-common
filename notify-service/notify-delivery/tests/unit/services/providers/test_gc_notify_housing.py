@@ -346,10 +346,11 @@ class TestGCNotifyHousingErrorHandling(unittest.TestCase):
         """Clean up test fixtures."""
         self.app_context.pop()
 
+    @patch("notify_delivery.services.providers.gc_notify.time.sleep")
     @patch("notify_delivery.services.providers.gc_notify_housing.NotificationsAPIClient")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
     def test_send_with_housing_specific_error_handling(
-        self, mock_base_notifications_client, mock_housing_notifications_client
+        self, mock_base_notifications_client, mock_housing_notifications_client, mock_sleep
     ):
         """Test error handling during send with housing-specific configuration."""
         # Arrange
@@ -370,10 +371,10 @@ class TestGCNotifyHousingErrorHandling(unittest.TestCase):
         housing_service = GCNotifyHousing(mock_notification)
         result = housing_service.send()
 
-        # Assert - should handle error gracefully
+        # Assert - should handle error gracefully after retries
         self.assertIsNotNone(result)
         self.assertEqual(len(result.recipients), 0)
-        mock_client.send_email_notification.assert_called_once()
+        self.assertEqual(mock_client.send_email_notification.call_count, 4)  # 1 initial + 3 retries
 
     @patch("notify_delivery.services.providers.gc_notify_housing.NotificationsAPIClient")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
