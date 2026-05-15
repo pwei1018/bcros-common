@@ -270,14 +270,16 @@ class TestGCNotifyHousingResource(unittest.TestCase):
 
     @patch("notify_delivery.resources.utils.Notification")
     def test_process_message_notification_not_found(self, mock_notification):
-        """Test process_message with notification not found."""
+        """Test process_message ACKs and skips when notification is not found."""
         # Arrange
         notification_data = {"notificationId": "invalid_id"}
         mock_notification.find_notification_by_id.return_value = None
 
-        # Act & Assert
-        with pytest.raises(ValueError, match="Unknown notification for notificationId invalid_id"):
-            process_message(notification_data, GCNotifyHousing)
+        # Act
+        result = process_message(notification_data, GCNotifyHousing)
+
+        # Assert
+        assert result is None
 
         mock_notification.find_notification_by_id.assert_called_once_with("invalid_id")
 

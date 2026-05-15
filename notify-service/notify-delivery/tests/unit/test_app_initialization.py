@@ -10,40 +10,42 @@ from notify_delivery import create_app
 class TestAppInitialization(unittest.TestCase):
     """Test suite for app initialization and configuration."""
 
-    @patch("notify_delivery.setup_pg8000_close_event_listener")
-    @patch("notify_delivery.setup_search_path_event_listener")
-    @patch("notify_delivery.register_endpoints")
-    @patch("notify_delivery.queue")
-    @patch("notify_delivery.db")
-    @patch("notify_delivery.config")
-    def test_create_app_basic(self, mock_config, mock_db, mock_queue, mock_register, mock_setup_event_listener, mock_setup_pg8000_listener):
+    def test_create_app_basic(self):
         """Test basic app creation."""
-        # Arrange
-        mock_config_obj = Mock()
-        mock_config_obj.configure_mock(
-            **{
-                "get.return_value": None,
-                "DB_INSTANCE_CONNECTION_NAME": None,
-                "DB_USER": "test_user",
-                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-            }
-        )
-        mock_config.__getitem__.return_value = mock_config_obj
+        with (
+            patch("notify_delivery.config") as mock_config,
+            patch("notify_delivery.db") as mock_db,
+            patch("notify_delivery.queue") as mock_queue,
+            patch("notify_delivery.register_endpoints") as mock_register,
+            patch("notify_delivery.setup_search_path_event_listener"),
+            patch("notify_delivery.setup_pg8000_close_event_listener") as mock_setup_pg8000_listener,
+        ):
+            # Arrange
+            mock_config_obj = Mock()
+            mock_config_obj.configure_mock(
+                **{
+                    "get.return_value": None,
+                    "DB_INSTANCE_CONNECTION_NAME": None,
+                    "DB_USER": "test_user",
+                    "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                }
+            )
+            mock_config.__getitem__.return_value = mock_config_obj
 
-        # Mock the SQLAlchemy engine
-        mock_engine = Mock()
-        mock_db.engine = mock_engine
+            # Mock the SQLAlchemy engine
+            mock_engine = Mock()
+            mock_db.engine = mock_engine
 
-        # Act
-        app = create_app("testing")
+            # Act
+            app = create_app("testing")
 
-        # Assert
-        assert isinstance(app, Flask)
-        assert app.config is not None
-        mock_db.init_app.assert_called_once_with(app)
-        mock_queue.init_app.assert_called_once_with(app)
-        mock_register.assert_called_once_with(app)
-        mock_setup_pg8000_listener.assert_called_once_with(mock_engine)
+            # Assert
+            assert isinstance(app, Flask)
+            assert app.config is not None
+            mock_db.init_app.assert_called_once_with(app)
+            mock_queue.init_app.assert_called_once_with(app)
+            mock_register.assert_called_once_with(app)
+            mock_setup_pg8000_listener.assert_called_once_with(mock_engine)
 
     def test_db_config_creation(self):
         """Test DBConfig dataclass creation."""
@@ -112,38 +114,38 @@ class TestAppInitialization(unittest.TestCase):
             mock_setup_pg8000_listener.assert_called_once_with(mock_engine)
             mock_setup_search_path_event_listener.assert_called_once_with(mock_engine, "test_schema")
 
-    @patch("notify_delivery.setup_pg8000_close_event_listener")
-    @patch("notify_delivery.setup_search_path_event_listener")
-    @patch("notify_delivery.register_endpoints")
-    @patch("notify_delivery.queue")
-    @patch("notify_delivery.db")
-    @patch("notify_delivery.config")
-    def test_create_app_with_schema_checkout_event(
-        self, mock_config, mock_db, mock_queue, mock_register, mock_setup_event_listener, mock_setup_pg8000_listener
-    ):
+    def test_create_app_with_schema_checkout_event(self):
         """Test app creation with schema checkout event listener."""
-        # Arrange
-        mock_config_obj = Mock()
-        mock_config_obj.configure_mock(
-            **{
-                "DB_SCHEMA": "test_schema",  # Set the schema attribute
-                "DB_INSTANCE_CONNECTION_NAME": "test-project:region:instance",
-                "DB_USER": "test_user",
-                "DB_NAME": "test_db",
-                "DB_IP_TYPE": "private",
-                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-            }
-        )
-        mock_config.__getitem__.return_value = mock_config_obj
+        with (
+            patch("notify_delivery.config") as mock_config,
+            patch("notify_delivery.db") as mock_db,
+            patch("notify_delivery.queue"),
+            patch("notify_delivery.register_endpoints"),
+            patch("notify_delivery.setup_search_path_event_listener") as mock_setup_event_listener,
+            patch("notify_delivery.setup_pg8000_close_event_listener") as mock_setup_pg8000_listener,
+        ):
+            # Arrange
+            mock_config_obj = Mock()
+            mock_config_obj.configure_mock(
+                **{
+                    "DB_SCHEMA": "test_schema",  # Set the schema attribute
+                    "DB_INSTANCE_CONNECTION_NAME": "test-project:region:instance",
+                    "DB_USER": "test_user",
+                    "DB_NAME": "test_db",
+                    "DB_IP_TYPE": "private",
+                    "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                }
+            )
+            mock_config.__getitem__.return_value = mock_config_obj
 
-        # Mock the SQLAlchemy engine
-        mock_engine = Mock()
-        mock_db.engine = mock_engine
+            # Mock the SQLAlchemy engine
+            mock_engine = Mock()
+            mock_db.engine = mock_engine
 
-        # Act
-        create_app("testing")
+            # Act
+            create_app("testing")
 
-        # Assert - verify the connect event listener was registered
-        mock_setup_event_listener.assert_called_once_with(mock_engine, "test_schema")
-        mock_setup_pg8000_listener.assert_called_once_with(mock_engine)
+            # Assert - verify the connect event listener was registered
+            mock_setup_event_listener.assert_called_once_with(mock_engine, "test_schema")
+            mock_setup_pg8000_listener.assert_called_once_with(mock_engine)
 
