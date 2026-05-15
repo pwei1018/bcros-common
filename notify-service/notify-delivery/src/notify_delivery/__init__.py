@@ -18,11 +18,9 @@ The service worker for applying payments, receipts and account balance to paymen
 
 from __future__ import annotations
 
-from cloud_sql_connector import DBConfig, setup_search_path_event_listener
+from cloud_sql_connector import DBConfig, setup_pg8000_close_event_listener, setup_search_path_event_listener
 from flask import Flask
 from notify_api.models import db
-from pg8000.exceptions import InterfaceError
-from sqlalchemy import event
 from structured_logging import StructuredLogging
 
 from notify_delivery.config import config
@@ -70,18 +68,8 @@ def create_app(run_mode: str = APP_RUNNING_ENVIRONMENT) -> Flask:
         if schema and db_instance_connection_name:
             setup_search_path_event_listener(engine, schema)
 
-        # Wrap dbapi connection close() to suppress pg8000 errors during Cloud Run scale-down
-        @event.listens_for(engine, "connect")
-        def on_connect(dbapi_conn, _connection_record):
-            original_close = dbapi_conn.close
-
-            def safe_close():
-                try:
-                    original_close()
-                except InterfaceError:
-                    logger.debug("Suppressed pg8000 InterfaceError on connection close during teardown.")
-
-            dbapi_conn.close = safe_close
+        # Suppress pg8000 InterfaceError on connection close during teardown
+        setup_pg8000_close_event_listener(engine)
 
     queue.init_app(app)
 
