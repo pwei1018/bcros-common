@@ -77,7 +77,9 @@ class TestAppInitialization(unittest.TestCase):
 
     @patch("notify_delivery.setup_search_path_event_listener")
     @patch("notify_delivery.setup_pg8000_close_event_listener")
-    def test_create_app_with_gcp_database_connection(self, mock_setup_pg8000_listener, mock_setup_search_path_event_listener):
+    def test_create_app_with_gcp_database_connection(
+        self, mock_setup_pg8000_listener, mock_setup_search_path_event_listener
+    ):
         """Test app creation with GCP database connection configuration."""
         with (
             patch("notify_delivery.config") as mock_config,
@@ -148,4 +150,3 @@ class TestAppInitialization(unittest.TestCase):
             # Assert - verify the connect event listener was registered
             mock_setup_event_listener.assert_called_once_with(mock_engine, "test_schema")
             mock_setup_pg8000_listener.assert_called_once_with(mock_engine)
-
