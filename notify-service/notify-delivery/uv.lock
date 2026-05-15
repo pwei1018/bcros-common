@@ -1042,8 +1042,8 @@ wheels = [
 
 [[package]]
 name = "notify-api"
-version = "5.0.2"
-source = { directory = "../notify-api" }
+version = "5.0.1"
+source = { git = "https://github.com/bcgov/bcros-common.git?subdirectory=notify-service%2Fnotify-api&branch=main#49283d8c48f0688f13cc604b937560ef17e0f0dc" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "cachecontrol" },
@@ -1071,62 +1071,6 @@ dependencies = [
     { name = "secure" },
     { name = "structured-logging" },
     { name = "uvloop" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "beautifulsoup4", specifier = ">=4.12.3" },
-    { name = "cachecontrol", specifier = ">=0.14.0" },
-    { name = "cloud-sql-connector", git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fcloud-sql-connector&branch=main" },
-    { name = "cryptography", specifier = ">=43.0.0" },
-    { name = "email-validator", specifier = ">=2.2.0" },
-    { name = "flask", specifier = ">=3.1.0" },
-    { name = "flask-cors", specifier = ">=4.0.1" },
-    { name = "flask-jwt-oidc", git = "https://github.com/seeker25/flask-jwt-oidc.git?branch=main" },
-    { name = "flask-migrate", specifier = ">=4.0.7" },
-    { name = "flask-pydantic", specifier = ">=0.12.0" },
-    { name = "flask-sqlalchemy", specifier = ">=3.1.1" },
-    { name = "flask-swagger-ui", specifier = ">=4.11.1" },
-    { name = "gcp-queue", git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fgcp-queue&branch=main" },
-    { name = "gunicorn", specifier = ">=23.0.0" },
-    { name = "httpx", specifier = ">=0.28.0" },
-    { name = "notifications-python-client", specifier = ">=9.0.0" },
-    { name = "pg8000", specifier = ">=1.31.2" },
-    { name = "phonenumbers", specifier = ">=8.13.48" },
-    { name = "pycountry", specifier = ">=24.6.1" },
-    { name = "pydantic", specifier = ">=2.9.0" },
-    { name = "pydantic-settings", specifier = ">=2.6.0" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "redis", specifier = ">=5.2.0" },
-    { name = "secure", specifier = ">=0.3.0" },
-    { name = "structured-logging", git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fstructured-logging&branch=main" },
-    { name = "uvloop", specifier = ">=0.21.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "aiohttp" },
-    { name = "faker" },
-    { name = "freezegun" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-html" },
-    { name = "pytest-mock" },
-    { name = "pytest-xdist" },
-    { name = "requests-mock" },
-    { name = "ruff" },
-]
-lint = [{ name = "ruff" }]
-testing = [
-    { name = "aiohttp" },
-    { name = "faker" },
-    { name = "freezegun" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-html" },
-    { name = "pytest-mock" },
-    { name = "pytest-xdist" },
-    { name = "requests-mock" },
 ]
 
 [[package]]
@@ -1171,7 +1115,7 @@ testing = [
 requires-dist = [
     { name = "cloud-sql-connector", git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fcloud-sql-connector&branch=main" },
     { name = "gunicorn" },
-    { name = "notify-api", directory = "../notify-api" },
+    { name = "notify-api", git = "https://github.com/bcgov/bcros-common.git?subdirectory=notify-service%2Fnotify-api&branch=main" },
 ]
 
 [package.metadata.requires-dev]
