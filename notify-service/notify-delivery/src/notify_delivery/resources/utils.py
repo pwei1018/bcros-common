@@ -60,12 +60,19 @@ def process_notification(data: dict, provider_class):
         raise ValueError("Invalid queue message data - missing notificationId")
 
     notification = fetch_notification(notification_id)
+    if notification is None:
+        # Unknown/stale notification — ACK and skip to prevent retry storm
+        return None
     validate_notification_content(notification)
     return send_notification(notification, provider_class)
 
 
-def fetch_notification(notification_id: str) -> Notification:
-    """Fetch a notification from the database."""
+def fetch_notification(notification_id: str) -> Notification | None:
+    """Fetch a notification from the database.
+
+    Returns None if the notification is not found (stale/unknown ID) so the
+    caller can ACK and skip rather than NACK and trigger a retry storm.
+    """
     try:
         notification = Notification.find_notification_by_id(notification_id)
     except Exception as error:
@@ -73,8 +80,8 @@ def fetch_notification(notification_id: str) -> Notification:
         raise ValueError(f"Failed to fetch notification for notificationId {notification_id}") from error
 
     if notification is None:
-        logger.error(f"Unknown notification for notificationId {notification_id}")
-        raise ValueError(f"Unknown notification for notificationId {notification_id}")
+        logger.warning(f"Unknown notification for notificationId {notification_id} - skipping (ACK)")
+        return None
 
     return notification
 
