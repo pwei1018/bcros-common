@@ -288,7 +288,7 @@ wheels = [
 [[package]]
 name = "cloud-sql-connector"
 version = "0.2.3"
-source = { git = "https://github.com/pwei1018/sbc-connect-common.git?subdirectory=python%2Fcloud-sql-connector&branch=main#b92e98f4ea1d59646f4b1465b73ccd688eddea48" }
+source = { git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fcloud-sql-connector&branch=main#9a760cf5ea31d3f95806c2dcac15ca9d9800df51" }
 dependencies = [
     { name = "cloud-sql-python-connector" },
     { name = "pg8000" },
@@ -616,7 +616,7 @@ wheels = [
 [[package]]
 name = "gcp-queue"
 version = "0.3.0"
-source = { git = "https://github.com/pwei1018/sbc-connect-common.git?subdirectory=python%2Fgcp-queue&branch=main#b92e98f4ea1d59646f4b1465b73ccd688eddea48" }
+source = { git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fgcp-queue&branch=main#9a760cf5ea31d3f95806c2dcac15ca9d9800df51" }
 dependencies = [
     { name = "flask" },
     { name = "google-auth" },
@@ -1033,7 +1033,7 @@ wheels = [
 
 [[package]]
 name = "notify-api"
-version = "5.0.1"
+version = "5.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -1096,7 +1096,7 @@ testing = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.12.3" },
     { name = "cachecontrol", specifier = ">=0.14.0" },
-    { name = "cloud-sql-connector", git = "https://github.com/pwei1018/sbc-connect-common.git?subdirectory=python%2Fcloud-sql-connector&branch=main" },
+    { name = "cloud-sql-connector", git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fcloud-sql-connector&branch=main" },
     { name = "cryptography", specifier = ">=43.0.0" },
     { name = "email-validator", specifier = ">=2.2.0" },
     { name = "flask", specifier = ">=3.1.0" },
@@ -1106,7 +1106,7 @@ requires-dist = [
     { name = "flask-pydantic", specifier = ">=0.12.0" },
     { name = "flask-sqlalchemy", specifier = ">=3.1.1" },
     { name = "flask-swagger-ui", specifier = ">=4.11.1" },
-    { name = "gcp-queue", git = "https://github.com/pwei1018/sbc-connect-common.git?subdirectory=python%2Fgcp-queue&branch=main" },
+    { name = "gcp-queue", git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fgcp-queue&branch=main" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "notifications-python-client", specifier = ">=9.0.0" },
@@ -1118,7 +1118,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "redis", specifier = ">=5.2.0" },
     { name = "secure", specifier = ">=0.3.0" },
-    { name = "structured-logging", git = "https://github.com/pwei1018/sbc-connect-common.git?subdirectory=python%2Fstructured-logging&branch=main" },
+    { name = "structured-logging", git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fstructured-logging&branch=main" },
     { name = "uvloop", specifier = ">=0.21.0" },
 ]
 
@@ -1709,7 +1709,7 @@ wheels = [
 [[package]]
 name = "structured-logging"
 version = "0.4.0"
-source = { git = "https://github.com/pwei1018/sbc-connect-common.git?subdirectory=python%2Fstructured-logging&branch=main#b92e98f4ea1d59646f4b1465b73ccd688eddea48" }
+source = { git = "https://github.com/bcgov/sbc-connect-common.git?subdirectory=python%2Fstructured-logging&branch=main#9a760cf5ea31d3f95806c2dcac15ca9d9800df51" }
 dependencies = [
     { name = "flask" },
     { name = "structlog" },

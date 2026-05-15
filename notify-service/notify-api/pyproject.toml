@@ -1,6 +1,6 @@
 [project]
 name = "notify-api"
-version = "5.0.1"
+version = "5.0.2"
 description = "This module is the BC Registries Notify API service."
 authors = [{ name = "pwei1018", email = "patrick.wei@gov.bc.ca" }]
 license = { text = "BSD-3-Clause" }
@@ -61,9 +61,9 @@ default-groups = ["dev"]
 
 [tool.uv.sources]
 flask-jwt-oidc = { git = "https://github.com/seeker25/flask-jwt-oidc.git", branch = "main" }
-gcp-queue = { git = "https://github.com/pwei1018/sbc-connect-common.git", subdirectory = "python/gcp-queue", branch = "main" }
-structured-logging = { git = "https://github.com/pwei1018/sbc-connect-common.git", subdirectory = "python/structured-logging", branch = "main" }
-cloud-sql-connector = { git = "https://github.com/pwei1018/sbc-connect-common.git", subdirectory = "python/cloud-sql-connector", branch = "main" }
+gcp-queue = { git = "https://github.com/bcgov/sbc-connect-common.git", subdirectory = "python/gcp-queue", branch = "main" }
+structured-logging = { git = "https://github.com/bcgov/sbc-connect-common.git", subdirectory = "python/structured-logging", branch = "main" }
+cloud-sql-connector = { git = "https://github.com/bcgov/sbc-connect-common.git", subdirectory = "python/cloud-sql-connector", branch = "main" }
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
