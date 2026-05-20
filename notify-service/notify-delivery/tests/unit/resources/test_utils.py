@@ -174,6 +174,23 @@ class TestProcessNotification:
         mock_validate.assert_called_with(mock_notification)
         mock_send.assert_called_with(mock_notification, provider_class)
 
+    @patch("notify_delivery.resources.utils.send_notification")
+    @patch("notify_delivery.resources.utils.validate_notification_content")
+    @patch("notify_delivery.resources.utils.fetch_notification")
+    def test_process_notification_unknown_id_returns_none(self, mock_fetch, mock_validate, mock_send):
+        """Test process_notification returns None (ACK) when notification is unknown/stale."""
+        data = {"notificationId": "1782282"}
+        provider_class = Mock()
+
+        mock_fetch.return_value = None
+
+        result = process_notification(data, provider_class)
+
+        assert result is None
+        mock_fetch.assert_called_with("1782282")
+        mock_validate.assert_not_called()
+        mock_send.assert_not_called()
+
 
 class TestFetchNotification:
     """Test fetch_notification function."""
@@ -195,14 +212,16 @@ class TestFetchNotification:
     @patch("notify_delivery.resources.utils.Notification")
     @patch("notify_delivery.resources.utils.logger")
     def test_fetch_notification_not_found(self, mock_logger, mock_notification_class):
-        """Test fetch_notification when notification is not found."""
+        """Test fetch_notification returns None for unknown/stale notification ID (ACK and skip)."""
         notification_id = "test123"
         mock_notification_class.find_notification_by_id.return_value = None
 
-        with pytest.raises(ValueError, match=f"Unknown notification for notificationId {notification_id}"):
-            fetch_notification(notification_id)
+        result = fetch_notification(notification_id)
 
-        mock_logger.error.assert_called_with(f"Unknown notification for notificationId {notification_id}")
+        assert result is None
+        mock_logger.warning.assert_called_with(
+            f"Unknown notification for notificationId {notification_id} - skipping (ACK)"
+        )
 
     @patch("notify_delivery.resources.utils.Notification")
     def test_fetch_notification_success(self, mock_notification_class):
