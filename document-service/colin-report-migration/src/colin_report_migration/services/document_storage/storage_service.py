@@ -43,7 +43,7 @@ class GoogleStorageService:  # pylint: disable=too-few-public-methods
         """Set up the service"""
         bucket_id = config.GCP_CS_BUCKET_ID
         credentials = GoogleAuthService.get_credentials()
-        storage_client = storage.Client(credentials=credentials)
+        storage_client = storage.Client(credentials=credentials) if credentials else storage.Client()
         GoogleStorageService.GCP_BUCKET = storage_client.bucket(bucket_id)
         GoogleStorageService.GCP_BUCKET_ID = bucket_id
         GoogleStorageService.GCP_CREDENTIALS = credentials

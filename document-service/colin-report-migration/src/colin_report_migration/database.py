@@ -131,7 +131,7 @@ select to_char(e.event_timerstamp, 'YYYY-MM-DD HH24:MI:SS') as filing_date, f.ev
                             'NOCR2','NOCB2')
    and e.corp_num = '{corp_num}'
 """
-QUERY_FILINGS_ORDER_BY = " order by f.effective_dt desc"
+QUERY_FILINGS_ORDER_BY = " order by e.event_timerstamp desc"
 QUERY_FILINGS = QUERY_FILINGS_BASE + QUERY_FILINGS_ORDER_BY
 QUERY_FILINGS_RECENT_CLAUSE = "   and e.event_timerstamp > to_timestamp('{migrated_ts}', 'YYYY-MM-DD HH24:MI:SS')"
 QUERY_FILINGS_RECENT = QUERY_FILINGS_BASE + QUERY_FILINGS_RECENT_CLAUSE + QUERY_FILINGS_ORDER_BY

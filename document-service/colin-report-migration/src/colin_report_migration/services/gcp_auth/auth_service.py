@@ -35,10 +35,6 @@ class GoogleAuthService:  # pylint: disable=too-few-public-methods
     gcp_sa_scopes = None
     service_account_info = None
     credentials = None
-    # Use service account env var if available.
-    if gcp_auth_key:
-        sa_bytes = bytes(gcp_auth_key, "utf-8")
-        service_account_info = json.loads(base64.b64decode(sa_bytes.decode("utf-8")))
 
     @staticmethod
     def init_app(config: Config):
@@ -48,10 +44,16 @@ class GoogleAuthService:  # pylint: disable=too-few-public-methods
         if GoogleAuthService.gcp_auth_key:
             sa_bytes = bytes(GoogleAuthService.gcp_auth_key, "utf-8")
             GoogleAuthService.service_account_info = json.loads(base64.b64decode(sa_bytes.decode("utf-8")))
+            GoogleAuthService.credentials = service_account.Credentials.from_service_account_info(
+                GoogleAuthService.service_account_info, scopes=GoogleAuthService.gcp_sa_scopes
+            )
 
     @classmethod
     def get_token(cls):
         """Generate an OAuth access token with cloud storage access."""
+        if not cls.gcp_auth_key or not cls.service_account_info:
+            return None
+
         if cls.credentials is None:
             cls.credentials = service_account.Credentials.from_service_account_info(
                 cls.service_account_info, scopes=cls.gcp_sa_scopes
@@ -64,6 +66,9 @@ class GoogleAuthService:  # pylint: disable=too-few-public-methods
     @classmethod
     def get_credentials(cls):
         """Generate GCP auth credentials to pass to a GCP client."""
+        if not cls.gcp_auth_key or not cls.service_account_info:
+            return None
+
         if cls.credentials is None:
             cls.credentials = service_account.Credentials.from_service_account_info(
                 cls.service_account_info, scopes=cls.gcp_sa_scopes

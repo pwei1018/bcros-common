@@ -58,7 +58,7 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
         except Exception as err:  # pylint: disable=broad-except # noqa F841;
             logger.error(f"get_document failed for doc type={doc_type}, name={name}.")
             logger.error(str(err))
-            raise StorageException("GET document failed for doc type={doc_type}, name={name}.") from err
+            raise StorageException(f"GET document failed for doc type={doc_type}, name={name}.") from err
 
     @classmethod
     def get_document_link(cls, name: str, doc_type: str = None, available_days: int = 1):
@@ -88,7 +88,7 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
     def save_document(cls, name: str, raw_data, doc_type: str = None, content_type: str = None):
         """Save or replace the named document in cloud storage with the binary data as the file contents."""
         try:
-            logger.info(f"Saving doc type={doc_type}, name={name}.")
+            logger.debug(f"Saving doc type={doc_type}, name={name}.")
             return cls.__call_cs_api(
                 HTTP_POST, name, raw_data, doc_type, content_type if content_type else CONTENT_TYPE_PDF
             )
@@ -146,7 +146,7 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
     ):
         """Call the Cloud Storage API."""
         credentials = GoogleAuthService.get_credentials()
-        storage_client = storage.Client(credentials=credentials)
+        storage_client = storage.Client(credentials=credentials) if credentials else storage.Client()
         bucket = storage_client.bucket(cls.__get_bucket_id(doc_type))
         blob = bucket.blob(name)
         if method == HTTP_POST:
@@ -171,7 +171,7 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
         available_days: int = 1,
     ):
         """Call the Cloud Storage API, returning a time-limited download link."""
-        credentials = GoogleAuthService.get_credentials()
+        credentials = GoogleAuthService.get_cs_signed_credentials()
         storage_client = storage.Client(credentials=credentials)
         bucket = storage_client.bucket(cls.__get_bucket_id(doc_type))
         blob = bucket.blob(name)
@@ -179,6 +179,10 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
             media_type: str = content_type if content_type else CONTENT_TYPE_PDF
             blob.upload_from_string(data=data, content_type=media_type)
         url = blob.generate_signed_url(
-            version="v4", expiration=datetime.timedelta(days=available_days, hours=0, minutes=0), method="GET"
+            version="v4",
+            expiration=datetime.timedelta(days=available_days, hours=0, minutes=0),
+            method="GET",
+            service_account_email=credentials.service_account_email,
+            access_token=credentials.token,
         )
         return url

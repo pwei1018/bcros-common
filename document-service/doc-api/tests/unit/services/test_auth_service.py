@@ -26,14 +26,20 @@ from doc_api.utils.logging import logger
 def test_get_token(session, client, jwt):
     """Assert that the configuration to get a google storage token works as expected (no exceptions)."""
     token = GoogleAuthService.get_token()
-    logger.info(token)
-    assert token
+    if current_app.config.get("GCP_AUTH_KEY"):
+        logger.debug(token)
+        assert token
+    else:
+        assert not token
 
 
 def test_get_credentials(session, client, jwt):
     """Assert that the configuration to get a google storage token works as expected (no exceptions)."""
     credentials = GoogleAuthService.get_credentials()
-    assert credentials
+    if current_app.config.get("GCP_AUTH_KEY"):
+        assert credentials
+    else:
+        assert not credentials
 
 
 def test_security_account(session, client, jwt):
@@ -44,34 +50,9 @@ def test_security_account(session, client, jwt):
     default_sa = current_app.config.get("GCP_AUTH_KEY")
     if default_sa:
         encoded_sa = bytes(default_sa, "utf-8")
-    if not encoded_sa:
-        logger.info("No GCP_AUTH_KEY env var.")
-        sa_project_id = os.getenv("GCP_CS_PROJECT_ID")
-        sa_client_email = os.getenv("GCP_CS_SA_CLIENT_EMAIL")
-        sa_client_id = os.getenv("GCP_CS_SA_CLIENT_ID")
-        sa_private_key = os.getenv("GCP_CS_SA_PRIVATE_KEY")
-        sa_private_key_id = os.getenv("GCP_CS_SA_PRIVATE_KEY_ID")
-        sa_cert_url = os.getenv("GCP_CS_SA_CERT_URL")
-        service_account_info = {
-            "type": "service_account",
-            "project_id": sa_project_id,
-            "private_key_id": sa_private_key_id,
-            "private_key": str(sa_private_key).replace("\\n", "\n"),
-            "client_email": sa_client_email,
-            "client_id": sa_client_id,
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": sa_cert_url,
-            "universe_domain": "googleapis.com",
-        }
-        # logger.info(service_account_info)
-        encoded_sa = base64.b64encode(json.dumps(service_account_info).encode("utf-8"))
-        logger.info(encoded_sa)
-    else:
         assert encoded_sa
         decoded_sa = json.loads(base64.b64decode(encoded_sa.decode("utf-8")))
-        # logger.debug(decoded_sa)
+        logger.info(f"sa email={decoded_sa.get('client_email')} project={decoded_sa.get('project_id')}")
         assert decoded_sa
         assert decoded_sa.get("type")
         assert decoded_sa.get("project_id")
@@ -88,5 +69,5 @@ def test_security_account(session, client, jwt):
 def test_mock_auth(session, client, jwt):
     """Assert that the mock auth sa works as expected."""
     value = get_mock_auth()
-    logger.info(value)
+    logger.debug(value)
     assert value

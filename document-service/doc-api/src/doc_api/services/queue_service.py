@@ -33,7 +33,9 @@ class GoogleQueueService:
     def init_app(app):
         """Initialize the publisher."""
         credentials = GoogleAuthService.get_credentials()
-        GoogleQueueService.publisher = pubsub_v1.PublisherClient(credentials=credentials)
+        GoogleQueueService.publisher = (
+            pubsub_v1.PublisherClient(credentials=credentials) if credentials else pubsub_v1.PublisherClient()
+        )
         project_id = str(app.config.get("DEPLOYMENT_PROJECT"))
         create_record_topic = str(app.config.get("GCP_PS_DOC_CREATE_REC_TOPIC"))
         GoogleQueueService.create_record_topic_name = f"projects/{project_id}/topics/{create_record_topic}"

@@ -14,6 +14,8 @@
 """Google storage service tests."""
 import pytest
 
+from flask import current_app
+
 from doc_api.services.abstract_storage_service import DocumentTypes
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils.logging import logger
@@ -44,27 +46,33 @@ TEST_DATA_SAVE = [
 @pytest.mark.parametrize("name, doc_type, is_link", TEST_DATA_GET)
 def test_get_document(session, name, doc_type, is_link):
     """Assert that getting a document from google cloud storage works as expected."""
+    if is_ci_testing():
+        return
+
     if is_link:
         download_link = GoogleStorageService.get_document_link(name, doc_type, 2)
-        logger.info(f"Get doc link={download_link}")
+        logger.debug(f"Get doc link={download_link}")
         assert download_link
     else:
         raw_data = GoogleStorageService.get_document(name, doc_type)
         assert raw_data
         assert len(raw_data) > 0
-        logger.info(f"Get doc file size={len(raw_data)}")
+        logger.debug(f"Get doc file size={len(raw_data)}")
 
 
 @pytest.mark.parametrize("file, name, doc_type, is_link, content_type, delete", TEST_DATA_SAVE)
 def test_save_delete_document(session, file, name, doc_type, is_link, content_type, delete):
     """Assert that saving then deleting a document from google cloud storage works as expected."""
+    if is_ci_testing():
+        return
+
     raw_data = None
     with open(file, "rb") as data_file:
         raw_data = data_file.read()
         data_file.close()
     if is_link:
         response = GoogleStorageService.save_document_link(name, raw_data, doc_type, 2, content_type)
-        logger.info(response)
+        logger.debug(response)
         assert response
     else:
         response = GoogleStorageService.save_document(name, raw_data, doc_type, content_type)
@@ -75,3 +83,10 @@ def test_save_delete_document(session, file, name, doc_type, is_link, content_ty
     else:
         download_link = GoogleStorageService.get_document_link(name, doc_type, 2)
         assert download_link
+
+
+def is_ci_testing() -> bool:
+    """Check unit test environment: exclude pub/sub for CI testing."""
+    if not current_app.config.get("GCP_AUTH_KEY"):
+        return True
+    return  current_app.config.get("DEPLOYMENT_ENV", "testing") == "testing"

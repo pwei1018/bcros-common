@@ -24,8 +24,7 @@ TEST_DOC_REC = {
     "consumerDocumentId": "99990950",
     "consumerIdentifier": "108924",
     "documentType": "MHR_MISC",
-    "documentClass": "MHR",
-    "author": "John Smitl"
+    "documentClass": "MHR"
 }
 
 
@@ -38,4 +37,6 @@ def test_publish_document_rec(session):
 
 def is_ci_testing() -> bool:
     """Check unit test environment: exclude pub/sub for CI testing."""
+    if not current_app.config.get("GCP_AUTH_KEY"):
+        return True
     return  current_app.config.get("DEPLOYMENT_ENV", "testing") == "testing"
