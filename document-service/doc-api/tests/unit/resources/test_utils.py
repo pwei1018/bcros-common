@@ -16,6 +16,7 @@ import copy
 import json
 
 import pytest
+from flask import current_app
 
 from doc_api.models import Document, DocumentRequest, DocumentScanning, User
 from doc_api.models import utils as model_utils
@@ -137,7 +138,11 @@ TEST_DOCUMENT_DELETE = Document(
     consumer_filing_date=model_utils.ts_from_iso_date_noon("2024-07-01"),
     description="Original",
 )
-
+DOC_CERTIFIED_CONFIG_DEFAULT = {
+    "textCoordX": 483,
+    "textCoordY": 78, 
+    "rect": { "coordX1": 510.0, "coordY1": 10.0, "coordX2": 585.0, "coordY2": 70.0}
+}
 # testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff} , {ref_id})
 TEST_DATA_REQUEST_INFO = [
     (RequestTypes.ADD.value, "/CORP/CORR", DocumentTypes.CORR.value, StorageDocTypes.BUSINESS.value, True, "UT0001"),
@@ -211,6 +216,13 @@ TEST_DELETE_DATA = [(TEST_DOCUMENT_DELETE, TEST_TOKEN, TEST_FILENAME)]
 TEST_REMOVE_DATA = [
     (TEST_DOCUMENT, TEST_TOKEN, None),
     (TEST_DOCUMENT, TEST_TOKEN, DOC_SCAN)
+]
+# testdata pattern is ({doc_class}, {doc_type}, {certified_config})
+TEST_DOC_CERTIFIED_DATA = [
+    ("COOP", "COOP_RULES", DOC_CERTIFIED_CONFIG_DEFAULT),
+    ("COOP", "COOP_MEMORANDUM", DOC_CERTIFIED_CONFIG_DEFAULT),
+    ("COOP", "COSD", DOC_CERTIFIED_CONFIG_DEFAULT),
+    ("COOP", "FILE", None),
 ]
 
 
@@ -529,3 +541,26 @@ def test_get_product_storage_type(session, product_code, storage_type):
     """Assert that get_product_storage_type works as expected."""
     test_type = resource_utils.get_product_storage_type(product_code)
     assert test_type == storage_type
+
+
+@pytest.mark.parametrize("doc_class,doc_type,certified_config", TEST_DOC_CERTIFIED_DATA)
+def test_doc_certified_config(session, doc_class, doc_type, certified_config):
+    """Assert that client submitted documents certified copy stamp configuration set up works as expected."""
+    all_certified_config = current_app.config.get("DOC_CERT_STAMP_CONFIG")
+    if not all_certified_config:
+        return
+    key = doc_class + "-" + doc_type
+    doc_config = all_certified_config.get(key)
+    doc_config2 = resource_utils.get_certified_copy_config(doc_class, doc_type)
+    if not certified_config:
+        assert not doc_config
+        assert not doc_config2
+    else:
+        assert doc_config
+        assert doc_config2
+        assert doc_config.get("textCoordX") == certified_config.get("textCoordX")
+        assert doc_config.get("textCoordY") == certified_config.get("textCoordY")
+        assert doc_config.get("rect") == certified_config.get("rect")
+        assert doc_config2.get("textCoordX") == certified_config.get("textCoordX")
+        assert doc_config2.get("textCoordY") == certified_config.get("textCoordY")
+        assert doc_config2.get("rect") == certified_config.get("rect")

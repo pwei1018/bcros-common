@@ -493,6 +493,26 @@ def add_certified_copy(report_data: bytes, is_legacy: bool, is_conversion: bool 
     return updated_report
 
 
+def add_doc_certified_copy(report_data: bytes, cert_config: dict) -> bytes:
+    """Add the certified copy image and timestamp text to the client document."""
+    if not report_data or not cert_config:
+        return report_data
+    image_data = get_certified_copy_image(False)
+    doc = pymupdf.Document(stream=report_data)
+    page = doc[0]
+    add_text = get_app_report_datetime()
+    point = pymupdf.Point(cert_config.get("textCoordX"), cert_config.get("textCoordY"))
+    config_rect = cert_config.get("rect")
+    image_rect = pymupdf.Rect(
+        config_rect.get("coordX1"), config_rect.get("coordY1"), config_rect.get("coordX2"), config_rect.get("coordY2")
+    )
+    page.insert_text(point, add_text, fontsize=7, fontname="Helvetica-Oblique", color=(0, 0, 0))  # Black color
+    page.insert_image(image_rect, stream=image_data)
+    updated_report = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
+    doc.close()
+    return updated_report
+
+
 def is_legacy_report(filename: str) -> bool:
     """Legacy migrated reports have a distinct filename format: use to determine if legacy."""
     if not filename:

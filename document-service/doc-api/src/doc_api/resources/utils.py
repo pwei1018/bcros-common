@@ -20,6 +20,7 @@ from doc_api.exceptions import ResourceErrorCodes
 from doc_api.models import Document, DocumentRequest, DocumentScanning, User, db, search_utils
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, DocumentTypes, ProductCodes, RequestTypes
+from doc_api.reports.report_utils import add_doc_certified_copy
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils import request_validator
@@ -609,7 +610,7 @@ def get_doc_links(info: RequestInfo, results: list) -> list:
 
 
 def get_doc_data(info: RequestInfo, results: list) -> list:
-    """Retrieve document binary data for the first document in the list"""
+    """Retrieve document binary data for the first document in the list. Conditionally add certified copy stamp."""
     if not results:
         return results
     result = results[0]
@@ -617,6 +618,10 @@ def get_doc_data(info: RequestInfo, results: list) -> list:
     storage_type = info.document_storage_type
     rep_data = GoogleStorageService.get_document(storage_name, storage_type)
     if rep_data:
+        logger.debug(f"getting cert stamp for class={info.document_class} type={info.document_type}...")
+        certified_stamp_info = get_certified_copy_config(info.document_class, info.document_type)
+        if certified_stamp_info:
+            rep_data = add_doc_certified_copy(rep_data, certified_stamp_info)
         result["data"] = rep_data
     return results
 
@@ -629,6 +634,7 @@ def get_docs(info: RequestInfo) -> list:
         logger.info(f"get_docs class {info.document_class} query by service id {info.document_service_id}")
         result = Document.find_by_doc_service_id(info.document_service_id)
         if result and result.doc_type and result.document_class == info.document_class:
+            info.document_type = result.document_type
             results.append(result.json)
     elif info.consumer_doc_id:
         logger.info(f"get_docs class {info.document_class} query by document id {info.consumer_doc_id}")
@@ -701,3 +707,12 @@ def get_callback_request_info(request_json: dict, info: RequestInfo) -> RequestI
         info.request_data = request_json
         info.request_data["async"] = True
     return info
+
+
+def get_certified_copy_config(doc_class: str, doc_type: str) -> dict:
+    """For client submitted documents look up certified copy stamp information."""
+    if not doc_class or not doc_type or not current_app.config.get("DOC_CERT_STAMP_CONFIG"):
+        return {}
+    certified_config = current_app.config.get("DOC_CERT_STAMP_CONFIG")
+    config_key = doc_class + "-" + doc_type
+    return certified_config.get(config_key)

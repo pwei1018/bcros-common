@@ -102,6 +102,9 @@ class Config:  # pylint: disable=too-few-public-methods
     if not GCP_AUTH_KEY and DEPLOYMENT_ENV in ("unitTesting", "testing"):
         GCP_AUTH_KEY = get_mock_auth()
 
+    cert_stamp_config = os.getenv("DOC_CERT_STAMP_CONFIG")
+    DOC_CERT_STAMP_CONFIG = json.loads(cert_stamp_config) if cert_stamp_config else {}
+
 
 class ProductionConfig(Config):  # pylint: disable=too-few-public-methods
     """Config object for production environment."""

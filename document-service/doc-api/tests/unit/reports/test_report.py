@@ -24,6 +24,7 @@ import pytest
 
 from doc_api.reports.report import Report, report_utils
 from doc_api.reports.report_utils import ReportTypes
+from doc_api.resources.utils import get_certified_copy_config
 from doc_api.utils.logging import logger
 
 DOC_RECORD_TEST_DATAFILE = "tests/unit/reports/data/doc-record-test-example.json"
@@ -38,13 +39,19 @@ CERT_COPY_TEST_FILING_INFILE = "tests/unit/reports/data/filing.pdf"
 CERT_COPY_TEST_FILING_OUTFILE = "tests/unit/reports/data/filing-updated.pdf"
 CERT_COPY_TEST_AR_LEGACY_INFILE = "tests/unit/reports/data/legacy-conv-ar-filing.pdf"
 CERT_COPY_TEST_AR_LEGACY_OUTFILE = "tests/unit/reports/data/legacy-conv-ar-filing-updated.pdf"
+CERT_COPY_TEST_COOP_INFILE = "tests/unit/reports/data/coop-mem-filing-1.pdf"
+CERT_COPY_TEST_COOP_OUTFILE = "tests/unit/reports/data/coop-mem-filing-ex1.pdf"
 
 
 # testdata pattern is ({legacy}, {conversion}, {infile}, {outfile})
 TEST_CERT_COPY_DATA = [
-#    (True, False, CERT_COPY_TEST_NOA_LEGACY_INFILE, CERT_COPY_TEST_NOA_LEGACY_OUTFILE),
-#    (True, False, CERT_COPY_TEST_FILING_LEGACY_INFILE, CERT_COPY_TEST_FILING_LEGACY_OUTFILE),
+    (True, False, CERT_COPY_TEST_NOA_LEGACY_INFILE, CERT_COPY_TEST_NOA_LEGACY_OUTFILE),
+    (True, False, CERT_COPY_TEST_FILING_LEGACY_INFILE, CERT_COPY_TEST_FILING_LEGACY_OUTFILE),
     (True, True, CERT_COPY_TEST_AR_LEGACY_INFILE, CERT_COPY_TEST_AR_LEGACY_OUTFILE),
+]
+# testdata pattern is ({doc_class}, {doc_type}, {infile}, {outfile})
+TEST_DOC_CERT_COPY_DATA = [
+    ("COOP", "COOP_MEMORANDUM", CERT_COPY_TEST_COOP_INFILE, CERT_COPY_TEST_COOP_OUTFILE),
 ]
 
 
@@ -117,14 +124,28 @@ def test_add_certified(session, client, jwt, legacy, conversion, infile, outfile
         pdf_file.close()
 
 
+@pytest.mark.parametrize("doc_class,doc_type,infile,outfile", TEST_DOC_CERT_COPY_DATA)
+def test_doc_add_certified(session, client, jwt, doc_class, doc_type, infile, outfile):
+    """Assert that adding a certified copy image and date and time to an client document works as expected."""
+    raw_data = None
+    certified_config = get_certified_copy_config(doc_class, doc_type)
+    if certified_config:
+        with open(infile, 'rb') as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+
+        updated_pdf = report_utils.add_doc_certified_copy(raw_data, certified_config)
+        with open(outfile, "wb") as pdf_file:
+            pdf_file.write(updated_pdf)
+            pdf_file.close()
+
+
 def test_add_modern_certified(session, client, jwt):
     """Assert that adding a certified copy image and date and time to an app report works as expected."""
     raw_data = None
     image_data = report_utils.get_certified_copy_image(False)
     infile = CERT_COPY_TEST_NOA_INFILE
     outfile = CERT_COPY_TEST_NOA_OUTFILE
-    # noa coordinates = (14.17300033569336, 40.597023010253906, 210.7009735107422, 51.589019775390625)
-    # file coordinates = (14.17300033569336, 40.34001541137695, 235.2669677734375, 52.706016540527344)
     with open(infile, 'rb') as data_file:
         raw_data = data_file.read()
         data_file.close()
@@ -136,6 +157,29 @@ def test_add_modern_certified(session, client, jwt):
     point = pymupdf.Point(433, 210)
     add_text = report_utils.get_app_report_datetime()
     image_rect = pymupdf.Rect(460.0, 142.0, 535.0, 202.0)
+    page.insert_text(point, add_text, fontsize=7, fontname="Helvetica-Oblique", color=(0, 0, 0)) # Black color
+    page.insert_image(image_rect, stream=image_data)
+    updated_pdf = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
+    doc.close()
+    with open(outfile, "wb") as pdf_file:
+        pdf_file.write(updated_pdf)
+        pdf_file.close()
+
+
+def test_add_coop_certified(session, client, jwt):
+    """Assert that adding a certified copy image and date and time to an app report works as expected."""
+    raw_data = None
+    image_data = report_utils.get_certified_copy_image(False)
+    infile = CERT_COPY_TEST_COOP_INFILE
+    outfile = CERT_COPY_TEST_COOP_OUTFILE
+    with open(infile, 'rb') as data_file:
+        raw_data = data_file.read()
+        data_file.close()
+    doc = pymupdf.Document(stream=raw_data)
+    page = doc[0]
+    point = pymupdf.Point(483, 78)
+    add_text = report_utils.get_app_report_datetime()
+    image_rect = pymupdf.Rect(510.0, 10.0, 585.0, 70.0)
     page.insert_text(point, add_text, fontsize=7, fontname="Helvetica-Oblique", color=(0, 0, 0)) # Black color
     page.insert_image(image_rect, stream=image_data)
     updated_pdf = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)

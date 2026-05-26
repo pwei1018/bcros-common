@@ -26,7 +26,7 @@ from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, DocumentTypes
 from doc_api.services.authz import BC_REGISTRY, COLIN_ROLE, STAFF_ROLE
 from doc_api.utils.logging import logger
-from tests.unit.services.utils import create_header, create_header_account
+from tests.unit.services.utils import create_header, create_header_account, create_header_account_report
 
 TEST_DATAFILE = "tests/unit/services/unit_test.pdf"
 MOCK_AUTH_URL = "https://test.api.connect.gov.bc.ca/mockTarget/auth/api/v1/"
@@ -66,6 +66,11 @@ PARAMS_ALL_VALID = (
     + "&consumerFileName=change_director"
 )
 PARAM_CLASS_INVALID = "?documentClass=JUNK"
+PARAMS_COOP1 = "?consumerIdentifier=CP1012680&consumerFilename=coop_test.pdf&consumerFilingDate=2024-07-25"
+PATH_COOP1: str = "/api/v1/documents/COOP/COOP_RULES" + PARAMS_COOP1 + "&consumerReferenceId=864077"
+CERT_COOP_INFILE = "tests/unit/reports/data/coop-mem-filing-1.pdf"
+CERT_COOP_OUTFILE = "tests/unit/reports/data/coop-mem-filing-ex1.pdf"
+
 
 # testdata pattern is ({description}, {params}, {roles}, {account}, {doc_class}, {status})
 TEST_SEARCH_DATA_CLASS = [
@@ -112,6 +117,42 @@ TEST_SEARCH_DATA = [
     ("Valid document ID", PARAM_CONSUMER_DOC_ID, STAFF_ROLES, "UT1234", HTTPStatus.OK, True),
     ("Valid document ID not UI", PARAM_CONSUMER_DOC_ID, STAFF_ROLES, "UT1234", HTTPStatus.OK, False)
 ]
+
+# testdata pattern is ({description}, {roles}, {account}, {create_path} {status}, {infile}, {outfile})
+TEST_SEARCH_CERTIFIED_DATA = [
+    ("Coop rules", STAFF_ROLES, "UT1234", PATH_COOP1, HTTPStatus.OK, CERT_COOP_INFILE, CERT_COOP_OUTFILE),
+]
+
+
+@pytest.mark.parametrize("desc,roles,account,create_path,status,infile,outfile", TEST_SEARCH_CERTIFIED_DATA)
+def test_cert_copy_searches(session, client, jwt, desc, roles, account, create_path, status, infile, outfile):
+    """Assert that a certified copy document search request by document class works as expected."""
+    # setup
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = None
+    if account:
+        headers = create_header_account(jwt, roles, "UT-TEST", account)
+    req_path = GET_PATH.format(doc_class="COOP") + "?documentServiceId="
+
+    raw_data = None
+    with open(infile, "rb") as data_file:
+        raw_data = data_file.read()
+        data_file.close()
+    response = client.post(create_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+
+    if status == HTTPStatus.OK:  # Create.
+        resp_json = response.json
+        assert resp_json.get("documentServiceId")
+        req_path += resp_json.get("documentServiceId")
+
+        # test
+        headers = create_header_account_report(jwt, roles, "UT-TEST", account)
+        response2 = client.get(req_path, headers=headers)
+        assert response2.status_code == HTTPStatus.OK
+        assert response2.data
+        with open(outfile, "wb") as pdf_file:
+            pdf_file.write(response2.data)
+            pdf_file.close()
 
 
 @pytest.mark.parametrize("desc,params,roles,account,doc_class,status", TEST_SEARCH_DATA_CLASS)
