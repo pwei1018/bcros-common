@@ -37,6 +37,7 @@ runtime options from environment variables
 
 import os
 
+bind = f"0.0.0.0:{os.environ.get('PORT', '8080')}"  # pylint: disable=invalid-name
 workers = int(os.environ.get("GUNICORN_PROCESSES", "1"))  # pylint: disable=invalid-name
 threads = int(os.environ.get("GUNICORN_THREADS", "8"))  # pylint: disable=invalid-name
 timeout = int(os.environ.get("GUNICORN_TIMEOUT", "0"))  # pylint: disable=invalid-name

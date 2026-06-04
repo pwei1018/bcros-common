@@ -1,4 +1,4 @@
-FROM python:3.12-bullseye AS builder
+FROM python:3.13-slim-trixie AS builder
 
 USER root
 
@@ -38,14 +38,10 @@ SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 
 RUN apt-get update && apt-get upgrade -y \
   && apt-get install --no-install-recommends -y \
-  bash \
-  brotli \
   build-essential \
+  ca-certificates \
   curl \
-  gettext \
   git \
-  libpq-dev \
-  wait-for-it \
   && curl -LsSf https://astral.sh/uv/install.sh | sh \
   && mv /root/.local/bin/uv /usr/local/bin/uv \
   # Cleaning cache:
@@ -54,62 +50,60 @@ RUN apt-get update && apt-get upgrade -y \
 
 WORKDIR /code
 
-RUN groupadd -g "${GID}" -r web \
-  && useradd -d '/code' -g web -l -r -u "${UID}" web \
-  && chown web:web -R '/code'
-
-# Copy only requirements first, to cache them in docker layer
-COPY --chown=web:web ./pyproject.toml /code/
-COPY --chown=web:web ./uv.lock /code/
-COPY --chown=web:web ./src /code/src
-COPY --chown=web:web ./README.md /code/
+# Copy only requirements first, to cache them in docker layer.
+# Chown to UID/GID 65532 — the 'nonroot' user baked into the distroless runtime image.
+COPY --chown=65532:65532 ./pyproject.toml /code/
+COPY --chown=65532:65532 ./uv.lock /code/
+COPY --chown=65532:65532 ./src /code/src
+COPY --chown=65532:65532 ./README.md /code/
 
 # Install dependencies first (better caching)
 RUN --mount=type=cache,target="/root/.cache/uv" \
   uv sync --no-default-groups --frozen
 
 # Then copy the rest of the application
-COPY --chown=web:web ./wsgi.py /code/
-COPY --chown=web:web ./gunicorn_config.py /code/
-COPY --chown=web:web ./update_db.sh /code/
-COPY --chown=web:web ./devops /code/devops
-COPY --chown=web:web ./migrations /code/migrations
+COPY --chown=65532:65532 ./wsgi.py /code/
+COPY --chown=65532:65532 ./gunicorn_config.py /code/
+COPY --chown=65532:65532 ./update_db.sh /code/
+COPY --chown=65532:65532 ./devops /code/devops
+COPY --chown=65532:65532 ./migrations /code/migrations
 
-FROM python:3.12-slim-bullseye AS production
+# Ensure the uv-created venv is also owned by the runtime user
+RUN chown -R 65532:65532 /code/.venv
 
-USER root
+# ---------------------------------------------------------------------------
+# Runtime: Google distroless. No shell, no package manager, no pip.
+# Default ENTRYPOINT is /usr/bin/python; we override to launch gunicorn as a module.
+# Image already runs as the 'nonroot' user (UID/GID 65532) via the :nonroot tag.
+#
+# NOTE: update_db.sh / `flask db upgrade` cannot run from this image (no shell,
+# no uv). Run DB migrations from a separate, non-distroless image or job.
+# ---------------------------------------------------------------------------
+FROM gcr.io/distroless/python3-debian13:nonroot AS production
 
-ARG UID=1000
-ARG GID=1000
+ARG VCS_REF="missing"
+ARG BUILD_DATE="missing"
+
+LABEL org.label-schema.vcs-ref=${VCS_REF} \
+  org.label-schema.build-date=${BUILD_DATE} \
+  vendor="BCROS"
 
 ENV PORT=8080 \
-  PYTHONPATH="/code/src" \
-  # Production Python settings
+  # Make the uv-built venv importable without relying on its bin/python shebang
+  # (distroless python lives at /usr/bin/python, not /usr/local/bin).
+  PYTHONPATH="/code/src:/code/.venv/lib/python3.13/site-packages" \
   PYTHONFAULTHANDLER=1 \
   PYTHONUNBUFFERED=1 \
   PYTHONHASHSEED=random \
   PYTHONDONTWRITEBYTECODE=1
 
-# Install only runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  libpq5 \
-  curl \
-  git \
-  && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
-RUN groupadd -g "${GID}" -r web \
-  && useradd -d '/code' -g web -l -r -u "${UID}" web \
-  && mkdir -p /code \
-  && chown web:web -R '/code'
-
 WORKDIR /code
 
-# Copy the entire application from builder stage
-COPY --from=builder --chown=web:web /code /code
+# Copy the entire application (already chowned to 65532 in the builder stage)
+COPY --from=builder /code /code
 
-# Copy uv binary from builder stage
-COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
+# Distroless :nonroot already sets USER 65532:65532 — declared here for clarity.
+USER 65532:65532
 
-USER web
-
-CMD exec /code/.venv/bin/gunicorn --bind :$PORT -c /code/gunicorn_config.py wsgi:app
+# Bind is sourced from the PORT env var inside gunicorn_config.py.
+ENTRYPOINT ["python", "-m", "gunicorn", "-c", "/code/gunicorn_config.py", "wsgi:app"]
