@@ -1,4 +1,4 @@
-FROM python:3.12-bullseye AS builder
+FROM python:3.12-bookworm AS builder
 
 USER root
 
@@ -73,7 +73,7 @@ COPY --chown=web:web ./wsgi.py /code/
 COPY --chown=web:web ./gunicorn_config.py /code/
 COPY --chown=web:web ./devops /code/devops
 
-FROM python:3.12-slim-bullseye AS production
+FROM python:3.12-slim-bookworm AS production
 
 USER root
 
@@ -88,10 +88,12 @@ ENV PORT=8080 \
   PYTHONHASHSEED=random \
   PYTHONDONTWRITEBYTECODE=1
 
-# Install only runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Apply latest security patches and install only runtime dependencies
+RUN apt-get update \
+  && apt-get upgrade -y \
+  && apt-get install -y --no-install-recommends \
   libpq5 \
-  curl \
+  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g "${GID}" -r web \
