@@ -23,6 +23,7 @@ import json
 import os
 
 import requests
+from cloud_sql_connector import DBConfig
 
 
 def get_mock_auth() -> str:
@@ -57,14 +58,41 @@ class Config:  # pylint: disable=too-few-public-methods
     DB_NAME = os.getenv("DOC_DATABASE_NAME", "")
     DB_HOST = os.getenv("DOC_DATABASE_HOST", "")
     DB_PORT = os.getenv("DOC_DATABASE_PORT", "5432")  # POSTGRESQL
+    CLOUDSQL_INSTANCE_CONNECTION_NAME = os.getenv("CLOUDSQL_INSTANCE_CONNECTION_NAME", "")
+    DB_IP_TYPE = os.getenv("DATABASE_IP_TYPE", "private").lower()
+    DB_MIN_POOL_SIZE = os.getenv("DATABASE_MIN_POOL_SIZE", "2")
+    DB_MAX_POOL_SIZE = os.getenv("DATABASE_MAX_POOL_SIZE", "10")
+    DB_CONN_WAIT_TIMEOUT = os.getenv("DATABASE_CONN_WAIT_TIMEOUT", "5")
+    DB_CONN_TIMEOUT = os.getenv("DATABASE_CONN_TIMEOUT", "900")
 
-    # POSTGRESQL
-    if DB_UNIX_SOCKET := os.getenv("DOC_DATABASE_UNIX_SOCKET", None):
+    # POSTGRESQL - connection priority: IAM auth (Cloud Run) > Unix socket > TCP
+    if CLOUDSQL_INSTANCE_CONNECTION_NAME:
+        SQLALCHEMY_DATABASE_URI = "postgresql+pg8000://"
+        _db_config = DBConfig(
+            instance_name=CLOUDSQL_INSTANCE_CONNECTION_NAME,
+            database=DB_NAME,
+            user=DB_USER,
+            ip_type=DB_IP_TYPE,
+            pool_recycle=int(DB_CONN_TIMEOUT),
+            pool_size=int(DB_MIN_POOL_SIZE),
+            max_overflow=(int(DB_MAX_POOL_SIZE) - int(DB_MIN_POOL_SIZE)),
+            pool_timeout=int(DB_CONN_WAIT_TIMEOUT),
+            schema="public",
+        )
+        SQLALCHEMY_ENGINE_OPTIONS = _db_config.get_engine_options()
+    elif DB_UNIX_SOCKET := os.getenv("DOC_DATABASE_UNIX_SOCKET", None):
         SQLALCHEMY_DATABASE_URI = (
             f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?unix_sock={DB_UNIX_SOCKET}/.s.PGSQL.5432"
         )
     else:
         SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_pre_ping": True,
+            "pool_size": int(DB_MIN_POOL_SIZE),
+            "max_overflow": (int(DB_MAX_POOL_SIZE) - int(DB_MIN_POOL_SIZE)),
+            "pool_recycle": int(DB_CONN_TIMEOUT),
+            "pool_timeout": int(DB_CONN_WAIT_TIMEOUT),
+        }
 
     # MILLIONVERIFIER
     # MILLIONVERIFIER_API_URL = os.getenv("MILLIONVERIFIER_API_URL", "")
@@ -205,10 +233,17 @@ NrQw+2OdQACBJiEHsdZzAkBcsTk7frTH4yGx0VfHxXDPjfTj4wmD6gZIlcIr9lZg
 -----END RSA PRIVATE KEY-----"""
 
 
+class MigrationConfig(ProductionConfig):  # pylint: disable=too-few-public-methods
+    """Config object for migration job environment."""
+
+    ALEMBIC_INI = "migrations/alembic.ini"
+
+
 config = {
     "development": DevelopmentConfig,
     "test": TestingConfig,
     "sandbox": SandboxConfig,
     "production": ProductionConfig,
     "unitTesting": UnitTestingConfig,
+    "migration": MigrationConfig,
 }

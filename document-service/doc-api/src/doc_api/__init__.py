@@ -17,6 +17,7 @@ This module is the API for the BC Registries Document Service application.
 """
 import os
 
+from cloud_sql_connector import setup_pg8000_close_event_listener
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate, upgrade
@@ -61,6 +62,10 @@ def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
     queue_service.init_app(app)
 
     setup_jwt_manager(app, jwt)
+
+    with app.app_context():
+        if app.config.get("CLOUDSQL_INSTANCE_CONNECTION_NAME"):  # pragma: no cover
+            setup_pg8000_close_event_listener(db.engine)
 
     register_shellcontext(app)
     return app
