@@ -45,7 +45,10 @@ def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
 
     db.init_app(app)
     Migrate(app, db)
-    if app.config.get("DEPLOYMENT_ENV", "") == "testing":  # CI only run upgrade for unit testing.
+
+    deployment_env = app.config.get("DEPLOYMENT_ENV", "")
+
+    if deployment_env == "testing":  # CI only run upgrade for unit testing.
         logger.info("Running migration upgrade.")
         with app.app_context():
             upgrade(directory="migrations", revision="head", sql=False, tag=None)
@@ -54,14 +57,16 @@ def create_app(service_environment=APP_RUNNING_ENVIRONMENT, **kwargs):
         logger.info("Finished migration upgrade.")
     else:
         logger.info("Logging, migrate set up.")
-    auth_service.init_app(app)
-    storage_service.init_app(app)
-    meta_endpoint.init_app(app)
-    ops_endpoint.init_app(app)
-    v1_endpoint.init_app(app)
-    queue_service.init_app(app)
 
-    setup_jwt_manager(app, jwt)
+    # Skip service initialization for migration jobs
+    if deployment_env != "migration":
+        auth_service.init_app(app)
+        storage_service.init_app(app)
+        meta_endpoint.init_app(app)
+        ops_endpoint.init_app(app)
+        v1_endpoint.init_app(app)
+        queue_service.init_app(app)
+        setup_jwt_manager(app, jwt)
 
     with app.app_context():
         if app.config.get("CLOUDSQL_INSTANCE_CONNECTION_NAME"):  # pragma: no cover
