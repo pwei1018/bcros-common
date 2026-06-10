@@ -668,7 +668,7 @@
             <div class="greeting">
                 <p>Dear {{ firstName }},</p>
             </div>
-            <p>The following information pertains to the revenue and stat fee GST that has been remitted to your account on your behalf:</p>
+            <p>The following information pertains to the revenue and GST that has been remitted to your account on your behalf:</p>
             <div class="table-container">
                 <table class="table">
                     <thead>
@@ -676,7 +676,7 @@
                             <th class="registry-head">Registry</th>
                             <th class="transaction-counts-head text-align-right">Transaction Counts</th>
                             <th class="total-amount-head text-align-right">Total Fees</th>
-                            <th class="total-amount-head text-align-right">Total Stat Fee GST</th>
+                            <th class="total-amount-head text-align-right">Total GST</th>
                             <th class="total-amount-head text-align-right">Net Disbursement Total</th>
                         </tr>
                     </thead>
@@ -699,7 +699,7 @@
                 </div>
             {% endif %}
             <div class="additional-info">
-                <p>Attached is the Revenue Report for {{ dateRange }} from Service BC Connect. The report details the business transactions, statutory fees, GST on statutory fees (if applicable) and refunds. Any partial refunds are grouped at the bottom of the report.</p>
+                <p>Attached is the Revenue Report for {{ dateRange }} from Service BC Connect. The report details the business transactions, statutory fees, GST (if applicable) and refunds. Any partial refunds are grouped at the bottom of the report.</p>
                 <p><span class="note">Note:</span> The total amount may not match the report details due to transaction processing days. You will still continue to receive your revenue reports and letters from BC Online for those transactions. If you have any questions please email <a class="email-text" href="mailto:BCROSREV@gov.bc.ca">BCROSREV@gov.bc.ca</a></p>
                 <p class="issued-on"><span class="bold">Issued</span> on {{ date }}</p>
                 <p class="officer-info">
