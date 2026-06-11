@@ -116,17 +116,46 @@ uv run python -m pytest tests/unit/models/ -v --no-cov
 
 ## Docker
 
-Build from `notify-api/Dockerfile` using explicit targets:
+Build from `notify-api/Dockerfile` using explicit targets.
+
+> **Important:** When building on Apple Silicon (M1/M2/M3) or any ARM host
+> for deployment to Cloud Run / GKE / x86 infrastructure, always pass
+> `--platform linux/amd64`. Cloud Run rejects `arm64` images with
+> `terminated: Application failed to start: The container may have exited
+> abnormally.`
 
 ```bash
-# Build API runtime image (distroless)
+# Build API runtime image (distroless) for the local host architecture
 docker build --target runtime -t notify-api .
 
-# Build migration job image
+# Build migration job image for the local host architecture
 docker build --target migration -t notify-api-migrations .
+
+# Build explicitly for linux/amd64 (required for Cloud Run from ARM Macs)
+docker build --platform linux/amd64 --target runtime -t notify-api .
+docker build --platform linux/amd64 --target migration -t notify-api-migrations .
 ```
 
-Run images:
+Push to Artifact Registry (example for the BC Gov `c4hnrd-tools` project):
+
+```bash
+# Authenticate Docker/Podman with Artifact Registry
+gcloud auth print-access-token | \
+  docker login -u oauth2accesstoken --password-stdin \
+  https://northamerica-northeast1-docker.pkg.dev
+
+# Build & tag for amd64, then push
+IMAGE="northamerica-northeast1-docker.pkg.dev/c4hnrd-tools/cloud-run-repo/notify-api-migrations"
+TAG=$(date +%Y%m%d-%H%M%S)
+
+docker build --platform linux/amd64 --target migration \
+  -t "${IMAGE}:latest" -t "${IMAGE}:${TAG}" .
+
+docker push "${IMAGE}:${TAG}"
+docker push "${IMAGE}:latest"
+```
+
+Run images locally:
 
 ```bash
 # Run API container
