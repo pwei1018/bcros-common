@@ -114,6 +114,36 @@ uv run python -m pytest tests/unit/models/ -v --no-cov
 .././run_local.sh
 ```
 
+## Docker
+
+Build from `notify-api/Dockerfile` using explicit targets:
+
+```bash
+# Build API runtime image (distroless)
+docker build --target runtime -t notify-api .
+
+# Build migration job image
+docker build --target migration -t notify-api-migrations .
+```
+
+Run images:
+
+```bash
+# Run API container
+docker run --rm -p 8080:8080 notify-api
+
+# Run database migrations (one-off job)
+docker run --rm \
+  -e DEPLOYMENT_ENV=migration \
+  -e DB_HOST=<db-host> \
+  -e DB_PORT=<db-port> \
+  -e DB_USER=<db-user> \
+  -e DB_PASSWORD=<db-password> \
+  -e DB_NAME=<db-name> \
+  -e DB_SCHEMA=<db-schema> \
+  notify-api-migrations
+```
+
 ## Database Operations
 
 ### Running Database Migrations
