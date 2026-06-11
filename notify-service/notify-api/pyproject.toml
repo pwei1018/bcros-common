@@ -139,6 +139,7 @@ ignore = [
     "N999",
     "PLR6301", #
     "PLC0415", # `import` should be at the top-level of a file
+    "PLW0717", # try-statement-too-long (preview); existing try blocks intentionally group related ops
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

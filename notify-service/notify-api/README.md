@@ -24,7 +24,7 @@ This application follows BC Government security standards and best practices.
 
 ## Files in this repository
 
-```
+```text
 notify-api/
 ├── src/notify_api/          # Main application code
 ├── tests/                   # Test suite
