@@ -24,7 +24,7 @@ This application follows BC Government security standards and best practices.
 
 ## Files in this repository
 
-```
+```text
 notify-api/
 ├── src/notify_api/          # Main application code
 ├── tests/                   # Test suite
@@ -112,6 +112,65 @@ uv run python -m pytest tests/unit/models/ -v --no-cov
 
 ```bash
 .././run_local.sh
+```
+
+## Docker
+
+Build from `notify-api/Dockerfile` using explicit targets.
+
+> **Important:** When building on Apple Silicon (M1/M2/M3) or any ARM host
+> for deployment to Cloud Run / GKE / x86 infrastructure, always pass
+> `--platform linux/amd64`. Cloud Run rejects `arm64` images with
+> `terminated: Application failed to start: The container may have exited
+> abnormally.`
+
+```bash
+# Build API runtime image (distroless) for the local host architecture
+docker build --target runtime -t notify-api .
+
+# Build migration job image for the local host architecture
+docker build --target migration -t notify-api-migrations .
+
+# Build explicitly for linux/amd64 (required for Cloud Run from ARM Macs)
+docker build --platform linux/amd64 --target runtime -t notify-api .
+docker build --platform linux/amd64 --target migration -t notify-api-migrations .
+```
+
+Push to Artifact Registry (example for the BC Gov `c4hnrd-tools` project):
+
+```bash
+# Authenticate Docker/Podman with Artifact Registry
+gcloud auth print-access-token | \
+  docker login -u oauth2accesstoken --password-stdin \
+  https://northamerica-northeast1-docker.pkg.dev
+
+# Build & tag for amd64, then push
+IMAGE="northamerica-northeast1-docker.pkg.dev/c4hnrd-tools/cloud-run-repo/notify-api-migrations"
+TAG=$(date +%Y%m%d-%H%M%S)
+
+docker build --platform linux/amd64 --target migration \
+  -t "${IMAGE}:latest" -t "${IMAGE}:${TAG}" .
+
+docker push "${IMAGE}:${TAG}"
+docker push "${IMAGE}:latest"
+```
+
+Run images locally:
+
+```bash
+# Run API container
+docker run --rm -p 8080:8080 notify-api
+
+# Run database migrations (one-off job)
+docker run --rm \
+  -e DEPLOYMENT_ENV=migration \
+  -e DB_HOST=<db-host> \
+  -e DB_PORT=<db-port> \
+  -e DB_USER=<db-user> \
+  -e DB_PASSWORD=<db-password> \
+  -e DB_NAME=<db-name> \
+  -e DB_SCHEMA=<db-schema> \
+  notify-api-migrations
 ```
 
 ## Database Operations

@@ -1,3 +1,12 @@
+# Multi-stage Dockerfile for notify-api service
+# Builds two distinct images:
+#   - runtime: Production-grade distroless image for running the API service
+#   - migration: Full Python environment for running database migrations
+#
+# Build commands:
+#   docker build --target runtime -t notify-api .
+#   docker build --target migration -t notify-api-migrations .
+
 FROM python:3.13-slim-trixie AS builder
 
 USER root
@@ -72,14 +81,12 @@ COPY --chown=65532:65532 ./migrations /code/migrations
 RUN chown -R 65532:65532 /code/.venv
 
 # ---------------------------------------------------------------------------
-# Runtime: Google distroless. No shell, no package manager, no pip.
+# TARGET: runtime
+# Production-grade distroless image. No shell, no package manager, no pip.
 # Default ENTRYPOINT is /usr/bin/python; we override to launch gunicorn as a module.
 # Image already runs as the 'nonroot' user (UID/GID 65532) via the :nonroot tag.
-#
-# NOTE: update_db.sh / `flask db upgrade` cannot run from this image (no shell,
-# no uv). Run DB migrations from a separate, non-distroless image or job.
 # ---------------------------------------------------------------------------
-FROM gcr.io/distroless/python3-debian13:nonroot AS production
+FROM gcr.io/distroless/python3-debian13:nonroot AS runtime
 
 ARG VCS_REF="missing"
 ARG BUILD_DATE="missing"
@@ -107,3 +114,54 @@ USER 65532:65532
 
 # Bind is sourced from the PORT env var inside gunicorn_config.py.
 ENTRYPOINT ["python", "-m", "gunicorn", "-c", "/code/gunicorn_config.py", "wsgi:app"]
+
+# ---------------------------------------------------------------------------
+# TARGET: migration
+# Full Python environment with shell and tools for running database migrations.
+# This image is designed for one-off migration jobs, not long-lived services.
+# ---------------------------------------------------------------------------
+FROM python:3.13-slim-trixie AS migration
+
+ARG VCS_REF="missing"
+ARG BUILD_DATE="missing"
+
+LABEL org.label-schema.vcs-ref=${VCS_REF} \
+  org.label-schema.build-date=${BUILD_DATE} \
+  vendor="BCROS"
+
+ENV DEPLOYMENT_ENV=migration \
+  PYTHONFAULTHANDLER=1 \
+  PYTHONUNBUFFERED=1 \
+  PYTHONHASHSEED=random \
+  PYTHONDONTWRITEBYTECODE=1 \
+  # uv:
+  UV_HOME="/usr/local" \
+  PATH="/usr/local/bin:/root/.local/bin:$PATH" \
+  PYTHONPATH="/code/src:/code/.venv/lib/python3.13/site-packages"
+
+SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
+
+# Install required system dependencies
+RUN apt-get update && apt-get upgrade -y \
+  && apt-get install --no-install-recommends -y \
+  ca-certificates \
+  curl \
+  git \
+  && curl -LsSf https://astral.sh/uv/install.sh | sh \
+  && mv /root/.local/bin/uv /usr/local/bin/uv \
+  # Cleaning cache:
+  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+  && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /code
+
+# Copy the entire application from builder
+COPY --from=builder /code /code
+
+# Create a non-root user for running migrations
+RUN useradd -m -u 1000 migrator && chown -R migrator:migrator /code
+
+USER migrator
+
+# Default entrypoint runs flask db upgrade
+ENTRYPOINT ["uv", "run", "flask", "db", "upgrade"]
