@@ -1,10 +1,16 @@
 # Multi-stage Dockerfile for notify-api service
 # Builds two distinct images:
-#   - runtime: Production-grade distroless image for running the API service
+#   - runtime   (DEFAULT, last stage): Production-grade distroless image for the API service
 #   - migration: Full Python environment for running database migrations
 #
+# Stage order matters: `runtime` MUST remain the LAST stage so that `docker build`
+# without `--target` produces the API image. The Cloud Build SRE helper builds the
+# main image without `--target`, then explicitly builds `--target migration` for
+# the parallel migration image.
+#
 # Build commands:
-#   docker build --target runtime -t notify-api .
+#   docker build -t notify-api .                          # builds runtime (default)
+#   docker build --target runtime -t notify-api .         # same as above (explicit)
 #   docker build --target migration -t notify-api-migrations .
 
 FROM python:3.13-slim-trixie AS builder
@@ -81,44 +87,14 @@ COPY --chown=65532:65532 ./migrations /code/migrations
 RUN chown -R 65532:65532 /code/.venv
 
 # ---------------------------------------------------------------------------
-# TARGET: runtime
-# Production-grade distroless image. No shell, no package manager, no pip.
-# Default ENTRYPOINT is /usr/bin/python; we override to launch gunicorn as a module.
-# Image already runs as the 'nonroot' user (UID/GID 65532) via the :nonroot tag.
-# ---------------------------------------------------------------------------
-FROM gcr.io/distroless/python3-debian13:nonroot AS runtime
-
-ARG VCS_REF="missing"
-ARG BUILD_DATE="missing"
-
-LABEL org.label-schema.vcs-ref=${VCS_REF} \
-  org.label-schema.build-date=${BUILD_DATE} \
-  vendor="BCROS"
-
-ENV PORT=8080 \
-  # Make the uv-built venv importable without relying on its bin/python shebang
-  # (distroless python lives at /usr/bin/python, not /usr/local/bin).
-  PYTHONPATH="/code/src:/code/.venv/lib/python3.13/site-packages" \
-  PYTHONFAULTHANDLER=1 \
-  PYTHONUNBUFFERED=1 \
-  PYTHONHASHSEED=random \
-  PYTHONDONTWRITEBYTECODE=1
-
-WORKDIR /code
-
-# Copy the entire application (already chowned to 65532 in the builder stage)
-COPY --from=builder /code /code
-
-# Distroless :nonroot already sets USER 65532:65532 — declared here for clarity.
-USER 65532:65532
-
-# Bind is sourced from the PORT env var inside gunicorn_config.py.
-ENTRYPOINT ["python", "-m", "gunicorn", "-c", "/code/gunicorn_config.py", "wsgi:app"]
-
-# ---------------------------------------------------------------------------
 # TARGET: migration
 # Full Python environment with shell and tools for running database migrations.
 # This image is designed for one-off migration jobs, not long-lived services.
+#
+# IMPORTANT: This stage is intentionally placed BEFORE `runtime` so that
+# `docker build` without `--target` always produces the runtime image
+# (Docker defaults to the last stage in the file). To build this image,
+# pass `--target migration` explicitly.
 # ---------------------------------------------------------------------------
 FROM python:3.13-slim-trixie AS migration
 
@@ -165,3 +141,38 @@ USER migrator
 
 # Default entrypoint runs flask db upgrade
 ENTRYPOINT ["uv", "run", "flask", "db", "upgrade"]
+
+# ---------------------------------------------------------------------------
+# TARGET: runtime  (DEFAULT — last stage; built when no `--target` is given)
+# Production-grade distroless image. No shell, no package manager, no pip.
+# Default ENTRYPOINT is /usr/bin/python; we override to launch gunicorn as a module.
+# Image already runs as the 'nonroot' user (UID/GID 65532) via the :nonroot tag.
+# ---------------------------------------------------------------------------
+FROM gcr.io/distroless/python3-debian13:nonroot AS runtime
+
+ARG VCS_REF="missing"
+ARG BUILD_DATE="missing"
+
+LABEL org.label-schema.vcs-ref=${VCS_REF} \
+  org.label-schema.build-date=${BUILD_DATE} \
+  vendor="BCROS"
+
+ENV PORT=8080 \
+  # Make the uv-built venv importable without relying on its bin/python shebang
+  # (distroless python lives at /usr/bin/python, not /usr/local/bin).
+  PYTHONPATH="/code/src:/code/.venv/lib/python3.13/site-packages" \
+  PYTHONFAULTHANDLER=1 \
+  PYTHONUNBUFFERED=1 \
+  PYTHONHASHSEED=random \
+  PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /code
+
+# Copy the entire application (already chowned to 65532 in the builder stage)
+COPY --from=builder /code /code
+
+# Distroless :nonroot already sets USER 65532:65532 — declared here for clarity.
+USER 65532:65532
+
+# Bind is sourced from the PORT env var inside gunicorn_config.py.
+ENTRYPOINT ["python", "-m", "gunicorn", "-c", "/code/gunicorn_config.py", "wsgi:app"]
