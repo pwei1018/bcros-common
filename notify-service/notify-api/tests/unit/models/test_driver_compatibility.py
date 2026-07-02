@@ -39,7 +39,7 @@ from datetime import UTC, datetime
 import os
 
 import pytest
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -71,27 +71,25 @@ def _dsn(driver: str) -> str:
 
 
 def _engine_or_skip(driver: str, schema: str):
-    """Return an engine pinned to ``schema``, or skip when the driver/database is unavailable.
+    """Return an engine that routes all schema-less DDL/DML into ``schema``.
 
-    The ``search_path`` listener is attached *before the first connection is made*
-    so that every physical connection — including the reachability probe and the
-    ones ``create_all`` reuses from the pool — is confined to the isolated schema.
-    Registering it later (after a pooled connection already exists) would let DDL
-    fall back to ``public`` and pollute the shared database, because the ``connect``
-    event only fires for brand-new connections, not for pooled reuse.
+    Isolation is done with SQLAlchemy's ``schema_translate_map`` rather than a
+    ``SET search_path`` in a ``connect`` listener. The latter is not safe here:
+    psycopg3 runs the ``SET`` inside an implicit transaction, and SQLAlchemy's
+    pool reset-on-return issues a ``ROLLBACK`` when the reachability-probe
+    connection is returned, discarding the ``SET``. ``create_all`` then reuses
+    that pooled connection (the ``connect`` event does not re-fire) with the
+    default ``search_path`` and creates the tables in ``public``, polluting the
+    shared database. ``schema_translate_map`` is applied per-statement at compile
+    time, so it is transaction-safe and behaves identically on psycopg and pg8000.
     """
     pytest.importorskip(driver, reason=f"{driver} driver not installed")
 
-    engine = create_engine(_dsn(driver), connect_args=_CONNECT_ARGS[driver])
-
-    @event.listens_for(engine, "connect")
-    def _set_search_path(dbapi_connection, _connection_record):  # pragma: no cover - fires per connect
-        cursor = dbapi_connection.cursor()
-        # The isolated schema is first so unqualified CREATE TABLE / CREATE TYPE
-        # land there; public stays as a read-only fallback and is never written to.
-        cursor.execute(f'SET search_path TO "{schema}", public')
-        cursor.close()
-
+    # ``None`` is the models' declared schema (they set none explicitly), so every
+    # table and native ENUM is rewritten into the isolated schema.
+    engine = create_engine(_dsn(driver), connect_args=_CONNECT_ARGS[driver]).execution_options(
+        schema_translate_map={None: schema}
+    )
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
@@ -106,11 +104,13 @@ def _prepare_isolated_schema(engine, schema: str) -> None:
 
     A dedicated schema keeps the test non-destructive (it never touches existing
     data) and lets ``create_all`` build the native ENUM types and tables in one
-    place that is dropped wholesale during teardown. The engine already pins every
-    connection to this schema via the ``search_path`` listener set up in
-    ``_engine_or_skip``.
+    place that is dropped wholesale during teardown. The engine's
+    ``schema_translate_map`` (set in ``_engine_or_skip``) redirects every
+    schema-less model object into this schema.
     """
     with engine.begin() as connection:
+        # ``CREATE SCHEMA`` is raw SQL and is not affected by schema_translate_map,
+        # so the schema name is applied literally here.
         connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
         connection.execute(text(f'CREATE SCHEMA "{schema}"'))
 
