@@ -181,7 +181,7 @@ class TestAttachmentModelMissingCoverage:
                 mock_attachment.attach_order = 2
                 mock_session.refresh.return_value = None
 
-                with patch.object(Attachment, "__new__", return_value=mock_attachment):
+                with patch("notify_api.models.attachment.Attachment", return_value=mock_attachment):
                     result = Attachment.create_attachment(attachment_request, content_id=123)
 
                     assert result == mock_attachment
@@ -213,7 +213,7 @@ class TestAttachmentModelMissingCoverage:
             mock_attachment.attach_order = 1
             mock_session.refresh.return_value = None
 
-            with patch.object(Attachment, "__new__", return_value=mock_attachment):
+            with patch("notify_api.models.attachment.Attachment", return_value=mock_attachment):
                 result = Attachment.create_attachment(attachment_request, content_id=456)
 
                 assert result == mock_attachment
@@ -346,7 +346,7 @@ class TestContentModelMissingCoverage:
             mock_session.refresh.return_value = None
 
             with (
-                patch.object(Content, "__new__", return_value=mock_content),
+                patch("notify_api.models.content.Content", return_value=mock_content),
                 patch.object(Attachment, "create_attachment") as mock_create_attachment,
             ):
                 mock_create_attachment.return_value = MagicMock()
@@ -376,7 +376,7 @@ class TestContentModelMissingCoverage:
             mock_session.refresh.return_value = None
 
             with (
-                patch.object(Content, "__new__", return_value=mock_content),
+                patch("notify_api.models.content.Content", return_value=mock_content),
                 patch.object(Attachment, "create_attachment") as mock_create_attachment,
             ):
                 result = Content.create_content(content_request, notification_id=101112)

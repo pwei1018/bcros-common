@@ -9,7 +9,8 @@ requires-python = ">=3.12, <3.14"
 dependencies = [
     "notify-api",
     "cloud-sql-connector",
-    "gunicorn"
+    "gunicorn",
+    "psycopg[binary]>=3.3.4",
 ]
 
 [dependency-groups]
@@ -224,5 +225,9 @@ exclude_lines = [
 ]
 
 [build-system]
-requires = ["uv_build >= 0.7.19, <0.9.0"]
+# Keep this range inclusive of the uv version used to build the image
+# (the Dockerfile installs the latest uv via the astral.sh install script).
+# If the running uv CLI falls outside this range, uv installs an older
+# uv_build backend that lacks the build_editable hook, breaking `uv sync`.
+requires = ["uv_build >= 0.7.19, <0.12.0"]
 build-backend = "uv_build"
