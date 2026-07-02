@@ -1,0 +1,36 @@
+#
+# This file contains the environment-specific settings that are read by python-dotenv. Place it somewhere above your
+# source code and it will be used.
+#
+
+# =====  assets-payment ======================================================================================================
+
+# third party Services
+
+# GCP CS SA
+GCP_AUTH_KEY=""
+GCP_CS_SA_SCOPES="https://www.googleapis.com/auth/cloud-platform"
+
+# Connection to GCP DRS postgres database.
+DOC_DATABASE_URL=""
+DOC_DATABASE_USERNAME=""
+DOC_DATABASE_PASSWORD=""
+DOC_DATABASE_NAME=""
+DOC_DATABASE_HOST=""
+DOC_DATABASE_PORT="5432"
+
+# Connection to Oracle legacy GLOBAL database correspondence schema: requires VPN
+ORACLE_DATABASE_USERNAME=""
+ORACLE_DATABASE_PASSWORD=""
+ORACLE_DATABASE_NAME=""
+ORACLE_DATABASE_HOST=""
+ORACLE_DATABASE_PORT="1521"
+
+# GCP document storage buckets
+GCP_CS_BUCKET_ID_BUS=""
+GCP_CS_BUCKET_ID_MHR=""
+GCP_CS_BUCKET_ID_PPR=""
+GCP_CS_BUCKET_ID_NR=""
+
+# Track enabled when dumping record change status to local csv file. 
+CSV_TRACKING="true"
