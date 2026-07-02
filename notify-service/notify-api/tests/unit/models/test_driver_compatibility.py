@@ -70,11 +70,28 @@ def _dsn(driver: str) -> str:
     return f"postgresql+{driver}://{user}:{password}@{host}:{port}/{name}"
 
 
-def _engine_or_skip(driver: str):
-    """Return an engine for the driver, or skip when the driver/database is unavailable."""
+def _engine_or_skip(driver: str, schema: str):
+    """Return an engine pinned to ``schema``, or skip when the driver/database is unavailable.
+
+    The ``search_path`` listener is attached *before the first connection is made*
+    so that every physical connection — including the reachability probe and the
+    ones ``create_all`` reuses from the pool — is confined to the isolated schema.
+    Registering it later (after a pooled connection already exists) would let DDL
+    fall back to ``public`` and pollute the shared database, because the ``connect``
+    event only fires for brand-new connections, not for pooled reuse.
+    """
     pytest.importorskip(driver, reason=f"{driver} driver not installed")
 
     engine = create_engine(_dsn(driver), connect_args=_CONNECT_ARGS[driver])
+
+    @event.listens_for(engine, "connect")
+    def _set_search_path(dbapi_connection, _connection_record):  # pragma: no cover - fires per connect
+        cursor = dbapi_connection.cursor()
+        # The isolated schema is first so unqualified CREATE TABLE / CREATE TYPE
+        # land there; public stays as a read-only fallback and is never written to.
+        cursor.execute(f'SET search_path TO "{schema}", public')
+        cursor.close()
+
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
@@ -89,17 +106,13 @@ def _prepare_isolated_schema(engine, schema: str) -> None:
 
     A dedicated schema keeps the test non-destructive (it never touches existing
     data) and lets ``create_all`` build the native ENUM types and tables in one
-    place that is dropped wholesale during teardown.
+    place that is dropped wholesale during teardown. The engine already pins every
+    connection to this schema via the ``search_path`` listener set up in
+    ``_engine_or_skip``.
     """
     with engine.begin() as connection:
         connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
         connection.execute(text(f'CREATE SCHEMA "{schema}"'))
-
-    @event.listens_for(engine, "connect")
-    def _set_search_path(dbapi_connection, _connection_record):  # pragma: no cover - fires per connect
-        cursor = dbapi_connection.cursor()
-        cursor.execute(f'SET search_path TO "{schema}", public')
-        cursor.close()
 
     db.metadata.create_all(engine)
 
@@ -107,8 +120,8 @@ def _prepare_isolated_schema(engine, schema: str) -> None:
 @pytest.mark.parametrize("driver", ["psycopg", "pg8000"])
 def test_models_round_trip_through_driver(driver):
     """The full Notification -> Content -> Attachment chain persists and reloads intact."""
-    engine = _engine_or_skip(driver)
     schema = f"driver_compat_{driver}"
+    engine = _engine_or_skip(driver, schema)
     try:
         _prepare_isolated_schema(engine, schema)
 
