@@ -23,7 +23,6 @@ jobs:
     uses: bcgov/bcregistry-sre/.github/workflows/backend-cd.yaml@main
     with:
       target: ${{ inputs.target }}
-      cd_runner_version: "1.1.2"
       app_name: "notify-api"
       working_directory: "./notify-service/notify-api"
     secrets:
