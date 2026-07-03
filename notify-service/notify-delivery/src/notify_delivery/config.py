@@ -21,6 +21,9 @@ or by accessing this configuration directly.
 """
 
 import os
+from urllib.parse import quote
+
+from notify_delivery.utils.util import env_truthy
 
 
 class Config:
@@ -37,14 +40,28 @@ class Config:
     DB_NAME = os.getenv("NOTIFY_DATABASE_NAME", "")
     DB_USER = os.getenv("NOTIFY_DATABASE_USERNAME", "")
     DB_SCHEMA = os.getenv("NOTIFY_DATABASE_SCHEMA", "public")
+    DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
+    CLOUD_SQL_PROXY_SIDECAR = env_truthy("CLOUD_SQL_PROXY_SIDECAR")
+
+    # Database connection pool (overridable via environment).
+    DB_POOL_SIZE = int(os.getenv("DATABASE_POOL_SIZE", "10"))
+    DB_MAX_OVERFLOW = int(os.getenv("DATABASE_MAX_OVERFLOW", "10"))
+    DB_POOL_TIMEOUT = int(os.getenv("DATABASE_POOL_TIMEOUT", "30"))
+    DB_POOL_RECYCLE = int(os.getenv("DATABASE_POOL_RECYCLE", "300"))
+    DB_CONNECT_TIMEOUT = int(os.getenv("DATABASE_CONNECT_TIMEOUT", "60"))
 
     # POSTGRESQL
-    if DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
+    if CLOUD_SQL_PROXY_SIDECAR:
+        # Cloud SQL Auth Proxy sidecar listens on localhost and handles IAM auth,
+        # so a plain psycopg TCP connection (no password) is used. The IAM username
+        # contains an "@" (e.g. sa-api@project.iam) and must be URL-encoded.
+        SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg://{quote(DB_USER, safe='')}@127.0.0.1:{DB_PORT}/{DB_NAME}"
+        DB_INSTANCE_CONNECTION_NAME = os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None)
+    elif DB_INSTANCE_CONNECTION_NAME := os.getenv("NOTIFY_DATABASE_INSTANCE_CONNECTION_NAME", None):
         SQLALCHEMY_DATABASE_URI = "postgresql+pg8000://"
     else:
         DB_PASSWORD = os.getenv("NOTIFY_DATABASE_PASSWORD", "")
         DB_HOST = os.getenv("NOTIFY_DATABASE_HOST", "")
-        DB_PORT = os.getenv("NOTIFY_DATABASE_PORT", "5432")
         SQLALCHEMY_DATABASE_URI = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
     if DEPLOYMENT_PLATFORM == "OCP":

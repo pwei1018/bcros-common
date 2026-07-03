@@ -710,7 +710,7 @@ class TestNotificationModel:
             mock_notification.id = 123
             mock_session.refresh.return_value = None
 
-            with patch.object(Notification, "__new__", return_value=mock_notification):
+            with patch("notify_api.models.notification.Notification", return_value=mock_notification):
                 result = Notification.create_notification(mock_request)
 
                 assert result == mock_notification
@@ -737,7 +737,7 @@ class TestNotificationModel:
             # Mock the created notification
             mock_notification = Mock()
 
-            with patch.object(Notification, "__new__", return_value=mock_notification):
+            with patch("notify_api.models.notification.Notification", return_value=mock_notification):
                 # Test create with exception
                 with pytest.raises(Exception, match="Create error"):
                     Notification.create_notification(mock_request)
