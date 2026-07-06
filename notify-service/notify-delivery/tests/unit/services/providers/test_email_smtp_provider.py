@@ -297,9 +297,10 @@ class TestEmailSMTPServiceProvider(unittest.TestCase):
 
         email_smtp = EmailSMTP(notification_no_content)
 
-        # Test that send() returns None when no content
+        # Test that send() returns empty NotificationSendResponses when no content
         result = email_smtp.send()
-        assert result is None
+        assert isinstance(result, NotificationSendResponses)
+        assert result.recipients == []
 
     @patch("notify_delivery.services.providers.email_smtp.smtplib.SMTP")
     @patch("notify_delivery.services.providers.email_smtp.current_app", new_callable=Mock)

@@ -96,6 +96,8 @@ class Notification(db.Model):
         SMTP = auto()
         GC_NOTIFY = auto()
         HOUSING = auto()
+        BC_NOTIFY = auto()
+        BC_NOTIFY_HOUSING = auto()
 
     __tablename__ = "notification"
 

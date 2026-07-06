@@ -19,13 +19,21 @@ from flask import Blueprint
 from flask_pydantic import validate
 
 from notify_api.models import EmailValidator
+from notify_api.utils.auth import jwt
 
 bp = Blueprint("EMAIL_VALIDATION", __name__, url_prefix="/email_validation")
 
 
-@bp.route("/", methods=["GET", "OPTIONS"])
-# @jwt.requires_auth
+@bp.route("/", methods=["OPTIONS"])
+@validate()
+def email_validation_preflight():
+    """Handle email validation CORS preflight."""
+    return {}, HTTPStatus.OK
+
+
+@bp.route("/", methods=["GET"])
+@jwt.requires_auth
 @validate()
 def email_validation(query: EmailValidator):  # noqa: ARG001
-    """Get notification endpoint by id."""
+    """Validate an email address."""
     return {}, HTTPStatus.OK

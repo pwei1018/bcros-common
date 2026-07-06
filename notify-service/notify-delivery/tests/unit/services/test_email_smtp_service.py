@@ -431,6 +431,7 @@ class TestEmailSMTPService(unittest.TestCase):
 
         email_smtp = EmailSMTP(notification_no_content)
 
-        # Act & Assert - Test that send() returns None when no content
+        # Act & Assert - Test that send() returns empty NotificationSendResponses when no content
         result = email_smtp.send()
-        assert result is None
+        assert isinstance(result, NotificationSendResponses)
+        assert result.recipients == []

@@ -61,11 +61,12 @@ class NotifyService:
             logger.warning(f"Invalid request_by parameter type: {type(request_by)}, defaulting to GC_NOTIFY")
             return Notification.NotificationProvider.GC_NOTIFY
 
-        # Rule-based provider selection
+        # Rule-based provider selection. Business/technical rules take precedence;
+        # otherwise the default provider is resolved from the feature flags.
         provider_rules = [
             (
                 lambda: request_by.upper() == STRR_REQUEST_IDENTIFIER,
-                Notification.NotificationProvider.HOUSING,
+                cls._get_housing_provider,
                 "HOUSING provider for STRR request",
             ),
             (
@@ -83,14 +84,50 @@ class NotifyService:
         for condition, provider, reason in provider_rules:
             try:
                 if condition():
+                    # A provider may be a plain enum value or a callable that resolves
+                    # the provider lazily (e.g. based on feature flags).
+                    resolved_provider = provider() if callable(provider) else provider
                     logger.debug(f"Using {reason}")
-                    return provider
+                    return resolved_provider
             except Exception as e:
                 logger.error(f"Error evaluating provider rule for {reason}, defaulting to SMTP: {e}")
                 return Notification.NotificationProvider.SMTP
 
-        logger.debug("Using GC_NOTIFY provider as default")
-        return Notification.NotificationProvider.GC_NOTIFY
+        default_provider = cls._get_default_provider()
+        logger.debug(f"Using default provider: {default_provider}")
+        return default_provider
+
+    @classmethod
+    def _get_housing_provider(cls) -> str:
+        """Resolve the Housing provider based on the BC Notify feature flag.
+
+        Housing notifications are delivered via BC Notify when ``BC_NOTIFY_ENABLE``
+        is enabled, otherwise via GC Notify Housing.
+
+        Returns:
+            The Housing notification provider.
+        """
+        if current_app.config.get("BC_NOTIFY_ENABLE"):
+            return Notification.NotificationProvider.BC_NOTIFY_HOUSING
+        return Notification.NotificationProvider.HOUSING
+
+    @classmethod
+    def _get_default_provider(cls) -> str:
+        """Resolve the default email provider from feature flags.
+
+        Selection order:
+            1. BC Notify - when ``BC_NOTIFY_ENABLE`` is enabled.
+            2. GC Notify - when ``BC_NOTIFY_ENABLE`` is disabled but ``GC_NOTIFY_ENABLE`` is enabled.
+            3. SMTP - when both flags are disabled.
+
+        Returns:
+            The default notification provider.
+        """
+        if current_app.config.get("BC_NOTIFY_ENABLE"):
+            return Notification.NotificationProvider.BC_NOTIFY
+        if current_app.config.get("GC_NOTIFY_ENABLE"):
+            return Notification.NotificationProvider.GC_NOTIFY
+        return Notification.NotificationProvider.SMTP
 
     @classmethod
     def _contains_html(cls, content: str) -> bool:
@@ -181,6 +218,10 @@ class NotifyService:
             Notification.NotificationProvider.GC_NOTIFY: current_app.config.get("DELIVERY_GCNOTIFY_TOPIC"),
             Notification.NotificationProvider.SMTP: current_app.config.get("DELIVERY_SMTP_TOPIC"),
             Notification.NotificationProvider.HOUSING: current_app.config.get("DELIVERY_GCNOTIFY_HOUSING_TOPIC"),
+            Notification.NotificationProvider.BC_NOTIFY: current_app.config.get("DELIVERY_BC_NOTIFY_TOPIC"),
+            Notification.NotificationProvider.BC_NOTIFY_HOUSING: current_app.config.get(
+                "DELIVERY_BC_NOTIFY_HOUSING_TOPIC"
+            ),
         }
 
         topic = topic_mapping.get(provider)

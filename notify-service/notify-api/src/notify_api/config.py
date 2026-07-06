@@ -92,6 +92,13 @@ class Config:  # pylint: disable=too-few-public-methods
     DELIVERY_GCNOTIFY_TOPIC = os.getenv("DELIVERY_GCNOTIFY_TOPIC", "")
     DELIVERY_GCNOTIFY_HOUSING_TOPIC = os.getenv("DELIVERY_GCNOTIFY_HOUSING_TOPIC", "")
     DELIVERY_SMTP_TOPIC = os.getenv("DELIVERY_SMTP_TOPIC", "")
+    DELIVERY_BC_NOTIFY_TOPIC = os.getenv("DELIVERY_BC_NOTIFY_TOPIC", "")
+    DELIVERY_BC_NOTIFY_HOUSING_TOPIC = os.getenv("DELIVERY_BC_NOTIFY_HOUSING_TOPIC", "")
+
+    # Notification provider feature flags. BC Notify is the preferred default when
+    # enabled; otherwise GC Notify when enabled; when both are disabled SMTP is used.
+    BC_NOTIFY_ENABLE = env_truthy("BC_NOTIFY_ENABLE")
+    GC_NOTIFY_ENABLE = env_truthy("GC_NOTIFY_ENABLE", "true")
 
 
 class ProductionConfig(Config):  # pylint: disable=too-few-public-methods

@@ -89,6 +89,14 @@ class Config:
         GC_NOTIFY_HOUSING_TEMPLATE_ID = os.getenv("GC_NOTIFY_HOUSING_TEMPLATE_ID", "")
         GC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID = os.getenv("GC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID", "")
 
+        # BC Notify
+        BC_NOTIFY_API_KEY = os.getenv("BC_NOTIFY_API_KEY", "")
+        BC_NOTIFY_TEMPLATE_ID = os.getenv("BC_NOTIFY_TEMPLATE_ID", "")
+        BC_NOTIFY_EMAIL_REPLY_TO_ID = os.getenv("BC_NOTIFY_EMAIL_REPLY_TO_ID", "")
+        BC_NOTIFY_HOUSING_API_KEY = os.getenv("BC_NOTIFY_HOUSING_API_KEY", "")
+        BC_NOTIFY_HOUSING_TEMPLATE_ID = os.getenv("BC_NOTIFY_HOUSING_TEMPLATE_ID", "")
+        BC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID = os.getenv("BC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID", "")
+
     # GCP PubSub
     AUDIENCE = os.getenv("AUDIENCE", "https://pubsub.googleapis.com/google.pubsub.v1.Subscriber")
     PUBLISHER_AUDIENCE = os.getenv("PUBLISHER_AUDIENCE", "https://pubsub.googleapis.com/google.pubsub.v1.Publisher")
@@ -96,6 +104,8 @@ class Config:
     VERIFY_PUBSUB_VIA_JWT = os.getenv("VERIFY_PUBSUB_VIA_JWT", "true").lower() == "true"
     NOTIFY_SUB_AUDIENCE = os.getenv("NOTIFY_SUB_AUDIENCE", None)
     NOTIFY_HOUSING_SUB_AUDIENCE = os.getenv("NOTIFY_HOUSING_SUB_AUDIENCE", None)
+    NOTIFY_BC_NOTIFY_SUB_AUDIENCE = os.getenv("NOTIFY_BC_NOTIFY_SUB_AUDIENCE", None)
+    NOTIFY_BC_NOTIFY_HOUSING_SUB_AUDIENCE = os.getenv("NOTIFY_BC_NOTIFY_HOUSING_SUB_AUDIENCE", None)
 
 
 class ProductionConfig(Config):  # pylint: disable=too-few-public-methods

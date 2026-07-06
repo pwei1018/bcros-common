@@ -98,6 +98,7 @@ select = [
     "I",   # isort
     "N",   # pep8-naming
     "PL",  # pyLint
+    "S",   # flake8-bandit (security)
 ]
 ignore = [
     "F401",
@@ -121,6 +122,10 @@ known-first-party = ["notify_delivery"]
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests legitimately use asserts and inline sample tokens/keys.
+"tests/*" = ["S101", "S105", "S106", "S311"]
 
 [tool.pytest.ini_options]
 # Enhanced pytest configuration for notify-api testing
