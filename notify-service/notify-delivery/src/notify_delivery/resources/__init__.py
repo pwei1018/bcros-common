@@ -16,6 +16,8 @@
 from flask import Flask
 from notify_api.resources.ops.ops import bp as ops_bp
 
+from notify_delivery.resources.bc_notify import bp as bc_notify_endpoint
+from notify_delivery.resources.bc_notify_housing import bp as bc_notify_housing_endpoint
 from notify_delivery.resources.email_smtp import bp as smtp_endpoint
 from notify_delivery.resources.gc_notify import bp as gcnotify_endpoint
 from notify_delivery.resources.gc_notify_housing import bp as gcnotify_housing_endpoint
@@ -31,5 +33,7 @@ def register_endpoints(app: Flask):
     else:
         app.register_blueprint(gcnotify_endpoint, url_prefix="/gcnotify")
         app.register_blueprint(gcnotify_housing_endpoint, url_prefix="/gcnotify-housing")
+        app.register_blueprint(bc_notify_endpoint, url_prefix="/bc-notify")
+        app.register_blueprint(bc_notify_housing_endpoint, url_prefix="/bc-notify-housing")
 
     app.register_blueprint(ops_bp, url_prefix="/ops")

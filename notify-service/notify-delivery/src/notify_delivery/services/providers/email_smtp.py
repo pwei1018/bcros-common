@@ -90,7 +90,6 @@ class EmailSMTP:
         # Validate notification content exists and is not empty
         if not self.notification.content:
             logger.error("No message content available for notification")
-            return None
             return NotificationSendResponses(recipients=[])
 
         content = self.notification.content[0]
