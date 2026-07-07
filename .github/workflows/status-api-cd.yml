@@ -16,6 +16,13 @@ on:
         - dev
         - test
         - prod
+      redeploy:
+        description: "Redeploy Application"
+        required: true
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 jobs:
   status-api-cd:
