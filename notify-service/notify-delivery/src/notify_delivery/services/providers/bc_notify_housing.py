@@ -14,7 +14,6 @@
 """This provides send email through BC Notify Service for Housing."""
 
 from flask import current_app
-from notifications_python_client import NotificationsAPIClient
 from notify_api.models import Notification
 from structured_logging import StructuredLogging
 
@@ -33,6 +32,7 @@ class BCNotifyHousing(BCNotify):
 
     BC_NOTIFY_HOUSING_CONFIG_KEYS = {
         "api_key": "BC_NOTIFY_HOUSING_API_KEY",
+        "client_id": "BC_NOTIFY_HOUSING_API_CLIENT_ID",
         "template_id": "BC_NOTIFY_HOUSING_TEMPLATE_ID",
         "reply_to_id": "BC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID",
     }
@@ -45,14 +45,15 @@ class BCNotifyHousing(BCNotify):
         # Apply Housing-specific configuration overrides
         self._apply_bc_notify_housing_config()
 
-        # Re-initialise the client with the resolved configuration
-        self._initialize_client()
+        if not self.api_key:
+            logger.warning("No API key available for BC Notify Housing service")
 
     def _apply_bc_notify_housing_config(self):
         """Apply BC Notify Housing-specific configuration overrides."""
         config = current_app.config
 
         self.api_key = self._get_bc_notify_housing_config_value(config, "api_key", self.api_key)
+        self.api_client_id = self._get_bc_notify_housing_config_value(config, "client_id", self.api_client_id)
         self.gc_notify_template_id = self._get_bc_notify_housing_config_value(
             config, "template_id", self.gc_notify_template_id
         )
@@ -60,7 +61,7 @@ class BCNotifyHousing(BCNotify):
             config, "reply_to_id", self.gc_notify_email_reply_to_id
         )
 
-    def _get_bc_notify_housing_config_value(self, config, key_type: str, default_value: str) -> str:
+    def _get_bc_notify_housing_config_value(self, config, key_type: str, default_value):
         """Return BC Notify Housing config value, falling back to *default_value* when absent or blank."""
         housing_key = self.BC_NOTIFY_HOUSING_CONFIG_KEYS[key_type]
         housing_value = config.get(housing_key)
@@ -68,11 +69,3 @@ class BCNotifyHousing(BCNotify):
         if housing_value and housing_value.strip():
             return housing_value
         return default_value
-
-    def _initialize_client(self):
-        """(Re-)initialise the notifications client with the current API key and URL."""
-        if self.api_key:
-            self.client = NotificationsAPIClient(api_key=self.api_key, base_url=self.gc_notify_url)
-        else:
-            self.client = None
-            logger.warning("No API key available for BC Notify Housing service")
