@@ -16,8 +16,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
+import requests
 from flask import Flask
-from notifications_python_client.errors import HTTPError
 from notify_api.models import Notification
 from notify_api.models.content import Content as NotificationContent
 
@@ -62,9 +62,9 @@ class TestBCNotify(unittest.TestCase):
     # Initialisation tests
     # ------------------------------------------------------------------
 
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_bc_notify_config_override(self, mock_base_client, mock_bc_client):
+    def test_init_bc_notify_config_override(self, mock_base_client, mock_post):
         """BCNotify should pick up BC-specific config when all three keys are present."""
         mock_notification = Mock(spec=Notification)
 
@@ -73,12 +73,11 @@ class TestBCNotify(unittest.TestCase):
         self.assertEqual(bc_notify.api_key, _VALID_API_KEY)
         self.assertEqual(bc_notify.gc_notify_template_id, "bc_notify_template_123")
         self.assertEqual(bc_notify.gc_notify_email_reply_to_id, "bc_notify_reply_to_456")
-        # The re-initialised client should use the BC Notify API key
-        mock_bc_client.assert_called_once_with(api_key=_VALID_API_KEY, base_url=_GC_NOTIFY_URL)
+        mock_post.assert_not_called()
 
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_bc_notify_config_missing_falls_back_to_gc_notify_defaults(self, mock_base_client, mock_bc_client):
+    def test_init_bc_notify_config_missing_falls_back_to_gc_notify_defaults(self, mock_base_client, mock_post):
         """BCNotify should fall back to GC Notify defaults when BC-specific keys are absent."""
         self.app.config.pop("BC_NOTIFY_API_KEY", None)
         self.app.config.pop("BC_NOTIFY_TEMPLATE_ID", None)
@@ -90,12 +89,11 @@ class TestBCNotify(unittest.TestCase):
         self.assertEqual(bc_notify.api_key, _VALID_API_KEY)
         self.assertEqual(bc_notify.gc_notify_template_id, "default_template")
         self.assertEqual(bc_notify.gc_notify_email_reply_to_id, "default_reply_to")
-        # Client should still be created with the fallback key
-        mock_bc_client.assert_called_once_with(api_key=_VALID_API_KEY, base_url=_GC_NOTIFY_URL)
+        mock_post.assert_not_called()
 
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_no_api_key_client_is_none(self, mock_base_client, mock_bc_client):
+    def test_init_no_api_key_client_is_none(self, mock_base_client, mock_post):
         """BCNotify should set client to None and emit a warning when no API key exists."""
         self.app.config.pop("BC_NOTIFY_API_KEY", None)
         self.app.config.pop("GC_NOTIFY_API_KEY", None)
@@ -104,12 +102,11 @@ class TestBCNotify(unittest.TestCase):
         bc_notify = BCNotify(mock_notification)
 
         self.assertIsNone(bc_notify.api_key)
-        self.assertIsNone(bc_notify.client)
-        mock_bc_client.assert_not_called()
+        mock_post.assert_not_called()
 
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_empty_bc_notify_config_falls_back_to_defaults(self, mock_base_client, mock_bc_client):
+    def test_init_empty_bc_notify_config_falls_back_to_defaults(self, mock_base_client, mock_post):
         """Blank (empty-string) BC Notify values should fall back to GC Notify defaults."""
         self.app.config.update(
             {
@@ -125,9 +122,9 @@ class TestBCNotify(unittest.TestCase):
         self.assertEqual(bc_notify.gc_notify_template_id, "default_template")
         self.assertEqual(bc_notify.gc_notify_email_reply_to_id, "default_reply_to")
 
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_partial_bc_notify_config(self, mock_base_client, mock_bc_client):
+    def test_init_partial_bc_notify_config(self, mock_base_client, mock_post):
         """When only the BC Notify API key is set, template/reply-to should fall back."""
         self.app.config.pop("BC_NOTIFY_TEMPLATE_ID", None)
         self.app.config.pop("BC_NOTIFY_EMAIL_REPLY_TO_ID", None)
@@ -155,19 +152,44 @@ class TestBCNotify(unittest.TestCase):
     def test_bc_notify_config_keys_constant(self):
         """BC_NOTIFY_CONFIG_KEYS should map the expected environment-variable names."""
         expected = {
+            "api_url": "BC_NOTIFY_API_URL",
             "api_key": "BC_NOTIFY_API_KEY",
+            "client_id": "BC_NOTIFY_API_CLIENT_ID",
             "template_id": "BC_NOTIFY_TEMPLATE_ID",
             "reply_to_id": "BC_NOTIFY_EMAIL_REPLY_TO_ID",
         }
         self.assertEqual(BCNotify.BC_NOTIFY_CONFIG_KEYS, expected)
 
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
+    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
+    def test_init_uses_bc_notify_api_gateway_url(self, mock_base_client, mock_post):
+        """BCNotify should use the BC gateway URL when BC_NOTIFY_API_URL is set."""
+        self.app.config["BC_NOTIFY_API_URL"] = "https://api.gov.bc.ca"
+        mock_notification = Mock(spec=Notification)
+
+        bc_notify = BCNotify(mock_notification)
+
+        self.assertEqual(bc_notify.gc_notify_url, "https://api.gov.bc.ca")
+        mock_post.assert_not_called()
+
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
+    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
+    def test_init_combines_client_id_into_api_key(self, mock_base_client, mock_post):
+        """A separately-supplied client id is preserved in config."""
+        self.app.config["BC_NOTIFY_API_CLIENT_ID"] = "client-id-123"
+        mock_notification = Mock(spec=Notification)
+
+        bc_notify = BCNotify(mock_notification)
+
+        self.assertEqual(bc_notify.api_client_id, "client-id-123")
+
     # ------------------------------------------------------------------
     # Send / integration tests
     # ------------------------------------------------------------------
 
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_send_uses_bc_notify_template(self, mock_base_client, mock_bc_client):
+    def test_send_uses_bc_notify_template(self, mock_base_client, mock_post):
         """send() should use the BC-specific template ID and reply-to ID."""
         mock_content = Mock(spec=NotificationContent)
         mock_content.subject = "BC Notify Test"
@@ -178,9 +200,10 @@ class TestBCNotify(unittest.TestCase):
         mock_notification.content = [mock_content]
         mock_notification.recipients = "user@example.com"
 
-        mock_client_instance = Mock()
-        mock_client_instance.send_email_notification.return_value = {"id": "bc-response-id"}
-        mock_bc_client.return_value = mock_client_instance
+        mock_response = Mock()
+        mock_response.json.return_value = {"id": "bc-response-id"}
+        mock_response.status_code = 201
+        mock_post.return_value = mock_response
 
         bc_notify = BCNotify(mock_notification)
         result = bc_notify.send()
@@ -190,13 +213,15 @@ class TestBCNotify(unittest.TestCase):
         self.assertEqual(result.recipients[0].response_id, "bc-response-id")
         self.assertEqual(result.recipients[0].recipient, "user@example.com")
 
-        call_kwargs = mock_client_instance.send_email_notification.call_args.kwargs
-        self.assertEqual(call_kwargs["template_id"], "bc_notify_template_123")
-        self.assertEqual(call_kwargs["email_reply_to_id"], "bc_notify_reply_to_456")
+        call_kwargs = mock_post.call_args.kwargs
+        payload = call_kwargs["json"]
+        self.assertEqual(payload["template_id"], "bc_notify_template_123")
+        self.assertEqual(payload["email_reply_to_id"], "bc_notify_reply_to_456")
+        self.assertEqual(call_kwargs["headers"]["Authorization"], f"Bearer {_VALID_API_KEY}")
 
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_send_multiple_recipients(self, mock_base_client, mock_bc_client):
+    def test_send_multiple_recipients(self, mock_base_client, mock_post):
         """send() should send to every recipient and return a response per recipient."""
         mock_content = Mock(spec=NotificationContent)
         mock_content.subject = "Subject"
@@ -207,22 +232,22 @@ class TestBCNotify(unittest.TestCase):
         mock_notification.content = [mock_content]
         mock_notification.recipients = "alice@example.com, bob@example.com"
 
-        mock_client_instance = Mock()
-        mock_client_instance.send_email_notification.side_effect = [
-            {"id": "id-alice"},
-            {"id": "id-bob"},
-        ]
-        mock_bc_client.return_value = mock_client_instance
+        mock_resp_1 = Mock()
+        mock_resp_1.json.return_value = {"id": "id-alice"}
+        mock_resp_2 = Mock()
+        mock_resp_2.json.return_value = {"id": "id-bob"}
+
+        mock_post.side_effect = [mock_resp_1, mock_resp_2]
 
         bc_notify = BCNotify(mock_notification)
         result = bc_notify.send()
 
         self.assertEqual(len(result.recipients), 2)
-        self.assertEqual(mock_client_instance.send_email_notification.call_count, 2)
+        self.assertEqual(mock_post.call_count, 2)
 
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_send_no_content_returns_empty(self, mock_base_client, mock_bc_client):
+    def test_send_no_content_returns_empty(self, mock_base_client, mock_post):
         """send() should return an empty recipients list when notification has no content."""
         mock_notification = Mock(spec=Notification)
         mock_notification.content = []
@@ -232,12 +257,12 @@ class TestBCNotify(unittest.TestCase):
         result = bc_notify.send()
 
         self.assertEqual(len(result.recipients), 0)
-        mock_bc_client.return_value.send_email_notification.assert_not_called()
+        mock_post.assert_not_called()
 
     @patch("notify_delivery.services.providers.gc_notify.time.sleep")
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_send_retries_on_rate_limit(self, mock_base_client, mock_bc_client, mock_sleep):
+    def test_send_retries_on_rate_limit(self, mock_base_client, mock_post, mock_sleep):
         """send() should retry when the API returns a 429 rate-limit response."""
         mock_content = Mock(spec=NotificationContent)
         mock_content.subject = "Subject"
@@ -248,17 +273,19 @@ class TestBCNotify(unittest.TestCase):
         mock_notification.content = [mock_content]
         mock_notification.recipients = "user@example.com"
 
-        mock_response = Mock()
-        mock_response.status_code = 429
-        mock_response.json.return_value = {"errors": [{"error": "RateLimitError", "message": "Exceeded rate limit"}]}
-        rate_limit_error = HTTPError(response=mock_response)
+        mock_error_resp = Mock()
+        mock_error_resp.status_code = 429
+        mock_error_resp.text = "Exceeded rate limit"
+        rate_limit_error = requests.exceptions.HTTPError(response=mock_error_resp)
 
-        mock_client_instance = Mock()
-        mock_client_instance.send_email_notification.side_effect = [
+        mock_success_resp = Mock()
+        mock_success_resp.json.return_value = {"id": "success-after-retry"}
+        mock_success_resp.status_code = 200
+
+        mock_post.side_effect = [
             rate_limit_error,
-            {"id": "success-after-retry"},
+            mock_success_resp,
         ]
-        mock_bc_client.return_value = mock_client_instance
 
         bc_notify = BCNotify(mock_notification)
         result = bc_notify.send()
@@ -267,9 +294,9 @@ class TestBCNotify(unittest.TestCase):
         self.assertEqual(result.recipients[0].response_id, "success-after-retry")
         mock_sleep.assert_called_once()
 
-    @patch("notify_delivery.services.providers.bc_notify.NotificationsAPIClient")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
     @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_get_bc_notify_config_value_whitespace_only_falls_back(self, mock_base_client, mock_bc_client):
+    def test_get_bc_notify_config_value_whitespace_only_falls_back(self, mock_base_client, mock_post):
         """Config values that are whitespace-only should be treated as absent."""
         self.app.config.update(
             {
