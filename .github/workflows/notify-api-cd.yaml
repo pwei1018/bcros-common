@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - feature*
+      - hotfix*
     paths:
       - "notify-service/notify-api/**"
   workflow_dispatch:

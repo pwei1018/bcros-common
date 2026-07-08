@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - feature*
+      - hotfix*
     paths:
       - "report-api/**"
   workflow_dispatch:
