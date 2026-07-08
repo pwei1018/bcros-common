@@ -18,7 +18,7 @@ depends_on = None
 def upgrade():
     op.execute("INSERT INTO notify.notification_provider VALUES('BC_NOTIFY','Delivery by BC Notify service', false)")
     op.execute(
-        "INSERT INTO notification_provider VALUES('BC_NOTIFY_HOUSING','Delivery by BC Notify Housing service', false)"
+        "INSERT INTO notify.notification_provider VALUES('BC_NOTIFY_HOUSING','Delivery by BC Notify Housing service', false)"
     )
 
 
