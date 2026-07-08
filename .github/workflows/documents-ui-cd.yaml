@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - feature*
+      - hotfix*
     paths:
       - "document-service/documents-ui/**"
   workflow_dispatch:
