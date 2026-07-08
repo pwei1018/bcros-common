@@ -16,6 +16,7 @@ depends_on = None
 
 
 def upgrade():
+    op.execute("ALTER TABLE notify.notification_provider ALTER COLUMN code TYPE VARCHAR(50);")
     op.execute("INSERT INTO notify.notification_provider VALUES('BC_NOTIFY','Delivery by BC Notify service', false)")
     op.execute(
         "INSERT INTO notify.notification_provider VALUES('BC_NOTIFY_HOUSING','Delivery by BC Notify Housing service', false)"
@@ -25,3 +26,4 @@ def upgrade():
 def downgrade():
     op.execute("DELETE FROM notify.notification_provider WHERE code='BC_NOTIFY'")
     op.execute("DELETE FROM notify.notification_provider WHERE code='BC_NOTIFY_HOUSING'")
+    op.execute("ALTER TABLE notify.notification_provider ALTER COLUMN code TYPE VARCHAR(15);")
