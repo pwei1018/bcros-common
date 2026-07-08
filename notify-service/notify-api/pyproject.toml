@@ -131,6 +131,7 @@ select = [
     "I",   # isort
     "N",   # pep8-naming
     "PL",  # pyLint
+    "S",   # flake8-bandit (security)
 ]
 ignore = [
     "F401",
@@ -163,6 +164,13 @@ split-on-trailing-comma = true
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests legitimately use asserts, inline sample tokens/keys, defensive
+# try/except scaffolding, and subprocess for config-import isolation.
+"tests/*" = ["S101", "S105", "S106", "S311", "S110", "S404", "S603"]
+# Offline migrations run with controlled inputs, not end-user data.
+"migrations/*" = ["S608"]
 
 [tool.pytest.ini_options]
 # Enhanced pytest configuration for notify-api testing

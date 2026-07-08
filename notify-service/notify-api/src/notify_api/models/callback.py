@@ -90,5 +90,10 @@ class Callback(db.Model):
             db.session.add(db_callback)
             db.session.commit()
             db.session.refresh(db_callback)
-        except Exception:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             db.session.rollback()
+            from structured_logging import StructuredLogging
+
+            StructuredLogging.get_logger().warning(
+                f"Failed to save callback for notification {callback.id}. Error: {e}"
+            )

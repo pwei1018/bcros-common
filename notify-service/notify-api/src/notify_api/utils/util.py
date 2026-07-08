@@ -14,11 +14,13 @@
 """Utility functions."""
 
 import contextlib
+import ipaddress
 import os
 import socket
-import urllib.request
+from urllib.parse import urlparse
 
 from flask import Flask
+import httpx
 from sqlalchemy import event
 from sqlalchemy.engine.url import make_url
 from structured_logging import StructuredLogging
@@ -27,11 +29,84 @@ logger = StructuredLogging.get_logger()
 
 _TRUTHY_VALUES = {"true", "yes", "1", "on"}
 
+# SSRF protections for outbound file downloads.
+_ALLOWED_DOWNLOAD_SCHEMES = {"http", "https"}
+_MAX_DOWNLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+_DOWNLOAD_TIMEOUT_SECONDS = 30
+
+
+def _host_resolves_to_blocked_ip(host: str) -> bool:
+    """Return True when *host* resolves to a non-public (internal) address.
+
+    Blocking private, loopback, link-local, and reserved ranges prevents
+    server-side request forgery (SSRF) against internal services and the cloud
+    metadata endpoint (169.254.169.254).
+    """
+    try:
+        addr_infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        # Unresolvable host: let the HTTP client surface the failure normally.
+        return False
+
+    for info in addr_infos:
+        ip_text = info[4][0]
+        try:
+            ip = ipaddress.ip_address(ip_text)
+        except ValueError:
+            continue
+        blocked_flags = (
+            ip.is_private,
+            ip.is_loopback,
+            ip.is_link_local,
+            ip.is_reserved,
+            ip.is_multicast,
+            ip.is_unspecified,
+        )
+        if any(blocked_flags):
+            return True
+    return False
+
 
 def download_file(url: str) -> bytes:
-    """Download file from url."""
-    with urllib.request.urlopen(url) as response:
-        return response.read()
+    """Download a file from an external URL with SSRF protections.
+
+    Only ``http``/``https`` URLs that resolve to public hosts are permitted.
+    The ``file://`` scheme and requests targeting private, loopback, or
+    link-local addresses are rejected to prevent local file disclosure and
+    server-side request forgery. Downloads are bounded by a timeout and a
+    maximum size, and redirects are not followed (a redirect could otherwise
+    bypass the address checks).
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_DOWNLOAD_SCHEMES:
+        raise ValueError(f"Unsupported URL scheme for file download: {parsed.scheme or '<none>'}")
+
+    host = parsed.hostname
+    if not host:
+        raise ValueError("File download URL must include a host.")
+
+    if _host_resolves_to_blocked_ip(host):
+        raise ValueError("Refusing to download from a non-public (internal) address.")
+
+    with (
+        httpx.Client(timeout=_DOWNLOAD_TIMEOUT_SECONDS, follow_redirects=False) as client,
+        client.stream("GET", url) as response,
+    ):
+        response.raise_for_status()
+
+        declared_length = response.headers.get("Content-Length")
+        if declared_length is not None and declared_length.isdigit() and int(declared_length) > _MAX_DOWNLOAD_BYTES:
+            raise ValueError("Remote file exceeds the maximum allowed size.")
+
+        chunks: list[bytes] = []
+        downloaded = 0
+        for chunk in response.iter_bytes():
+            downloaded += len(chunk)
+            if downloaded > _MAX_DOWNLOAD_BYTES:
+                raise ValueError("Remote file exceeds the maximum allowed size.")
+            chunks.append(chunk)
+
+    return b"".join(chunks)
 
 
 def to_camel(string: str) -> str:
