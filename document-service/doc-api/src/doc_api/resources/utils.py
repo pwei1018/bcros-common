@@ -90,6 +90,26 @@ TO_PRODUCT_STORAGE_TYPE = {
 STORAGE_TYPE_DEFAULT = StorageDocTypes.BUSINESS
 REMOVE_PREFIX = "DEL-"
 CLASS_ENTITY_ID_PREFIX = {DocumentClasses.MHR.value: "MH"}
+TO_LEGACY_SCAN_CLASS = {
+    "DEFAULT": DocumentClasses.CORP,
+    "CP": DocumentClasses.COOP,
+    "XC": DocumentClasses.COOP,
+    "FM": DocumentClasses.FIRM,
+    "GP": DocumentClasses.FIRM,
+    "SP": DocumentClasses.FIRM,
+    "MF": DocumentClasses.FIRM,
+    "LP": DocumentClasses.LP_LLP,
+    "LL": DocumentClasses.LP_LLP,
+    "XL": DocumentClasses.LP_LLP,
+    "XP": DocumentClasses.LP_LLP,
+    "MH": DocumentClasses.MHR,
+    "MHR": DocumentClasses.MHR,
+    "PP": DocumentClasses.PPR,
+    "PPR": DocumentClasses.PPR,
+    "NR": DocumentClasses.NR,
+    "S": DocumentClasses.SOCIETY,
+    "XS": DocumentClasses.SOCIETY,
+}
 
 
 def serialize(errors):
@@ -168,28 +188,28 @@ def extra_validation_error_response(additional_msg: str = None):
 def db_exception_response(exception, account_id: str, context: str):
     """Build a database error response."""
     message = DATABASE.format(code=ResourceErrorCodes.DATABASE_ERR.value, context=context, account_id=account_id)
-    logger.error(message)
-    return jsonify({"message": message, "detail": str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    logger.error(f"{message} {exception}")
+    return jsonify({"message": message, "detail": "Internal database error."}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def report_exception_response(exception, detail: str):
     """Build a report request error response."""
     message = REPORT.format(detail=detail)
-    logger.error(message)
-    return jsonify({"message": message, "detail": str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    logger.error(f"{message} {exception}")
+    return jsonify({"message": message, "detail": "Internal report service error."}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def business_exception_response(exception):
     """Build business exception error response."""
     logger.error(str(exception))
-    return jsonify({"message": exception.error}), exception.status_code
+    return jsonify({"message": exception.error, "detail": "Interal business error."}), exception.status_code
 
 
 def default_exception_response(exception):
     """Build default 500 exception error response."""
     logger.error(str(exception))
     message = DEFAULT.format(code=ResourceErrorCodes.DEFAULT_ERR.value)
-    return jsonify({"message": message, "detail": str(exception)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    return jsonify({"message": message, "detail": "Internal service error."}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def service_exception_response(message):
@@ -575,6 +595,31 @@ def save_callback_create_rec(info: RequestInfo) -> dict:
     db.session.commit()
     doc_json = document.json
     logger.info("save_callback_create_rec completed...")
+    return doc_json
+
+
+def save_callback_legacy_add(info: RequestInfo) -> dict:
+    """Save legacy scanned file request document record information."""
+    logger.info("save_callback_legacy_add starting, building Document model...")
+    document: Document = Document.create_from_json(info.request_data, info.document_type)
+
+    storage_type: str = info.document_storage_type
+    storage_name: str = model_utils.get_doc_storage_name(document, model_utils.CONTENT_TYPE_PDF)
+    legacy_bucket = info.request_data["legacyScanInfo"].get("bucket")
+    legacy_name = info.request_data["legacyScanInfo"].get("name")
+    logger.info(f"save_callback_legacy_add copying {legacy_bucket}:{legacy_name} to {storage_type}:{storage_name}")
+    source_blob = GoogleStorageService.copy_document(legacy_bucket, legacy_name, storage_type, storage_name)
+    document.doc_storage_url = storage_name
+
+    logger.info("save_callback_legacy_add building doc request model...")
+    doc_request: DocumentRequest = build_doc_request(info, None, document.id)
+    db.session.add(document)
+    db.session.add(doc_request)
+    db.session.commit()
+    doc_json = document.json
+    # Now delete the legacy source document
+    source_blob.delete()
+    logger.info("save_callback_legacy_add completed...")
     return doc_json
 
 

@@ -26,6 +26,12 @@ from doc_api.utils.logging import logger
 
 POST_REC_REQUEST_PATH = "/callbacks/document-records"
 PATCH_REC_REQUEST_PATH = "/callbacks/update/document-records"
+POST_LEGACY_SCAN_REQUEST_PATH = "/callbacks/legacy-scan-files"
+LEGACY_SCAN_DOC_TYPE = DocumentTypes.PRE.value
+LEGACY_SCAN_DOC_CLASS = DocumentClasses.CORP.value
+LEGACY_SCAN_DOC_AUTHOR = "BCMail+"
+LEGACY_SCAN_FILENAME: str = "{name}-legacy-scan-{size}MB.pdf"
+LEGACY_SCAN_REFERENCE_ID = "0"
 
 bp = Blueprint("CALLBACKS1", __name__, url_prefix="/callbacks")  # pylint: disable=invalid-name
 
@@ -123,6 +129,42 @@ def update_document_records():
         return resource_utils.default_exception_response(default_exception)
 
 
+@bp.route("/legacy-scan-files", methods=["POST", "OPTIONS"])
+def post_legacy_scan_files():
+    """
+    Subscription to receive notification and process a new legacy scanned document.
+    """
+    account_id = "legacy_scan"
+    request_json: dict = {}
+    try:
+        req_path: str = POST_LEGACY_SCAN_REQUEST_PATH
+        info: RequestInfo = RequestInfo(RequestTypes.ADD, req_path, None, None)
+        request_json = json.loads(request.get_data().decode("utf-8"))
+        logger.info(f"{req_path} payload= {request_json}")
+        if request_json.get("data"):
+            logger.info(f"{req_path} payload wrapped: using data.")
+            request_json = request_json.get("data")
+        # Authenticate with request api key
+        if not resource_utils.valid_api_key(request):
+            return resource_utils.unauthorized_error_response("Create legacy scan callback missing api key")
+        doc_json = build_legacy_scan_json(request_json)
+        info = resource_utils.get_callback_request_info(doc_json, info)
+        info.account_id = account_id
+        resource_utils.save_callback_legacy_add(info)
+        return jsonify({}), HTTPStatus.CREATED
+    except DatabaseException as db_exception:
+        logger.error(f"POST create legacy scan file DatabaseException with payload {request_json}")
+        return resource_utils.db_exception_response(
+            db_exception, account_id, f"POST create legacy scan file document record id={account_id}"
+        )
+    except BusinessException as exception:
+        logger.error(f"POST create legacy scan file BusinessException with payload {request_json}")
+        return resource_utils.business_exception_response(exception)
+    except Exception as default_exception:  # noqa: B902; return nicer default error
+        logger.error(f"POST create legacy scan file default Exception with payload {request_json}")
+        return resource_utils.default_exception_response(default_exception)
+
+
 def build_update_json(request_json: dict) -> dict:
     """Build the DRS record update json from the callback payload."""
     if not request_json.get(resource_utils.PARAM_DOC_SERVICE_ID) and request_json.get("fileKey"):
@@ -139,3 +181,30 @@ def build_update_json(request_json: dict) -> dict:
     if not request_json.get(resource_utils.PARAM_CONSUMER_REFERENCE_ID) and request_json.get("filingId"):
         request_json[resource_utils.PARAM_CONSUMER_REFERENCE_ID] = str(request_json.get("filingId"))
     return request_json
+
+
+def build_legacy_scan_json(request_json: dict) -> dict:
+    """Build a basic document record dictionary from the legacy scanned file information."""
+    fname: str = str(request_json.get("name")).removesuffix(".pdf")
+    size: int = int(request_json.get("size")) // 1024000
+    # Filename is "{entity_type} {entity_number}" for example "BC 0204750"
+    tokens = fname.split(" ")
+    entity_type: str = tokens[0]
+    entity_number: str = tokens[1]
+    identifier: str = entity_type + entity_number if not entity_number.startswith(entity_type) else entity_number
+    if size == 0:
+        size = 1
+    # Filing date is unknown, for these docs using the creation date is misleading.
+    doc_json: dict = {
+        "documentType": LEGACY_SCAN_DOC_TYPE,
+        "documentClass": LEGACY_SCAN_DOC_CLASS,
+        "consumerFilename": LEGACY_SCAN_FILENAME.format(name=identifier, size=size),
+        "consumerIdentifier": identifier,
+        "author": LEGACY_SCAN_DOC_AUTHOR,
+        "consumerReferenceId": LEGACY_SCAN_REFERENCE_ID,
+        "legacyScanInfo": request_json,
+    }
+    # Map entity type to DRS document class if not default CORP.
+    if resource_utils.TO_LEGACY_SCAN_CLASS.get(entity_type):
+        doc_json["documentClass"] = resource_utils.TO_LEGACY_SCAN_CLASS.get(entity_type)
+    return doc_json

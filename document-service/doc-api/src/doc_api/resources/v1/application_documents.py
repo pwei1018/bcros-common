@@ -13,6 +13,7 @@
 # limitations under the License.
 """API public endpoints for requests to maintain application documents uploaded by clients."""
 
+from html import escape
 from http import HTTPStatus
 
 from flask import Blueprint, g, jsonify, request
@@ -23,7 +24,7 @@ from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, DocumentTypes, RequestTypes
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
-from doc_api.resources.v1.pdf_conversions import get_filename, validate_content_type
+from doc_api.resources.v1.pdf_conversions import get_filename
 from doc_api.services.authz import is_staff
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.services.pdf_convert import MediaTypes, PdfConvert
@@ -58,8 +59,8 @@ def post_documents():
         info: RequestInfo = RequestInfo(RequestTypes.ADD, req_path, DOCUMENT_TYPE, STORAGE_TYPE)
         info = resource_utils.get_request_info(request, info, is_staff(jwt))
         info.document_class = DOCUMENT_CLASS
-        info.consumer_filename = request.args.get(PARAM_FILENAME, "")
-        info.consumer_filedate = request.args.get(PARAM_FILEDATE, "")
+        info.consumer_filename = escape(request.args.get(PARAM_FILENAME, ""))
+        info.consumer_filedate = escape(request.args.get(PARAM_FILEDATE, ""))
         payload = request.get_data()
         if payload:
             info.has_payload = True
@@ -148,7 +149,7 @@ def get_individual_document(doc_service_id: str):
 def convert_clean(info: RequestInfo, in_data: bytes):
     """Convert non-pdf document file data to pdf, clean the pdf data."""
     if not in_data:
-        return in_data, HTTPStatus.OK, None
+        return None, HTTPStatus.OK, None
     if info.content_type == MediaTypes.CONTENT_TYPE_PDF:
         cleaned_data = clean_pdf(in_data)
         return cleaned_data, HTTPStatus.OK, None

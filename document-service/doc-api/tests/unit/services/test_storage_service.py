@@ -41,6 +41,10 @@ TEST_DATA_SAVE = [
     (TEST_DATAFILE, TEST_SAVE_NAME, DocumentTypes.NR, True, MEDIA_PDF, True),
     (TEST_DATAFILE, TEST_SAVE_NAME, DocumentTypes.PPR, True, MEDIA_PDF, False),
 ]
+# testdata pattern is ({file}, {filename}, {doc_type}, {source_bucket}, {dest_doc_type})
+TEST_DATA_COPY = [
+    (TEST_DATAFILE, TEST_SAVE_NAME, DocumentTypes.BUSINESS, "docs_business_dev", DocumentTypes.NR),
+]
 
 
 @pytest.mark.parametrize("name, doc_type, is_link", TEST_DATA_GET)
@@ -83,6 +87,31 @@ def test_save_delete_document(session, file, name, doc_type, is_link, content_ty
     else:
         download_link = GoogleStorageService.get_document_link(name, doc_type, 2)
         assert download_link
+
+
+# testdata pattern is ({file}, {filename}, {doc_type}, {source_bucket}, {dest_doc_type})
+@pytest.mark.parametrize("file, name, doc_type, source_bucket, dest_doc_type", TEST_DATA_COPY)
+def test_copy_delete_document(session, file, name, doc_type, source_bucket, dest_doc_type):
+    """Assert that saving then copying then deleting a document from google cloud storage works as expected."""
+    if is_ci_testing():
+        return
+
+    raw_data = None
+    with open(file, "rb") as data_file:
+        raw_data = data_file.read()
+        data_file.close()
+    response = GoogleStorageService.save_document_link(name, raw_data, doc_type, 2, MEDIA_PDF)
+    assert response
+
+    source_blob = GoogleStorageService.copy_document(source_bucket, name, dest_doc_type, name)
+    assert source_blob
+    source_blob.delete()
+
+    download_link = GoogleStorageService.get_document_link(name, dest_doc_type, 2)
+    assert download_link
+
+    response = GoogleStorageService.delete_document(name, dest_doc_type)
+    assert not response
 
 
 def is_ci_testing() -> bool:

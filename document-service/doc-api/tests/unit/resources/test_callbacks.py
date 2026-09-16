@@ -25,11 +25,15 @@ import pytest
 from flask import current_app
 
 from doc_api.models import Document
-from doc_api.resources.v1.callbacks import build_update_json
+from doc_api.resources.v1.callbacks import build_update_json, build_legacy_scan_json
+from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils.logging import logger
 
+
+TEST_DATAFILE = "tests/unit/services/unit_test.pdf"
 PARAM_TEST_APIKEY = "?x-apikey={api_key}"
 DOC_REC_PATH: str = "/api/v1/callbacks/document-records"
+LEGACY_SCAN_PATH: str = "/api/v1/callbacks/legacy-scan-files"
 DOC_REC_UPDATE_PATH: str = "/api/v1/callbacks/update/document-records"
 TEST_DOC_REC_LEGACY = {
     "accountId": "123456",
@@ -91,6 +95,20 @@ TEST_UPDATE_BUSINESS_API_WRAPPED = {
         "filingDate": "2026-06-09T23:02:02+00:00"
     }
 }
+TEST_LEGACY_SCAN_PAYLOAD = {
+    "name": "BC 0108924.pdf",
+    "timeCreated": "2026-09-09T23:11:00.589Z",
+    "size": 123456,
+    "bucket": "docs_nr_dev",
+}
+TEST_LEGACY_SCAN_PAYLOAD_WRAPPED = {
+    "data": {
+        "name": "BC 0108924.pdf",
+        "timeCreated": "2026-09-09T23:11:00.589Z",
+        "size": 123456,
+        "bucket": "docs_nr_dev",
+    }
+}
 
 # testdata pattern is ({description}, {payload_json}, {has_key}, {author}, {status}, {ref_id})
 TEST_CREATE_DATA = [
@@ -122,6 +140,24 @@ TEST_PATCH_DATA = [
     ("Valid ", TEST_UPDATE_BUSINESS_API_2, True, HTTPStatus.OK),
     ("Valid business api", TEST_UPDATE_BUSINESS_API_1, True, HTTPStatus.OK),
     ("Valid business api wrapped", TEST_UPDATE_BUSINESS_API_WRAPPED, True, HTTPStatus.OK),
+]
+# testdata pattern is ({entity_types}, {doc_class}, {size})
+TEST_LEGACY_SCAN_DOC_DATA = [
+    (["CP", "XC"], "COOP", "500000"),
+    (["C", "A", "BC", "LLP"], "CORP", "1500000"),
+    (["FM", "SP", "GP", "MF"], "FIRM", "2100000"),
+    (["LP", "LL", "XP", "XL"], "LP_LLP", "2100000"),
+    (["MH", "MHR"], "MHR", "100000"),
+    (["NR"], "NR", "100000"),
+    (["PP", "PPR"], "PPR", "100000"),
+    (["XS", "S"], "SOCIETY", "2100000"),
+]
+# testdata pattern is ({description}, {payload_json}, {has_key}, {status}, {storage_doc_type})
+TEST_CREATE_LEGACY_SCAN_DATA = [
+    ("Invalid no api key", TEST_LEGACY_SCAN_PAYLOAD, False, HTTPStatus.UNAUTHORIZED, "NR"),
+    ("Invalid bad api key", TEST_LEGACY_SCAN_PAYLOAD, False, HTTPStatus.UNAUTHORIZED, "NR"),
+    ("Valid", TEST_LEGACY_SCAN_PAYLOAD, True, HTTPStatus.CREATED, "NR"),
+    ("Valid wrapped", TEST_LEGACY_SCAN_PAYLOAD_WRAPPED, True, HTTPStatus.CREATED, "NR"),
 ]
 
 
@@ -273,6 +309,38 @@ def test_update_doc_rec(session, client, jwt, desc, payload_json, status, update
     assert doc_json.get("documentType") == update_doc_type
 
 
+@pytest.mark.parametrize("desc,payload_json,has_key,status,storage_doc_type", TEST_CREATE_LEGACY_SCAN_DATA)
+def test_create_legacy_scan(session, client, jwt, desc, payload_json, has_key, status, storage_doc_type):
+    """Assert that a post save new callback legacy scan document works as expected."""
+    if is_ci_testing() or not current_app.config.get("SUBSCRIPTION_API_KEY"):
+        return
+    # setup
+    if status == HTTPStatus.CREATED:
+        raw_data = None
+        with open(TEST_DATAFILE, "rb") as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+        source_name = payload_json["data"].get("name") if payload_json.get("data") else payload_json.get("name")
+        response = GoogleStorageService.save_document_link(source_name, raw_data, storage_doc_type, 2, "application/pdf")
+        assert response
+
+    headers = {"Content-Type": "application/json"}
+    req_path = LEGACY_SCAN_PATH
+    api_key = current_app.config.get("SUBSCRIPTION_API_KEY")
+    params = PARAM_TEST_APIKEY.format(api_key=api_key)
+    if has_key and api_key:
+        if desc == "Invalid bad api key":
+            params += "JUNK"
+        req_path += params
+    req_json = copy.deepcopy(payload_json)
+    # test
+    payload = json.dumps(req_json).encode("utf-8")
+    response = client.post(req_path, data=payload, headers=headers)
+
+    # check
+    assert response.status_code == status
+
+
 @pytest.mark.parametrize("payload_json,drs_id,consumer_id,consumer_date,consumer_ref", TEST_PATCH_PAYLOAD_DATA)
 def test_build_update_json(session, payload_json, drs_id, consumer_id, consumer_date, consumer_ref):
     """Assert that the patch request payload set up works as expected."""
@@ -314,6 +382,29 @@ def test_build_update_json(session, payload_json, drs_id, consumer_id, consumer_
         assert test_json.get("consumerReferenceId") == consumer_ref
     else:
         assert not test_json.get("consumerReferenceId")
+
+
+@pytest.mark.parametrize("entity_types,doc_class,size", TEST_LEGACY_SCAN_DOC_DATA)
+def test_legacy_scan_json(session, client, jwt, entity_types,doc_class,size):
+    """Assert that a building document json from a new legacy scan document works as expected."""
+    for et in entity_types:
+        request_json = {
+            "name": et + " 0204750.pdf",
+            "timeCreated": "2026-09-09T23:11:00.589Z",
+            "size": size,
+            "bucket": "docs_bcmail_receive_dev",
+        }
+        doc_json = build_legacy_scan_json(request_json)
+        assert doc_json.get("documentType") == "PRE"
+        assert doc_json.get("documentClass") == doc_class
+        assert doc_json.get("consumerFilename")
+        assert doc_json.get("consumerIdentifier")
+        assert doc_json.get("author")
+        assert doc_json.get("consumerReferenceId")
+        assert doc_json.get("legacyScanInfo")
+        assert doc_json["legacyScanInfo"].get("bucket")
+        assert doc_json["legacyScanInfo"].get("name")
+        assert not doc_json.get("consumerFilingDateTime")
 
 
 def is_ci_testing() -> bool:

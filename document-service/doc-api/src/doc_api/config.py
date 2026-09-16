@@ -116,6 +116,7 @@ class Config:  # pylint: disable=too-few-public-methods
     GCP_CS_SA_SCOPES = os.getenv("GCP_CS_SA_SCOPES", "https://www.googleapis.com/auth/cloud-platform")
     # For reports
     REPORT_SVC_URL = os.getenv("REPORT_SVC_URL", "https://report-api-gotenberg-dev-5qwaveuroa-nn.a.run.app")
+    REPORT_API_AUDIENCE = REPORT_SVC_URL
     REPORT_TEMPLATE_PATH = os.getenv("REPORT_TEMPLATE_PATH", "report-templates")
     # For storage
     GCP_CS_BUCKET_ID_BUS = os.getenv("GCP_CS_BUCKET_ID_BUS", "docs_business_dev")

@@ -24,8 +24,8 @@ from doc_api.utils.logging import logger
 from .db import db
 from .utils import format_ts, ts_from_iso_date_end, ts_from_iso_date_start
 
-QUERY_DOC_TYPE_CLAUSE = " and d.document_type = '{doc_type}'"
-QUERY_CONSUMER_ID_CLAUSE = " and d.consumer_identifier = '{consumer_id}'"
+QUERY_DOC_TYPE_CLAUSE = " and d.document_type = :query_doc_type"
+QUERY_CONSUMER_ID_CLAUSE = " and d.consumer_identifier = :query_consumer_id"
 QUERY_DEFAULT_ORDER_BY = " order by d.consumer_document_id"
 QUERY_DATES_DEFAULT = """
 select d.document_service_id, d.add_ts, d.consumer_document_id, d.consumer_identifier, d.consumer_filename,
@@ -55,7 +55,7 @@ select d2.document_service_id, d2.add_ts, d2.consumer_document_id, d2.consumer_i
   from documents d2, document_types dt, document_classes dc
  where d2.document_type = dt.document_type
    and d2.document_class = dc.document_class and dc.document_class != 'DELETED'
-   and d2.document_class = '??'
+   and d2.document_class = :query_doc_class
    and d2.consumer_document_id in (?)
  order by d2.add_ts desc
 """
@@ -72,32 +72,20 @@ select distinct consumer_document_id
 """
 SEARCH_SORT_DEFAULT = " ORDER BY d.add_ts DESC"
 SEARCH_SORT_DOC_ID = " ORDER BY d.consumer_document_id, d.add_ts DESC"
-SEARCH_FILTER_DOC_CLASS = " AND d.document_class = '?'"
-SEARCH_FILTER_DOC_TYPE = " AND d.document_type = '?'"
-SEARCH_FILTER_DOC_ID_PARTIAL = " AND d.consumer_document_id LIKE '%?%'"
-SEARCH_FILTER_DOC_ID_EXACT = " AND d.consumer_document_id = '?'"
-SEARCH_FILTER_CONS_ID_PARTIAL = " AND d.consumer_identifier LIKE '%?%'"
-SEARCH_FILTER_CONS_ID_EXACT = " AND d.consumer_identifier = '?'"
-SEARCH_FILTER_FILENAME = " AND LOWER(d.consumer_filename) LIKE '%?%'"
+SEARCH_FILTER_DOC_CLASS = " AND d.document_class = :query_doc_class"
+SEARCH_FILTER_DOC_TYPE = " AND d.document_type = :query_doc_type"
+SEARCH_FILTER_DOC_ID_PARTIAL = " AND position(:query_doc_id in d.consumer_document_id) > 0"
+SEARCH_FILTER_DOC_ID_EXACT = " AND d.consumer_document_id = :query_doc_id"
+SEARCH_FILTER_CONS_ID_PARTIAL = " AND position(:query_consumer_id in d.consumer_identifier) > 0"
+SEARCH_FILTER_CONS_ID_EXACT = " AND d.consumer_identifier = :query_consumer_id"
+SEARCH_FILTER_FILENAME = " AND position(:query_filename in LOWER(d.consumer_filename)) > 0"
 SEARCH_FILTER_CREATE_DATE = (
-    " AND d.add_ts BETWEEN TO_TIMESTAMP('query_start', 'YYYY-MM-DD HH24:MI:SS') AND "
-    + "TO_TIMESTAMP('query_end', 'YYYY-MM-DD HH24:MI:SS')"
+    " AND d.add_ts BETWEEN TO_TIMESTAMP(:query_start, 'YYYY-MM-DD HH24:MI:SS') AND "
+    + "TO_TIMESTAMP(:query_end, 'YYYY-MM-DD HH24:MI:SS')"
 )
 SEARCH_PAGE_SIZE: int = 100
-SEARCH_PAGE_OFFSET = " as q LIMIT " + str(SEARCH_PAGE_SIZE) + " OFFSET ?"
-
-
-def build_page_clause(request_info: RequestInfo) -> str:
-    """Build the query page limit clause."""
-    clause: str = SEARCH_SORT_DEFAULT + ")"
-    page_num: int = int(request_info.page_number) if request_info.page_number else 1
-    if page_num <= 1:
-        page_num = 0
-    else:
-        page_num -= 1
-    offset: int = page_num * SEARCH_PAGE_SIZE
-    clause += SEARCH_PAGE_OFFSET.replace("?", str(offset))
-    return clause
+SEARCH_PAGE_OFFSET = f" as q LIMIT {SEARCH_PAGE_SIZE} OFFSET :query_offset"
+SEARCH_PAGE_CLAUSE = SEARCH_SORT_DEFAULT + ")" + SEARCH_PAGE_OFFSET
 
 
 def build_result_json(row, merge_doc_id: bool = False) -> dict:
@@ -132,29 +120,51 @@ def build_filter_clause(request_info: RequestInfo) -> str:
     """Build search query filter clauses from the request parameters."""
     clause: str = ""
     if request_info.document_class:
-        clause += SEARCH_FILTER_DOC_CLASS.replace("?", request_info.document_class)
+        clause += SEARCH_FILTER_DOC_CLASS
     if request_info.document_type:
-        clause += SEARCH_FILTER_DOC_TYPE.replace("?", request_info.document_type)
+        clause += SEARCH_FILTER_DOC_TYPE
     if request_info.query_start_date and request_info.query_end_date:
-        start: str = format_ts(ts_from_iso_date_start(request_info.query_start_date))[:19].replace("T", " ")
-        end: str = format_ts(ts_from_iso_date_end(request_info.query_end_date))[:19].replace("T", " ")
-        search_dates: str = SEARCH_FILTER_CREATE_DATE.replace("query_start", start)
-        clause += search_dates.replace("query_end", end)
+        clause += SEARCH_FILTER_CREATE_DATE
     if request_info.consumer_identifier:
-        clause += SEARCH_FILTER_CONS_ID_PARTIAL.replace("?", request_info.consumer_identifier.upper())
+        clause += SEARCH_FILTER_CONS_ID_PARTIAL
     if request_info.consumer_doc_id:
-        clause += SEARCH_FILTER_DOC_ID_PARTIAL.replace("?", request_info.consumer_doc_id.upper())
+        clause += SEARCH_FILTER_DOC_ID_PARTIAL
     if request_info.consumer_filename:
-        clause += SEARCH_FILTER_FILENAME.replace("?", request_info.consumer_filename.lower())
+        clause += SEARCH_FILTER_FILENAME
     return clause
 
 
-def get_search_count(filter_clause: str) -> int:
+def build_filter_params(request_info: RequestInfo) -> dict:
+    """Build search query filter clauses from the request parameters."""
+    params: dict = {}
+    page_num: int = int(request_info.page_number) if request_info.page_number else 1
+    if page_num <= 1:
+        page_num = 0
+    else:
+        page_num -= 1
+    params["query_offset"] = page_num * SEARCH_PAGE_SIZE
+    if request_info.document_class:
+        params["query_doc_class"] = request_info.document_class
+    if request_info.document_type:
+        params["query_doc_type"] = request_info.document_type
+    if request_info.query_start_date and request_info.query_end_date:
+        params["query_start"] = format_ts(ts_from_iso_date_start(request_info.query_start_date))[:19].replace("T", " ")
+        params["query_end"] = format_ts(ts_from_iso_date_end(request_info.query_end_date))[:19].replace("T", " ")
+    if request_info.consumer_identifier:
+        params["query_consumer_id"] = request_info.consumer_identifier.upper()
+    if request_info.consumer_doc_id:
+        params["query_doc_id"] = request_info.consumer_doc_id.upper()
+    if request_info.consumer_filename:
+        params["query_filename"] = request_info.consumer_filename.lower()
+    return params
+
+
+def get_search_count(filter_clause: str, filter_params: dict) -> int:
     """Count total search results based on the request parameters."""
     result_count: int = 0
     try:
         query = text(SEARCH_COUNT_ANY_BASE + filter_clause)
-        result = db.session.execute(query)
+        result = db.session.execute(query, filter_params)
         row = result.first()
         result_count = int(row[0])
         return result_count
@@ -163,19 +173,15 @@ def get_search_count(filter_clause: str) -> int:
     return result_count
 
 
-def get_search_results(request_info: RequestInfo, filter_clause: str) -> list:
+def get_search_results(request_info: RequestInfo, filter_clause: str, filter_params: dict) -> list:
     """Build search results based on the request parameters."""
     results = []
     try:
-        query_filter_doc_id = SEARCH_FILTER_BASE + filter_clause + build_page_clause(request_info)
-        query_text: str = (
-            SEARCH_ANY_BASE
-            if not request_info.document_class
-            else SEARCH_CLASS_BASE.replace("??", request_info.document_class)
-        )
+        query_filter_doc_id = SEARCH_FILTER_BASE + filter_clause + SEARCH_PAGE_CLAUSE
+        query_text: str = SEARCH_ANY_BASE if not request_info.document_class else SEARCH_CLASS_BASE
         query = text(query_text.replace("?", query_filter_doc_id))
-        logger.info(f"get_search_results executing query doc id filter {query_filter_doc_id}")
-        qresults = db.session.execute(query)
+        logger.debug(f"get_search_results executing query doc id filter {query_filter_doc_id}")
+        qresults = db.session.execute(query, filter_params)
         rows = qresults.fetchall()
         if rows is None:
             return results
@@ -195,13 +201,14 @@ def get_search_docs(request_info: RequestInfo) -> dict:
     """Search for document information by any combination of request parameters."""
     results = []
     filter_clause: str = build_filter_clause(request_info)
+    filter_params: dict = build_filter_params(request_info)
     logger.info(f"Search query filter {filter_clause}")
-    search_count: int = get_search_count(filter_clause)
+    search_count: int = get_search_count(filter_clause, filter_params)
     search_results = {"resultCount": search_count, "results": results}
     if search_count <= 0:
         logger.info(f"get_search_docs count=0 for filter {filter_clause}.")
         return search_results
-    results = get_search_results(request_info, filter_clause)
+    results = get_search_results(request_info, filter_clause, filter_params)
     if results:
         search_results["results"] = results
         logger.info(f"get_search_docs returning {len(results)} results.")
@@ -218,17 +225,20 @@ def get_docs_by_date_range(doc_class: str, start_date: str, end_date: str, doc_t
         return results
 
     query_s = QUERY_DATES_DEFAULT
-    if doc_type:
-        query_s += QUERY_DOC_TYPE_CLAUSE.format(doc_type=doc_type)
-    if cons_id:
-        query_s += QUERY_CONSUMER_ID_CLAUSE.format(consumer_id=cons_id)
-    query_s += QUERY_DEFAULT_ORDER_BY
-    query = text(query_s)
     start: str = format_ts(ts_from_iso_date_start(start_date))[:19].replace("T", " ")
     end: str = format_ts(ts_from_iso_date_end(end_date))[:19].replace("T", " ")
-    logger.info(f"get_docs class {doc_class} query by date range {start} to {end}\n query={query_s}")
+    query_params = {"query_val1": doc_class, "query_val2": start, "query_val3": end}
+    if doc_type:
+        query_s += QUERY_DOC_TYPE_CLAUSE
+        query_params["query_doc_type"] = doc_type
+    if cons_id:
+        query_s += QUERY_CONSUMER_ID_CLAUSE.format(consumer_id=cons_id)
+        query_params["query_consumer_id"] = cons_id
+    query_s += QUERY_DEFAULT_ORDER_BY
+    query = text(query_s)
+    logger.debug(f"get_docs class {doc_class} query by date range {start} to {end}\n query={query_s}")
     qresults = None
-    qresults = db.session.execute(query, {"query_val1": doc_class, "query_val2": start, "query_val3": end})
+    qresults = db.session.execute(query, query_params)
     rows = qresults.fetchall()
     if rows is not None:
         for row in rows:

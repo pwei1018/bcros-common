@@ -355,12 +355,12 @@ TEST_DATA_DOC_CLASS_TYPE = [
     ("Invalid", False, "FNCH", "MHR", validator.INVALID_DOC_CLASS_TYPE),
     ("Invalid", False, "MEM", "MHR", validator.INVALID_DOC_CLASS_TYPE),
     ("Invalid", False, "DAT", "MHR", validator.INVALID_DOC_CLASS_TYPE),
-    ("Invalid", False, "PRE", "MHR", validator.INVALID_DOC_CLASS_TYPE),
     ("Inactive", False, "CLW", "MHR", validator.INACTIVE_DOC_CLASS_TYPE),
     ("Inactive", False, "MHSP", "MHR", validator.INACTIVE_DOC_CLASS_TYPE),
     ("Inactive", False, "MEM", "PPR", validator.INACTIVE_DOC_CLASS_TYPE),
     ("Inactive", False, "DAT", "PPR", validator.INACTIVE_DOC_CLASS_TYPE),
     ("Inactive", False, "PRE", "CORP", validator.INACTIVE_DOC_CLASS_TYPE),
+    ("Inactive", False, "PRE", "MHR", validator.INACTIVE_DOC_CLASS_TYPE),
 ]
 # test data pattern is ({description},{modified},{existing},{update})
 TEST_DATA_SCAN_MODIFIED = [

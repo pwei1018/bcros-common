@@ -13,6 +13,7 @@
 # limitations under the License.
 """API endpoints for requests to maintain business documents."""
 
+from html import escape
 from http import HTTPStatus
 
 from flask import Blueprint, g, jsonify, request
@@ -52,7 +53,7 @@ def post_documents(doc_class: str, doc_type: str):
         info.document_class = doc_class
         logger.info(f"Starting new create document request {req_path}, account={info.account_id}")
         if doc_class == DocumentClasses.CORP.value and request.args.get(PARAM_CONSUMER_FILINGTYPE):
-            filing_type: str = request.args.get(PARAM_CONSUMER_FILINGTYPE)
+            filing_type: str = escape(request.args.get(PARAM_CONSUMER_FILINGTYPE))
             filing_doc: FilingTypeDocument = FilingTypeDocument.find_by_filing_type(filing_type)
             if filing_doc:
                 info.document_type = filing_doc.document_type
@@ -270,7 +271,7 @@ def validate_new_doc_request(info: RequestInfo) -> str:
 def convert_clean(info: RequestInfo, in_data: bytes):
     """Convert non-pdf document file data to pdf, clean the pdf data."""
     if not in_data:
-        return in_data, HTTPStatus.OK, None
+        return bytes(), HTTPStatus.OK, None
     if info.content_type == MediaTypes.CONTENT_TYPE_PDF:
         cleaned_data = clean_pdf(in_data)
         return cleaned_data, HTTPStatus.OK, None

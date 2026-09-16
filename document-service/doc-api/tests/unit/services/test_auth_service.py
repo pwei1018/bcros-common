@@ -20,14 +20,12 @@ from flask import current_app
 
 from doc_api.config import get_mock_auth
 from doc_api.services.gcp_auth.auth_service import GoogleAuthService
-from doc_api.utils.logging import logger
 
 
 def test_get_token(session, client, jwt):
     """Assert that the configuration to get a google storage token works as expected (no exceptions)."""
     token = GoogleAuthService.get_token()
     if current_app.config.get("GCP_AUTH_KEY"):
-        logger.debug(token)
         assert token
     else:
         assert not token
@@ -38,8 +36,28 @@ def test_get_credentials(session, client, jwt):
     credentials = GoogleAuthService.get_credentials()
     if current_app.config.get("GCP_AUTH_KEY"):
         assert credentials
+        assert credentials.token
+        assert credentials.service_account_email
     else:
         assert not credentials
+
+
+def test_get_cs_signed_credentials(session, client, jwt):
+    """Assert that the configuration to get a google storage token works as expected (no exceptions)."""
+    credentials = GoogleAuthService.get_cs_signed_credentials()
+    if current_app.config.get("GCP_AUTH_KEY"):
+        assert credentials
+        assert credentials.token
+        assert credentials.service_account_email
+    else:
+        assert not credentials
+
+
+def test_get_report_token(session, client, jwt):
+    """Assert that config to get a report service token works as expected."""
+    if current_app.config.get("GCP_AUTH_KEY"):
+        token = GoogleAuthService.get_report_api_token()
+        assert token
 
 
 def test_security_account(session, client, jwt):
@@ -52,7 +70,6 @@ def test_security_account(session, client, jwt):
         encoded_sa = bytes(default_sa, "utf-8")
         assert encoded_sa
         decoded_sa = json.loads(base64.b64decode(encoded_sa.decode("utf-8")))
-        logger.info(f"sa email={decoded_sa.get('client_email')} project={decoded_sa.get('project_id')}")
         assert decoded_sa
         assert decoded_sa.get("type")
         assert decoded_sa.get("project_id")
@@ -69,5 +86,4 @@ def test_security_account(session, client, jwt):
 def test_mock_auth(session, client, jwt):
     """Assert that the mock auth sa works as expected."""
     value = get_mock_auth()
-    logger.debug(value)
     assert value

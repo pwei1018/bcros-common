@@ -123,6 +123,26 @@ class GoogleStorageService(StorageService):  # pylint: disable=too-few-public-me
             raise StorageException(f"POST document failed for doc type={doc_type}, name={name}.") from err
 
     @classmethod
+    def copy_document(cls, source_bucket_name, source_name, doc_type, destination_name):
+        """Copy the source document bucket and name to the destination bucket mapped from the doc type."""
+        try:
+            credentials = GoogleAuthService.get_credentials()
+            storage_client = storage.Client(credentials=credentials) if credentials else storage.Client()
+
+            source_bucket = storage_client.bucket(source_bucket_name)
+            source_blob = source_bucket.blob(source_name)
+            destination_bucket = storage_client.bucket(cls.__get_bucket_id(doc_type))
+
+            # Copy the blob to the destination bucket
+            source_bucket.copy_blob(source_blob, destination_bucket, destination_name)
+            # Return to delete after document record is saved.
+            return source_blob
+        except Exception as err:  # pylint: disable=broad-except # noqa F841;
+            msg = f"copy_document failed {source_bucket_name}:{source_name} to {doc_type}:{destination_name}"
+            logger.error(f"msg {err}")
+            raise StorageException(msg) from err
+
+    @classmethod
     def __get_bucket_id(cls, doc_type: str = None):
         """Map the document type to a bucket ID. The default is GCP_BUCKET_ID."""
         if not doc_type or doc_type == DocumentTypes.BUSINESS:

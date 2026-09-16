@@ -58,9 +58,8 @@ def test_page_clause(session, page_num, expected_offset):
     """Assert that building the search query page size clause works as expected."""
     req_info: RequestInfo = RequestInfo(None, None, None, None)
     req_info.page_number = page_num
-    test_clause = PAGE_CLAUSE.format(page_size=search_utils.SEARCH_PAGE_SIZE, page_offset=expected_offset)
-    clause = search_utils.build_page_clause(req_info)
-    assert clause == test_clause
+    params: dict = search_utils.build_filter_params(req_info)
+    assert params.get("query_offset") == expected_offset
 
 
 @pytest.mark.parametrize("doc_class,doc_type,start_dt,end_dt,cons_id,doc_id,filename,from_ui", TEST_DATA_SEARCH_FILTER)
@@ -76,29 +75,69 @@ def test_build_search_filter(session, doc_class, doc_type, start_dt, end_dt, con
     req_info.from_ui = from_ui
     query: str = search_utils.build_filter_clause(req_info)
     if doc_class:
-        assert query.find(' AND d.document_class = ') != -1
+        assert query.find(search_utils.SEARCH_FILTER_DOC_CLASS) != -1
     else:
-        assert query.find(' AND d.document_class = ') == -1
+        assert query.find(search_utils.SEARCH_FILTER_DOC_CLASS) == -1
     if doc_type:
-        assert query.find(' AND d.document_type = ') != -1
+        assert query.find(search_utils.SEARCH_FILTER_DOC_TYPE) != -1
     else:
-        assert query.find(' AND d.document_type = ') == -1
+        assert query.find(search_utils.SEARCH_FILTER_DOC_TYPE) == -1
     if start_dt and end_dt:
-        assert query.find(' AND d.add_ts BETWEEN TO_TIMESTAMP') != -1
+        assert query.find(search_utils.SEARCH_FILTER_CREATE_DATE) != -1
     else:
-        assert query.find(' AND d.add_ts BETWEEN TO_TIMESTAMP') == -1
+        assert query.find(search_utils.SEARCH_FILTER_CREATE_DATE) == -1
     if cons_id:
-        assert query.find(f" AND d.consumer_identifier LIKE '%{cons_id}%'") != -1
+        assert query.find(search_utils.SEARCH_FILTER_CONS_ID_PARTIAL) != -1
     else:
-        assert query.find(' AND d.consumer_identifier LIKE ') == -1
+        assert query.find(search_utils.SEARCH_FILTER_CONS_ID_PARTIAL) == -1
     if doc_id:
-        assert query.find(f" AND d.consumer_document_id LIKE '%{doc_id}%'") != -1
+        assert query.find(search_utils.SEARCH_FILTER_DOC_ID_PARTIAL) != -1
     else:
-        assert query.find(' AND d.consumer_document_id LIKE ') == -1
+        assert query.find(search_utils.SEARCH_FILTER_DOC_ID_PARTIAL) == -1
     if filename:
-        assert query.find(f" AND LOWER(d.consumer_filename) LIKE '%{filename}%'") != -1
+        assert query.find(search_utils.SEARCH_FILTER_FILENAME) != -1
     else:
-        assert query.find(' AND LOWER(d.consumer_filename) LIKE ') == -1
+        assert query.find(search_utils.SEARCH_FILTER_FILENAME) == -1
+
+
+@pytest.mark.parametrize("doc_class,doc_type,start_dt,end_dt,cons_id,doc_id,filename,from_ui", TEST_DATA_SEARCH_FILTER)
+def test_build_search_params(session, doc_class, doc_type, start_dt, end_dt, cons_id, doc_id, filename, from_ui):
+    """Assert that building the search query parameters from the search filter choices works as expected."""
+    req_info: RequestInfo = RequestInfo(None, None, doc_type, None)
+    req_info.document_class = doc_class
+    req_info.query_start_date = start_dt
+    req_info.query_end_date = end_dt
+    req_info.consumer_identifier = cons_id
+    req_info.consumer_doc_id = doc_id
+    req_info.consumer_filename = filename
+    req_info.from_ui = from_ui
+    params: dict = search_utils.build_filter_params(req_info)
+    if doc_class:
+        assert params.get("query_doc_class")
+    else:
+        assert not params.get("query_doc_class")
+    if doc_type:
+        assert params.get("query_doc_type")
+    else:
+        assert not params.get("query_doc_type")
+    if start_dt and end_dt:
+        assert params.get("query_start")
+        assert params.get("query_end")
+    else:
+        assert not params.get("query_start")
+        assert not params.get("query_end")
+    if cons_id:
+        assert params.get("query_consumer_id")
+    else:
+        assert not params.get("query_consumer_id")
+    if doc_id:
+        assert params.get("query_doc_id")
+    else:
+        assert not params.get("query_doc_id")
+    if filename:
+        assert params.get("query_filename")
+    else:
+        assert not params.get("query_filename")
 
 
 @pytest.mark.parametrize("doc_class,doc_type,start_dt,end_dt,cons_id,doc_id,filename,from_ui", TEST_DATA_SEARCH_FILTER)
@@ -113,7 +152,8 @@ def test_search_count(session, doc_class, doc_type, start_dt, end_dt, cons_id, d
     req_info.consumer_filename = filename
     req_info.from_ui = from_ui
     filter_clause: str = search_utils.build_filter_clause(req_info)
-    search_count: int = search_utils.get_search_count(filter_clause)
+    filter_params: dict = search_utils.build_filter_params(req_info)
+    search_count: int = search_utils.get_search_count(filter_clause, filter_params)
     assert search_count >= 0
 
 

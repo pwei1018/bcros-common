@@ -24,7 +24,9 @@ from doc_api.models.type_tables import DocumentClasses, DocumentTypes, ProductCo
 from doc_api.resources import utils as resource_utils
 from doc_api.resources.request_info import RequestInfo
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
+from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils.logging import logger
+
 
 TEST_DATAFILE = "tests/unit/services/unit_test.pdf"
 TEST_USER: User = User(username="testuser")
@@ -108,6 +110,22 @@ TEST_DOC_REC_LEGACY = {
     "documentClass": "MHR",
     "author": "John Jones"
 }
+TEST_DOC_REC_LEGACY_SCAN = {
+    "consumerIdentifier": "BC0108924",
+    "consumerFilename": "BC 0108924-legacy-scan0MB.pdf",
+    "consumerFilingDateTime": "2026-09-09T23:11:00.589Z",
+    "documentType": "PRE",
+    "documentClass": "CORP",
+    "author": "BCMail+",
+    "consumerReferenceId": "0",
+    "legacyScanInfo": {
+        "name": "BC 0108924.pdf",
+        "timeCreated": "2026-09-09T23:11:00.589Z",
+        "size": 123456,
+        "bucket": "docs_nr_dev",
+    }
+}
+
 TEST_DOC_REC_MODERN = {
     "accountId": "123456",
     "consumerDocumentId": "1099990950",
@@ -224,6 +242,40 @@ TEST_DOC_CERTIFIED_DATA = [
     ("COOP", "COSD", DOC_CERTIFIED_CONFIG_DEFAULT),
     ("COOP", "FILE", None),
 ]
+# testdata pattern is ({document}, {storage_doc_type})
+TEST_CALLBACK_LEGACY_SCAN_DATA = [
+    (TEST_DOC_REC_LEGACY_SCAN, "NR"),
+]
+
+
+@pytest.mark.parametrize("request_data, storage_doc_type", TEST_CALLBACK_LEGACY_SCAN_DATA)
+def test_save_callback_legacy_data(session, request_data, storage_doc_type):
+    """Assert that POST legacy scan request data resource_utils.save_callback_legacy_add works as expected."""
+    if is_ci_testing():
+        return
+
+    info: RequestInfo = RequestInfo(RequestTypes.ADD.value, "unit testing", None, None)
+    info = resource_utils.get_callback_request_info(request_data, info)
+    raw_data = None
+    with open(TEST_DATAFILE, "rb") as data_file:
+        raw_data = data_file.read()
+        data_file.close()
+    source_name = request_data["legacyScanInfo"].get("name")
+    response = GoogleStorageService.save_document_link(source_name, raw_data, storage_doc_type, 2, "application/pdf")
+    assert response
+
+    result = resource_utils.save_callback_legacy_add(info)
+    assert result
+    assert result.get("documentServiceId")
+    assert result.get("createDateTime")
+    assert result.get("documentType") == request_data.get("documentType")
+    assert result.get("documentTypeDescription")
+    assert result.get("documentClass") == request_data.get("documentClass")
+    assert result.get("consumerIdentifier") == request_data.get("consumerIdentifier")
+    assert result.get("author") == request_data.get("author")
+    assert result.get("consumerReferenceId") == request_data.get("consumerReferenceId")
+    assert result.get("consumerFilename") == request_data.get("consumerFilename")
+    assert not result.get("scanningInformation")
 
 
 @pytest.mark.parametrize("request_data, update", TEST_CALLBACK_REC_DATA)
@@ -564,3 +616,10 @@ def test_doc_certified_config(session, doc_class, doc_type, certified_config):
         assert doc_config2.get("textCoordX") == certified_config.get("textCoordX")
         assert doc_config2.get("textCoordY") == certified_config.get("textCoordY")
         assert doc_config2.get("rect") == certified_config.get("rect")
+
+
+def is_ci_testing() -> bool:
+    """Check unit test environment: exclude pub/sub for CI testing."""
+    if not current_app.config.get("GCP_AUTH_KEY"):
+        return True
+    return  current_app.config.get("DEPLOYMENT_ENV", "testing") == "testing"
