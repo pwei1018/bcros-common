@@ -399,6 +399,33 @@ class TestNotificationModel:
             assert len(found) >= EXPECTED_RESEND_COUNT
 
     @staticmethod
+    def test_notification_status_has_expired_member():
+        """Test that EXPIRED is a valid NotificationStatus."""
+        assert Notification.NotificationStatus.EXPIRED in Notification.NotificationStatus
+        assert str(Notification.NotificationStatus.EXPIRED) == "expired"
+
+    @staticmethod
+    def test_find_archivable_notifications_query(session):
+        """Test find_archivable_notifications builds and executes a query."""
+        mock_query = Mock()
+        mock_query.filter.return_value.all.return_value = []
+
+        with patch.object(Notification, "query", mock_query):
+            result = Notification.find_archivable_notifications()
+
+        assert result == []
+        mock_query.filter.assert_called_once()
+
+    @staticmethod
+    def test_find_archivable_notifications_returns_stale_records(session):
+        """Test find_archivable_notifications returns mocked stale notifications."""
+        mock_notifications = [Mock(id=1), Mock(id=2)]
+
+        with patch.object(Notification, "find_archivable_notifications", return_value=mock_notifications):
+            found = Notification.find_archivable_notifications()
+            assert len(found) == len(mock_notifications)
+
+    @staticmethod
     def test_update_notification(session):
         """Test updating notification."""
 

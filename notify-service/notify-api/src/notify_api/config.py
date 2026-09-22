@@ -86,6 +86,13 @@ class Config:  # pylint: disable=too-few-public-methods
     except (TypeError, ValueError):
         JWT_OIDC_JWKS_CACHE_TIMEOUT = 300
 
+    # Cloud Scheduler -> /resend authorization (Google-signed OIDC token, bypasses Keycloak)
+    # RESEND_SCHEDULER_SA_EMAIL is the exact service account email Cloud Scheduler signs as.
+    # RESEND_SCHEDULER_AUDIENCE should match the --oidc-token-audience configured on the job
+    # (typically the Cloud Run service URL).
+    RESEND_SCHEDULER_SA_EMAIL = os.getenv("RESEND_SCHEDULER_SA_EMAIL", "")
+    RESEND_SCHEDULER_AUDIENCE = os.getenv("RESEND_SCHEDULER_AUDIENCE", "")
+
     # PUBSUB
     AUDIENCE = os.getenv("AUDIENCE", "https://pubsub.googleapis.com/google.pubsub.v1.Subscriber")
     PUBLISHER_AUDIENCE = os.getenv("PUBLISHER_AUDIENCE", "https://pubsub.googleapis.com/google.pubsub.v1.Publisher")
