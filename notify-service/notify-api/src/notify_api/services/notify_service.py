@@ -25,6 +25,7 @@ from structured_logging import StructuredLogging
 
 from notify_api.models import (
     Notification,
+    NotificationHistory,
     NotificationRequest,
     SafeList,
 )
@@ -404,9 +405,13 @@ class NotifyService:
     def queue_republish() -> None:
         """Republish notifications to queue.
 
-        This method finds notifications that need to be resent and republishes
-        them to the appropriate queue based on their provider.
+        This method archives any notifications that have been stuck for too
+        long (see archive_expired_notifications), then finds the remaining
+        notifications that need to be resent and republishes them to the
+        appropriate queue based on their provider.
         """
+        NotifyService.archive_expired_notifications()
+
         try:
             notifications = Notification.find_resend_notifications()
 
@@ -463,13 +468,83 @@ class NotifyService:
                 f"Future: {publish_future}"
             )
 
-            # Update notification status
+            # Update notification status and bump retry count
+            notification.retry_count = (notification.retry_count or 0) + 1
             NotifyService._update_notification_status(
                 notification, notification.provider_code, Notification.NotificationStatus.QUEUED
             )
+
+            if notification.retry_count >= Notification.RESEND_MAX_RETRY_COUNT:
+                logger.warning(
+                    f"Notification ID {notification.id} reached max retry count "
+                    f"({Notification.RESEND_MAX_RETRY_COUNT}) - will no longer be auto-resent"
+                )
 
             return True
 
         except Exception as err:
             logger.error(f"Error republishing notification ID {notification.id}: {err}")
+            return False
+
+    @staticmethod
+    def archive_expired_notifications() -> None:
+        """Archive notifications that have been stuck for too long.
+
+        Notifications that have not reached a clean terminal state within
+        Notification.ARCHIVE_AFTER_DAYS (e.g. still QUEUED/FAILURE/PENDING, or
+        a SENT row whose post-delivery cleanup never completed) are moved to
+        notification_history with status EXPIRED and removed from the active
+        notification table, so they stop being resent and stop inflating the
+        working set.
+        """
+        try:
+            notifications = Notification.find_archivable_notifications()
+
+            if not notifications:
+                logger.info("No notifications found for archiving")
+                return
+
+            logger.info(f"Found {len(notifications)} notifications to archive as expired")
+
+            archived_count = 0
+            failed_count = 0
+
+            for notification in notifications:
+                if NotifyService._archive_single_notification(notification):
+                    archived_count += 1
+                else:
+                    failed_count += 1
+
+            logger.info(f"Archive completed - Archived: {archived_count}, Failed: {failed_count}")
+
+        except Exception as err:
+            logger.error(f"Error in archive_expired_notifications: {err}")
+
+    @staticmethod
+    def _archive_single_notification(notification: Notification) -> bool:
+        """Archive a single stale notification as EXPIRED.
+
+        Args:
+            notification: The notification to archive
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            original_status = notification.status_code
+            notification.status_code = Notification.NotificationStatus.EXPIRED
+
+            NotificationHistory.create_history(notification)
+
+            logger.info(
+                f"Archived notification ID {notification.id} for {notification.recipients} as EXPIRED "
+                f"(was {original_status})"
+            )
+
+            notification.delete_notification()
+
+            return True
+
+        except Exception as err:
+            logger.error(f"Error archiving notification ID {notification.id}: {err}")
             return False

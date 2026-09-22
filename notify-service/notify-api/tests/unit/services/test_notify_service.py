@@ -4,7 +4,7 @@ import base64
 import unittest.mock
 from unittest.mock import Mock, patch
 
-from notify_api.models import Notification, NotificationRequest
+from notify_api.models import Notification, NotificationHistory, NotificationRequest
 from notify_api.models.attachment import AttachmentRequest
 from notify_api.models.content import ContentRequest
 from notify_api.services.notify_service import NotifyService
@@ -485,6 +485,7 @@ class TestNotifyServiceQueueOperations:
         mock_notification.id = "test-notification-id"
         mock_notification.provider_code = "GC_NOTIFY"
         mock_notification.recipients = "test@example.com"
+        mock_notification.retry_count = 0
 
         mock_gcp_queue.to_queue_message.return_value = "test-queue-message"
         mock_queue.publish.return_value = "test-future"
@@ -606,3 +607,91 @@ class TestNotifyServiceQueueOperations:
             NotifyService.get_provider("test", "<script>alert('test')</script>")
             == Notification.NotificationProvider.SMTP
         )
+
+
+class TestNotifyServiceArchiving:
+    """Tests for archiving expired/stuck notifications."""
+
+    @staticmethod
+    @patch("notify_api.services.notify_service.Notification")
+    def test_archive_expired_notifications_no_notifications(mock_notification_class):
+        """Test archive with no notifications found."""
+        mock_notification_class.find_archivable_notifications.return_value = []
+
+        # Should not raise any exception
+        NotifyService.archive_expired_notifications()
+
+    @staticmethod
+    @patch("notify_api.services.notify_service.Notification")
+    def test_archive_expired_notifications_with_notifications(mock_notification_class):
+        """Test archive with notifications found - some succeed, some fail."""
+        mock_notification1 = Mock()
+        mock_notification1.id = "notification-1"
+        mock_notification2 = Mock()
+        mock_notification2.id = "notification-2"
+
+        mock_notification_class.find_archivable_notifications.return_value = [
+            mock_notification1,
+            mock_notification2,
+        ]
+
+        with patch.object(NotifyService, "_archive_single_notification") as mock_archive:
+            mock_archive.side_effect = [True, False]
+
+            NotifyService.archive_expired_notifications()
+
+        expected_calls = 2
+        assert mock_archive.call_count == expected_calls
+
+    @staticmethod
+    @patch("notify_api.services.notify_service.Notification")
+    def test_archive_expired_notifications_query_exception(mock_notification_class):
+        """Test archive when the query itself raises."""
+        mock_notification_class.find_archivable_notifications.side_effect = Exception("Database error")
+
+        # Should not raise any exception
+        NotifyService.archive_expired_notifications()
+
+    @staticmethod
+    @patch("notify_api.services.notify_service.NotificationHistory")
+    def test_archive_single_notification_success(mock_history_class):
+        """Test successfully archiving a single stuck notification."""
+        mock_notification = Mock()
+        mock_notification.id = "test-notification-id"
+        mock_notification.recipients = "test@example.com"
+        mock_notification.status_code = Notification.NotificationStatus.FAILURE
+
+        mock_history_class.create_history.return_value = Mock()
+
+        result = NotifyService._archive_single_notification(mock_notification)
+
+        assert result is True
+        assert mock_notification.status_code == Notification.NotificationStatus.EXPIRED
+        mock_history_class.create_history.assert_called_once_with(mock_notification)
+        mock_notification.delete_notification.assert_called_once()
+
+    @staticmethod
+    @patch("notify_api.services.notify_service.NotificationHistory")
+    def test_archive_single_notification_exception(mock_history_class):
+        """Test archiving a notification when history creation raises."""
+        mock_notification = Mock()
+        mock_notification.id = "test-notification-id"
+        mock_notification.status_code = Notification.NotificationStatus.QUEUED
+
+        mock_history_class.create_history.side_effect = Exception("DB error")
+
+        result = NotifyService._archive_single_notification(mock_notification)
+
+        assert result is False
+        mock_notification.delete_notification.assert_not_called()
+
+    @staticmethod
+    @patch("notify_api.services.notify_service.Notification")
+    def test_queue_republish_calls_archive_first(mock_notification_class):
+        """Test that queue_republish archives expired notifications before resending."""
+        mock_notification_class.find_resend_notifications.return_value = []
+
+        with patch.object(NotifyService, "archive_expired_notifications") as mock_archive:
+            NotifyService.queue_republish()
+
+        mock_archive.assert_called_once()

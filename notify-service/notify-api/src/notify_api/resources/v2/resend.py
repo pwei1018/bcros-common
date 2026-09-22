@@ -21,16 +21,31 @@ from flask_pydantic import validate
 from notify_api.services.notify_service import NotifyService
 from notify_api.utils.auth import jwt
 from notify_api.utils.enums import Role
+from notify_api.utils.scheduler_auth import is_authorized_scheduler_request
 
 bp = Blueprint("RESEND", __name__, url_prefix="/resend")
 
 
 @bp.route("", methods=["POST"])
-@jwt.requires_auth
-@jwt.has_one_of_roles([Role.SYSTEM.value, Role.PUBLIC_USER.value, Role.STAFF.value])
 @validate()
 def resend():
-    """Resend notification endpoint."""
-    NotifyService.queue_republish()
+    """Resend notification endpoint.
 
+    Accessible either via a trusted Cloud Scheduler service account
+    (Google-signed OIDC token) or the standard Keycloak-authenticated
+    caller with an authorized role.
+    """
+    if is_authorized_scheduler_request():
+        NotifyService.queue_republish()
+        return {}, HTTPStatus.OK
+
+    return _resend_authenticated()
+
+
+@jwt.requires_auth
+@jwt.has_one_of_roles([Role.SYSTEM.value, Role.PUBLIC_USER.value, Role.STAFF.value])
+def _resend_authenticated():
+    """Resend notification for Keycloak-authenticated callers."""
+    NotifyService.queue_republish()
     return {}, HTTPStatus.OK
+
