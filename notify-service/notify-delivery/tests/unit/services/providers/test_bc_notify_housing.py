@@ -22,37 +22,22 @@ from notify_api.models.content import Content as NotificationContent
 
 from notify_delivery.services.providers.bc_notify import BCNotify
 from notify_delivery.services.providers.bc_notify_housing import BCNotifyHousing
-from notify_delivery.services.providers.gc_notify import GCNotify
 
-# ---------------------------------------------------------------------------
-# Shared valid-looking GC Notify API key format used across tests
-# ---------------------------------------------------------------------------
 _VALID_API_KEY = "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6-q1r2s3t4-u5v6-w7x8-y9z0-a1b2c3d4e5f6"
-_GC_NOTIFY_URL = "https://api.notification.alpha.canada.ca"
+_BC_NOTIFY_URL = "https://api.gov.bc.ca"
 
 
 class TestBCNotifyHousing(unittest.TestCase):
     """Test suite for BC Notify Housing service provider."""
 
     def setUp(self):
-        """Set up test fixtures with BC Notify Housing, BC Notify and base GC Notify config keys."""
+        """Set up BC Notify Housing and base BC Notify configuration."""
         self.app = Flask(__name__)
         self.app.config.update(
             {
-                # BC Notify Housing-specific keys
+                "BC_NOTIFY_API_URL": _BC_NOTIFY_URL,
                 "BC_NOTIFY_HOUSING_API_KEY": _VALID_API_KEY,
-                "BC_NOTIFY_HOUSING_TEMPLATE_ID": "bc_notify_housing_template_123",
-                "BC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID": "bc_notify_housing_reply_to_456",
-                # BC Notify fallback keys
                 "BC_NOTIFY_API_KEY": _VALID_API_KEY,
-                "BC_NOTIFY_TEMPLATE_ID": "bc_notify_template",
-                "BC_NOTIFY_EMAIL_REPLY_TO_ID": "bc_notify_reply_to",
-                # Base GC Notify fallback keys
-                "GC_NOTIFY_API_KEY": _VALID_API_KEY,
-                "GC_NOTIFY_API_URL": _GC_NOTIFY_URL,
-                "GC_NOTIFY_TEMPLATE_ID": "default_template",
-                "GC_NOTIFY_EMAIL_REPLY_TO_ID": "default_reply_to",
-                "DEPLOYMENT_ENV": "production",
             }
         )
         self.app_context = self.app.app_context()
@@ -67,59 +52,29 @@ class TestBCNotifyHousing(unittest.TestCase):
     # ------------------------------------------------------------------
 
     @patch("notify_delivery.services.providers.bc_notify.requests.post")
-    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_housing_config_override(self, mock_base_client, mock_post):
+    def test_init_housing_config_override(self, mock_post):
         """BCNotifyHousing should pick up housing-specific config when present."""
         mock_notification = Mock(spec=Notification)
 
         housing = BCNotifyHousing(mock_notification)
 
         self.assertEqual(housing.api_key, _VALID_API_KEY)
-        self.assertEqual(housing.gc_notify_template_id, "bc_notify_housing_template_123")
-        self.assertEqual(housing.gc_notify_email_reply_to_id, "bc_notify_housing_reply_to_456")
         mock_post.assert_not_called()
 
     @patch("notify_delivery.services.providers.bc_notify.requests.post")
-    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_housing_config_missing_falls_back_to_bc_notify(self, mock_base_client, mock_post):
+    def test_init_housing_config_missing_falls_back_to_bc_notify(self, mock_post):
         """Missing housing keys should fall back to the BC Notify (non-housing) values."""
         self.app.config.pop("BC_NOTIFY_HOUSING_API_KEY", None)
-        self.app.config.pop("BC_NOTIFY_HOUSING_TEMPLATE_ID", None)
-        self.app.config.pop("BC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID", None)
         mock_notification = Mock(spec=Notification)
 
         housing = BCNotifyHousing(mock_notification)
 
         self.assertEqual(housing.api_key, _VALID_API_KEY)
-        self.assertEqual(housing.gc_notify_template_id, "bc_notify_template")
-        self.assertEqual(housing.gc_notify_email_reply_to_id, "bc_notify_reply_to")
 
     @patch("notify_delivery.services.providers.bc_notify.requests.post")
-    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_housing_and_bc_missing_falls_back_to_gc_notify_defaults(self, mock_base_client, mock_post):
-        """When both housing and BC Notify keys are absent, GC Notify defaults are used."""
-        for key in (
-            "BC_NOTIFY_HOUSING_API_KEY",
-            "BC_NOTIFY_HOUSING_TEMPLATE_ID",
-            "BC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID",
-            "BC_NOTIFY_API_KEY",
-            "BC_NOTIFY_TEMPLATE_ID",
-            "BC_NOTIFY_EMAIL_REPLY_TO_ID",
-        ):
-            self.app.config.pop(key, None)
-        mock_notification = Mock(spec=Notification)
-
-        housing = BCNotifyHousing(mock_notification)
-
-        self.assertEqual(housing.api_key, _VALID_API_KEY)
-        self.assertEqual(housing.gc_notify_template_id, "default_template")
-        self.assertEqual(housing.gc_notify_email_reply_to_id, "default_reply_to")
-
-    @patch("notify_delivery.services.providers.bc_notify.requests.post")
-    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_no_api_key_client_is_none(self, mock_base_client, mock_post):
-        """No API key anywhere should leave the client as None."""
-        for key in ("BC_NOTIFY_HOUSING_API_KEY", "BC_NOTIFY_API_KEY", "GC_NOTIFY_API_KEY"):
+    def test_init_housing_and_bc_api_keys_missing(self, mock_post):
+        """When both BC API keys are absent, the API key remains unset."""
+        for key in ("BC_NOTIFY_HOUSING_API_KEY", "BC_NOTIFY_API_KEY"):
             self.app.config.pop(key, None)
         mock_notification = Mock(spec=Notification)
 
@@ -129,85 +84,52 @@ class TestBCNotifyHousing(unittest.TestCase):
         mock_post.assert_not_called()
 
     @patch("notify_delivery.services.providers.bc_notify.requests.post")
-    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_empty_housing_config_falls_back(self, mock_base_client, mock_post):
+    def test_init_empty_housing_config_falls_back(self, mock_post):
         """Blank housing values should fall back to BC Notify values."""
-        self.app.config.update(
-            {
-                "BC_NOTIFY_HOUSING_API_KEY": "",
-                "BC_NOTIFY_HOUSING_TEMPLATE_ID": "",
-                "BC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID": "",
-            }
-        )
+        self.app.config["BC_NOTIFY_HOUSING_API_KEY"] = ""
         mock_notification = Mock(spec=Notification)
 
         housing = BCNotifyHousing(mock_notification)
 
-        self.assertEqual(housing.gc_notify_template_id, "bc_notify_template")
-        self.assertEqual(housing.gc_notify_email_reply_to_id, "bc_notify_reply_to")
+        self.assertEqual(housing.api_key, _VALID_API_KEY)
 
     @patch("notify_delivery.services.providers.bc_notify.requests.post")
-    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_whitespace_housing_config_falls_back(self, mock_base_client, mock_post):
+    def test_init_whitespace_housing_config_falls_back(self, mock_post):
         """Whitespace-only housing values should be treated as absent."""
-        self.app.config.update(
-            {
-                "BC_NOTIFY_HOUSING_TEMPLATE_ID": "   ",
-                "BC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID": "\t",
-            }
-        )
+        self.app.config["BC_NOTIFY_HOUSING_API_KEY"] = "   "
         mock_notification = Mock(spec=Notification)
 
         housing = BCNotifyHousing(mock_notification)
 
-        self.assertEqual(housing.gc_notify_template_id, "bc_notify_template")
-        self.assertEqual(housing.gc_notify_email_reply_to_id, "bc_notify_reply_to")
+        self.assertEqual(housing.api_key, _VALID_API_KEY)
 
     # ------------------------------------------------------------------
     # Inheritance tests
     # ------------------------------------------------------------------
 
-    def test_inherits_from_bc_notify_and_gc_notify(self):
-        """BCNotifyHousing must inherit from BCNotify (and therefore GCNotify)."""
+    def test_inherits_from_bc_notify(self):
+        """BCNotifyHousing should inherit the BC Notify delivery behavior."""
         mock_notification = Mock(spec=Notification)
         housing = BCNotifyHousing(mock_notification)
 
         self.assertIsInstance(housing, BCNotify)
-        self.assertIsInstance(housing, GCNotify)
         self.assertTrue(hasattr(housing, "send"))
-        self.assertTrue(hasattr(housing, "_prepare_personalisation"))
+        self.assertTrue(hasattr(housing, "_send_with_retry"))
 
     def test_bc_notify_housing_config_keys_constant(self):
         """BC_NOTIFY_HOUSING_CONFIG_KEYS should map the expected environment-variable names."""
         expected = {
             "api_key": "BC_NOTIFY_HOUSING_API_KEY",
-            "client_id": "BC_NOTIFY_HOUSING_API_CLIENT_ID",
-            "template_id": "BC_NOTIFY_HOUSING_TEMPLATE_ID",
-            "reply_to_id": "BC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID",
         }
         self.assertEqual(BCNotifyHousing.BC_NOTIFY_HOUSING_CONFIG_KEYS, expected)
-
-    @patch("notify_delivery.services.providers.bc_notify.requests.post")
-    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_init_housing_combines_client_id_into_api_key(self, mock_base_client, mock_post):
-        """Housing should preserve its own client id and use the BC gateway URL."""
-        self.app.config["BC_NOTIFY_API_URL"] = "https://api.gov.bc.ca"
-        self.app.config["BC_NOTIFY_HOUSING_API_CLIENT_ID"] = "housing-client-789"
-        mock_notification = Mock(spec=Notification)
-
-        housing = BCNotifyHousing(mock_notification)
-
-        self.assertEqual(housing.api_client_id, "housing-client-789")
-        self.assertEqual(housing.gc_notify_url, "https://api.gov.bc.ca")
 
     # ------------------------------------------------------------------
     # Send / integration tests
     # ------------------------------------------------------------------
 
     @patch("notify_delivery.services.providers.bc_notify.requests.post")
-    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_send_uses_housing_template(self, mock_base_client, mock_post):
-        """send() should use the housing-specific template ID and reply-to ID."""
+    def test_send_uses_new_bc_notify_payload(self, mock_post):
+        """send() should use the direct-email BC Notify payload."""
         mock_content = Mock(spec=NotificationContent)
         mock_content.subject = "Housing Test"
         mock_content.body = "Plain text body"
@@ -230,13 +152,23 @@ class TestBCNotifyHousing(unittest.TestCase):
         self.assertEqual(result.recipients[0].response_id, "housing-response-id")
 
         call_kwargs = mock_post.call_args.kwargs
-        payload = call_kwargs["json"]
-        self.assertEqual(payload["template_id"], "bc_notify_housing_template_123")
-        self.assertEqual(payload["email_reply_to_id"], "bc_notify_housing_reply_to_456")
+        self.assertEqual(
+            call_kwargs["json"],
+            {
+                "recipients": {
+                    "to": ["user@example.com"],
+                    "bcc": [],
+                },
+                "content": {
+                    "subject": "Housing Test",
+                    "body": "Plain text body",
+                    "bodyType": "html",
+                },
+            },
+        )
 
     @patch("notify_delivery.services.providers.bc_notify.requests.post")
-    @patch("notify_delivery.services.providers.gc_notify.NotificationsAPIClient")
-    def test_send_no_content_returns_empty(self, mock_base_client, mock_post):
+    def test_send_no_content_returns_empty(self, mock_post):
         """send() should return an empty recipients list when notification has no content."""
         mock_notification = Mock(spec=Notification)
         mock_notification.content = []

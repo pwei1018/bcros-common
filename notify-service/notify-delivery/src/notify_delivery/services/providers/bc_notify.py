@@ -11,68 +11,58 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This provides send email through BC Notify Service (GC Notify variant)."""
+"""This provides email delivery through BC Notify."""
 
 import time
 
 import requests
 from flask import current_app
-from notify_api.models import Notification
+from notify_api.models import (
+    Content,
+    Notification,
+    NotificationSendResponse,
+    NotificationSendResponses,
+)
 from requests.exceptions import RequestException
 from structured_logging import StructuredLogging
-
-from notify_delivery.services.providers.gc_notify import GCNotify
 
 logger = StructuredLogging.get_logger()
 
 
-class BCNotify(GCNotify):
-    """Send notification via BC Notify service (a GC Notify variant with BC-specific configuration).
+class BCNotify:
+    """Send notification via BC Notify service.
 
-    BC Notify is fronted by the BC Gov API gateway, which is a different host from
-    GC Notify (``BC_NOTIFY_API_URL``). The gateway issues the service/client id
-    (``BC_NOTIFY_API_CLIENT_ID``) separately from the API secret
-    (``BC_NOTIFY_API_KEY``). ``NotificationsAPIClient`` derives the service id from
-    ``api_key[-73:-37]`` and the secret from ``api_key[-36:]``, so the two values are
-    combined into that composite layout before the client is constructed.
+    BC Notify is fronted by the BC Gov API gateway and uses a direct email payload.
     """
+
+    MAX_RETRIES = 3
+    RETRY_BASE_DELAY = 10
+    RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
     BC_NOTIFY_CONFIG_KEYS = {
         "api_url": "BC_NOTIFY_API_URL",
         "api_key": "BC_NOTIFY_API_KEY",
-        "client_id": "BC_NOTIFY_API_CLIENT_ID",
-        "template_id": "BC_NOTIFY_TEMPLATE_ID",
-        "reply_to_id": "BC_NOTIFY_EMAIL_REPLY_TO_ID",
     }
+    BCC_RECIPIENTS: list[str] = []
 
-    def __init__(self, notification: Notification):
+    def __init__(self, notification: Notification) -> None:
         """Construct object, initialising with BC Notify-specific configuration."""
-        # Initialise parent to set all attributes from default GC Notify config keys
-        super().__init__(notification)
-
-        # Client/service identifier issued by the BC Gov API gateway (kept separate
-        # from the API secret and combined at client-construction time).
-        self.api_client_id = None
-
-        # Apply BC Notify-specific configuration overrides
+        self.notification = notification
+        self.bc_notify_url = None
+        self.api_key = None
         self._apply_bc_notify_config()
 
         if not self.api_key:
             logger.warning("No API key available for BC Notify service")
 
-    def _apply_bc_notify_config(self):
-        """Apply BC Notify-specific configuration overrides."""
+    def _apply_bc_notify_config(self) -> None:
+        """Load BC Notify configuration."""
         config = current_app.config
 
-        self.gc_notify_url = self._get_bc_notify_config_value(config, "api_url", self.gc_notify_url)
+        self.bc_notify_url = self._get_bc_notify_config_value(config, "api_url", self.bc_notify_url)
         self.api_key = self._get_bc_notify_config_value(config, "api_key", self.api_key)
-        self.api_client_id = self._get_bc_notify_config_value(config, "client_id", self.api_client_id)
-        self.gc_notify_template_id = self._get_bc_notify_config_value(config, "template_id", self.gc_notify_template_id)
-        self.gc_notify_email_reply_to_id = self._get_bc_notify_config_value(
-            config, "reply_to_id", self.gc_notify_email_reply_to_id
-        )
 
-    def _get_bc_notify_config_value(self, config, key_type: str, default_value):
+    def _get_bc_notify_config_value(self, config: dict, key_type: str, default_value: str | None) -> str | None:
         """Return BC Notify config value, falling back to *default_value* when absent or blank."""
         bc_key = self.BC_NOTIFY_CONFIG_KEYS[key_type]
         bc_value = config.get(bc_key)
@@ -81,22 +71,52 @@ class BCNotify(GCNotify):
             return bc_value
         return default_value
 
-    def _send_with_retry(self, recipient: str, personalisation: dict) -> dict | None:
-        """Send email directly to BC Gov API Gateway with retry on rate limit (429) and transient server errors (5xx)."""
-        if not self.api_key:
-            logger.error("No API key configured for BC Notify.")
+    def send(self) -> NotificationSendResponses:
+        """Send the notification to each recipient through BC Notify."""
+        if not self.notification.content:
+            logger.error("No message content available for notification")
+            return NotificationSendResponses(recipients=[])
+
+        content = self.notification.content[0]
+        if not all(hasattr(content, attr) for attr in ("subject", "body")):
+            logger.error("Invalid message content structure - missing subject or body")
+            return NotificationSendResponses(recipients=[])
+
+        responses: list[NotificationSendResponse] = []
+        recipients = [recipient.strip() for recipient in self.notification.recipients.split(",") if recipient.strip()]
+
+        for recipient in recipients:
+            try:
+                response = self._send_with_retry(recipient, content)
+                if response:
+                    responses.append(NotificationSendResponse(response_id=response["id"], recipient=recipient))
+            except RequestException as error:
+                logger.error(f"Error sending email to {recipient}: {error}")
+            except Exception as error:
+                logger.error(f"An unexpected error occurred when sending email to {recipient}: {error}")
+
+        return NotificationSendResponses(recipients=responses)
+
+    def _send_with_retry(self, recipient: str, content: Content) -> dict | None:
+        """Send email with retries for rate limits and transient server errors."""
+        if not self.api_key or not self.bc_notify_url:
+            logger.error("BC Notify API URL or key is not configured.")
             return None
 
-        url = f"{self.gc_notify_url.rstrip('/')}/v2/notifications/email"
-        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        url = f"{self.bc_notify_url.rstrip('/')}/api/v1/notifysimple/email"
+        headers = {"X-API-KEY": f"{self.api_key}", "Content-Type": "application/json"}
 
         payload = {
-            "email_address": recipient,
-            "template_id": self.gc_notify_template_id,
-            "personalisation": personalisation,
+            "recipients": {
+                "to": [recipient],
+                "bcc": self.BCC_RECIPIENTS,
+            },
+            "content": {
+                "subject": content.subject,
+                "body": content.body,
+                "bodyType": "html",
+            },
         }
-        if self.gc_notify_email_reply_to_id:
-            payload["email_reply_to_id"] = self.gc_notify_email_reply_to_id
 
         for attempt in range(self.MAX_RETRIES + 1):
             try:
