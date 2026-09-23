@@ -152,14 +152,28 @@ class Notification(db.Model):
 
     # Notifications older than this are considered stale/time-sensitive-expired
     # and must not be auto-resent (e.g. annual report reminders, renewal notices).
-    RESEND_MAX_AGE_HOURS = current_app.config.get("RESEND_MAX_AGE_HOURS", 48)
+    RESEND_MAX_AGE_HOURS = 48
 
     # Notifications younger than this may still be in-flight (queued but not
     # yet processed by the delivery worker) - skip them to avoid duplicate sends.
-    RESEND_MIN_AGE_MINUTES = current_app.config.get("RESEND_MIN_AGE_MINUTES", 10)
+    RESEND_MIN_AGE_MINUTES = 10
 
     # Stop retrying a notification after this many resend attempts.
-    RESEND_MAX_RETRY_COUNT = current_app.config.get("RESEND_MAX_RETRY_COUNT", 5)
+    RESEND_MAX_RETRY_COUNT = 5
+
+    # Notifications stuck in a non-terminal state for longer than this are
+    # considered unrecoverable and get archived (moved to history, deleted here).
+    ARCHIVE_AFTER_DAYS = 30
+
+    @classmethod
+    def _config_int(cls, key: str, default: int) -> int:
+        """Read an int override from the current app config, falling back to a default.
+
+        Reading via ``current_app`` must happen lazily (inside a method call, within an
+        active application context) rather than at class-body evaluation time, since the
+        latter runs at module import and has no Flask app context available yet.
+        """
+        return current_app.config.get(key, default)
 
     @classmethod
     def find_resend_notifications(cls):
@@ -176,20 +190,20 @@ class Notification(db.Model):
             Notification.NotificationStatus.FAILURE.value,
         )
 
+        max_age_hours = cls._config_int("RESEND_MAX_AGE_HOURS", cls.RESEND_MAX_AGE_HOURS)
+        min_age_minutes = cls._config_int("RESEND_MIN_AGE_MINUTES", cls.RESEND_MIN_AGE_MINUTES)
+        max_retry_count = cls._config_int("RESEND_MAX_RETRY_COUNT", cls.RESEND_MAX_RETRY_COUNT)
+
         now = datetime.now(UTC)
-        oldest_allowed = now - timedelta(hours=cls.RESEND_MAX_AGE_HOURS)
-        newest_allowed = now - timedelta(minutes=cls.RESEND_MIN_AGE_MINUTES)
+        oldest_allowed = now - timedelta(hours=max_age_hours)
+        newest_allowed = now - timedelta(minutes=min_age_minutes)
 
         return cls.query.filter(
             Notification.status_code.in_(resend_statuses),
             Notification.request_date >= oldest_allowed,
             Notification.request_date <= newest_allowed,
-            Notification.retry_count < cls.RESEND_MAX_RETRY_COUNT,
+            Notification.retry_count < max_retry_count,
         ).all()
-
-    # Notifications stuck in a non-terminal state for longer than this are
-    # considered unrecoverable and get archived (moved to history, deleted here).
-    ARCHIVE_AFTER_DAYS = current_app.config.get("ARCHIVE_AFTER_DAYS", 30)
 
     @classmethod
     def find_archivable_notifications(cls):
@@ -206,7 +220,8 @@ class Notification(db.Model):
             Notification.NotificationStatus.SENT.value,
         )
 
-        cutoff = datetime.now(UTC) - timedelta(days=cls.ARCHIVE_AFTER_DAYS)
+        archive_after_days = cls._config_int("ARCHIVE_AFTER_DAYS", cls.ARCHIVE_AFTER_DAYS)
+        cutoff = datetime.now(UTC) - timedelta(days=archive_after_days)
 
         return cls.query.filter(
             Notification.status_code.in_(archivable_statuses),
