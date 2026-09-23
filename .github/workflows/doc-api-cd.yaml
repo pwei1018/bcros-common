@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - feature*
+      - hotfix*
     paths:
       - "document-service/doc-api/**"
   workflow_dispatch:
@@ -17,7 +19,13 @@ on:
         - test
         - sandbox
         - prod
-
+      redeploy:
+        description: "Redeploy Application"
+        required: true
+        type: choice
+        options:
+          - "false"
+          - "true"
 jobs:
   doc-api-cd:
     uses: bcgov/bcregistry-sre/.github/workflows/backend-cd.yaml@main

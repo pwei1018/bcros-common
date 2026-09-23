@@ -3,9 +3,9 @@
 from enum import auto
 from http import HTTPStatus
 from unittest.mock import MagicMock, Mock, patch
-from urllib.error import URLError
 
 from flask import Flask
+import httpx
 import pytest
 
 from notify_api.config import Config, ProductionConfig, UnitTestingConfig
@@ -15,6 +15,21 @@ from notify_api.resources.meta.meta import info
 from notify_api.resources.version_endpoint import VersionEndpoint
 from notify_api.utils.base import BaseEnum
 from notify_api.utils.util import download_file, to_camel
+
+
+def _build_httpx_stream_mock(chunks, headers=None):
+    """Build (client, response) MagicMocks emulating ``httpx.Client(...).stream(...)``."""
+    mock_response = MagicMock()
+    mock_response.headers = headers or {}
+    mock_response.iter_bytes.return_value = chunks
+    mock_response.__enter__.return_value = mock_response
+    mock_response.__exit__.return_value = False
+
+    mock_client = MagicMock()
+    mock_client.stream.return_value = mock_response
+    mock_client.__enter__.return_value = mock_client
+    mock_client.__exit__.return_value = False
+    return mock_client, mock_response
 
 
 class SampleBaseEnum(BaseEnum):
@@ -309,48 +324,107 @@ class TestBaseUtilities:
     # Utility function tests
     @staticmethod
     def test_download_file_success():
-        """Test download_file function success."""
+        """Test download_file returns content for a valid public https URL."""
         test_url = "https://example.com/test.pdf"
         test_content = b"test file content"
+        mock_client, _ = _build_httpx_stream_mock([test_content])
 
-        with patch("urllib.request.urlopen") as mock_urlopen:
-            mock_response = MagicMock()
-            mock_response.read.return_value = test_content
-            mock_response.__enter__ = lambda _: mock_response  # noqa: ARG005
-            mock_response.__exit__ = lambda *_: None  # noqa: ARG005
-            mock_urlopen.return_value = mock_response
-
+        with (
+            patch("notify_api.utils.util._host_resolves_to_blocked_ip", return_value=False),
+            patch("notify_api.utils.util.httpx.Client", return_value=mock_client),
+        ):
             result = download_file(test_url)
 
-            assert result == test_content
-            mock_urlopen.assert_called_once_with(test_url)
-            mock_response.read.assert_called_once()
+        assert result == test_content
+        mock_client.stream.assert_called_once_with("GET", test_url)
 
     @staticmethod
-    def test_download_file_http_error():
-        """Test download_file function with HTTP error."""
-        test_url = "https://example.com/notfound.pdf"
-
-        with patch("urllib.request.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = URLError("HTTP Error 404: Not Found")
-
-            with pytest.raises(URLError, match="HTTP Error 404: Not Found"):
-                download_file(test_url)
-
-            mock_urlopen.assert_called_once_with(test_url)
+    def test_download_file_rejects_file_scheme():
+        """Test download_file rejects the file:// scheme (local file disclosure / SSRF)."""
+        with pytest.raises(ValueError, match="Unsupported URL scheme"):
+            download_file("file:///etc/passwd")
 
     @staticmethod
-    def test_download_file_timeout_error():
-        """Test download_file function with timeout error."""
-        test_url = "https://example.com/slow.pdf"
+    def test_download_file_rejects_non_http_scheme():
+        """Test download_file rejects other non-http(s) schemes."""
+        with pytest.raises(ValueError, match="Unsupported URL scheme"):
+            download_file("ftp://example.com/file.pdf")
 
-        with patch("urllib.request.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = URLError("timeout")
+    @staticmethod
+    def test_download_file_rejects_missing_host():
+        """Test download_file rejects URLs without a host."""
+        with pytest.raises(ValueError, match="must include a host"):
+            download_file("https:///no-host")
 
-            with pytest.raises(URLError, match="timeout"):
-                download_file(test_url)
+    @staticmethod
+    def test_download_file_rejects_internal_address():
+        """Test download_file refuses hosts resolving to internal addresses (SSRF)."""
+        with (
+            patch("notify_api.utils.util._host_resolves_to_blocked_ip", return_value=True),
+            pytest.raises(ValueError, match="non-public"),
+        ):
+            download_file("http://169.254.169.254/latest/meta-data/")
 
-            mock_urlopen.assert_called_once_with(test_url)
+    @staticmethod
+    def test_download_file_blocks_loopback_address():
+        """Test download_file blocks hosts resolving to loopback (SSRF)."""
+        with patch("notify_api.utils.util.socket.getaddrinfo") as mock_getaddrinfo:
+            mock_getaddrinfo.return_value = [(2, 1, 6, "", ("127.0.0.1", 0))]
+            with pytest.raises(ValueError, match="non-public"):
+                download_file("http://localhost/secret")
+
+    @staticmethod
+    def test_download_file_allows_public_address():
+        """Test download_file proceeds for hosts resolving to public addresses."""
+        test_content = b"ok"
+        mock_client, _ = _build_httpx_stream_mock([test_content])
+        with (
+            patch("notify_api.utils.util.socket.getaddrinfo") as mock_getaddrinfo,
+            patch("notify_api.utils.util.httpx.Client", return_value=mock_client),
+        ):
+            mock_getaddrinfo.return_value = [(2, 1, 6, "", ("93.184.216.34", 0))]
+            result = download_file("https://example.com/file.pdf")
+
+        assert result == test_content
+
+    @staticmethod
+    def test_download_file_propagates_http_error():
+        """Test download_file propagates HTTP errors raised by raise_for_status."""
+        mock_client, mock_response = _build_httpx_stream_mock([])
+        mock_response.raise_for_status.side_effect = httpx.HTTPError("404 Not Found")
+
+        with (
+            patch("notify_api.utils.util._host_resolves_to_blocked_ip", return_value=False),
+            patch("notify_api.utils.util.httpx.Client", return_value=mock_client),
+            pytest.raises(httpx.HTTPError, match="404"),
+        ):
+            download_file("https://example.com/notfound.pdf")
+
+    @staticmethod
+    def test_download_file_rejects_oversized_content_length():
+        """Test download_file rejects when the declared Content-Length is too large."""
+        oversized = str(21 * 1024 * 1024)
+        mock_client, _ = _build_httpx_stream_mock([], headers={"Content-Length": oversized})
+
+        with (
+            patch("notify_api.utils.util._host_resolves_to_blocked_ip", return_value=False),
+            patch("notify_api.utils.util.httpx.Client", return_value=mock_client),
+            pytest.raises(ValueError, match="maximum allowed size"),
+        ):
+            download_file("https://example.com/big.pdf")
+
+    @staticmethod
+    def test_download_file_rejects_oversized_stream():
+        """Test download_file rejects when the streamed body exceeds the max size."""
+        big_chunk = b"a" * (21 * 1024 * 1024)
+        mock_client, _ = _build_httpx_stream_mock([big_chunk])
+
+        with (
+            patch("notify_api.utils.util._host_resolves_to_blocked_ip", return_value=False),
+            patch("notify_api.utils.util.httpx.Client", return_value=mock_client),
+            pytest.raises(ValueError, match="maximum allowed size"),
+        ):
+            download_file("https://example.com/big.pdf")
 
     @staticmethod
     def test_to_camel_function_usage():

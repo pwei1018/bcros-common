@@ -118,6 +118,7 @@ class ExceptionHandler:
         """
         exc_class = default_exceptions[exc_class_or_code] if isinstance(exc_class_or_code, int) else exc_class_or_code
 
-        assert issubclass(exc_class, Exception)
+        if not issubclass(exc_class, Exception):
+            raise TypeError(f"{exc_class!r} is not a subclass of Exception")
 
         return exc_class

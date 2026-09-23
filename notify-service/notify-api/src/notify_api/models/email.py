@@ -15,8 +15,8 @@
 
 from email_validator import EmailNotValidError, validate_email
 from flask import current_app
+import httpx
 from pydantic import BaseModel, field_validator
-import requests
 from structured_logging import StructuredLogging
 
 from notify_api.utils.enums import MillionverifierResult
@@ -40,9 +40,13 @@ class EmailValidator(BaseModel):
             millionverifier_api_key = current_app.config.get("MILLIONVERIFIER_API_KEY")
 
             if millionverifier_url and millionverifier_api_key:
-                validation_url = f"{millionverifier_url}/?api={millionverifier_api_key}&email={value}&timeout=10"
-
-                response = requests.get(validation_url, timeout=10)
+                # Pass query values via ``params`` so they are URL-encoded, preventing
+                # query-parameter injection through the supplied email address.
+                response = httpx.get(
+                    f"{millionverifier_url}/",
+                    params={"api": millionverifier_api_key, "email": value, "timeout": 10},
+                    timeout=10,
+                )
 
                 res_json = response.json()
                 if res_json and res_json["result"] != MillionverifierResult.OK.value:

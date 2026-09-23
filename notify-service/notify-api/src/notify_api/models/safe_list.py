@@ -42,14 +42,17 @@ class SafeList(db.Model):
     @classmethod
     def add_email(cls, email: str):
         """Add email to list."""
+        from structured_logging import StructuredLogging
+
         db_email = SafeList(email=email)
 
         try:
             db.session.add(db_email)
             db.session.commit()
             db.session.refresh(db_email)
-        except Exception:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             db.session.rollback()
+            StructuredLogging.get_logger().warning(f"Failed to add email to safe list: {email}. Error: {e}")
 
         return db_email
 
@@ -64,9 +67,10 @@ class SafeList(db.Model):
         return is_safe
 
     @classmethod
-    def find_by_email(cls, email: str) -> SafeList:
+    def find_by_email(cls, email: str) -> SafeList | None:
         """return safe list."""
-        return (cls.query.filter_by(email=email).all())[0]
+        results = cls.query.filter_by(email=email).all()
+        return results[0] if results else None
 
     @classmethod
     def find_all(cls) -> list[SafeList]:

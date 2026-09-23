@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - feature*
+      - hotfix*
     paths:
       - "status-api/**"
   workflow_dispatch:
@@ -16,6 +18,13 @@ on:
         - dev
         - test
         - prod
+      redeploy:
+        description: "Redeploy Application"
+        required: true
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 jobs:
   status-api-cd:

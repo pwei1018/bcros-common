@@ -18,17 +18,66 @@ This includes testing email validation logic, external API integration, and erro
 """
 
 from http import HTTPStatus
+import time
 from unittest.mock import Mock, patch
 
+from flask.testing import FlaskClient
+import httpx
 import pytest
-import requests
 
 from notify_api.models import EmailValidator
-from notify_api.utils.enums import MillionverifierResult
+from notify_api.utils.enums import MillionverifierResult, Role
+
+
+class _AuthedFlaskClient(FlaskClient):
+    """Test client that injects a bearer token unless a request supplies its own."""
+
+    auth_token = ""
+
+    def open(self, *args, **kwargs):
+        headers = dict(kwargs.pop("headers", None) or {})
+        headers.setdefault("Authorization", f"Bearer {self.auth_token}")
+        return super().open(*args, headers=headers, **kwargs)
+
+
+@pytest.fixture
+def client(app, jwt):
+    """Return a test client that attaches a valid auth token to every request.
+
+    The email validation GET endpoint now requires authentication; these tests
+    exercise validation behaviour, so a valid token is injected automatically.
+    Tests asserting the unauthenticated behaviour build their own client via
+    ``app.test_client()``.
+    """
+    token = jwt.create_jwt(
+        claims={
+            "realm_access": {"roles": [Role.SYSTEM.value]},
+            "aud": "example",
+            "iss": "https://example.localdomain/auth/realms/example",
+            "sub": "test-user",
+            "exp": int(time.time()) + 300,
+        },
+        header={"kid": "flask-jwt-oidc-test-client"},
+    )
+    original_class = app.test_client_class
+    app.test_client_class = _AuthedFlaskClient
+    try:
+        test_client = app.test_client()
+    finally:
+        app.test_client_class = original_class
+    test_client.auth_token = token
+    return test_client
 
 
 class TestEmailValidationEndpoint:
     """Test suite for email validation endpoint functionality."""
+
+    @staticmethod
+    def test_email_validation_requires_auth(app):
+        """Assert the GET endpoint rejects unauthenticated requests."""
+        unauthenticated = app.test_client()
+        response = unauthenticated.get("/api/v2/email_validation/?email_address=test@gmail.com")
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
 
     @patch("notify_api.models.email.validate_email")
     def test_valid_email_address(self, mock_validate_email, client):
@@ -189,7 +238,7 @@ class TestEmailValidationEndpoint:
                 # If validation doesn't work as expected, just ensure the class exists
                 assert EmailValidator is not None
 
-    @patch("notify_api.models.email.requests.get")
+    @patch("notify_api.models.email.httpx.get")
     @staticmethod
     def test_millionverifier_ok_result(mock_requests_get, app):
         """Test email validation with Millionverifier returning OK."""
@@ -207,7 +256,7 @@ class TestEmailValidationEndpoint:
 
             assert email_validator.email_address == "test@gmail.com"
 
-    @patch("notify_api.models.email.requests.get")
+    @patch("notify_api.models.email.httpx.get")
     @patch("notify_api.models.email.current_app")
     def test_millionverifier_disposable_result(self, mock_current_app, mock_requests_get, app):
         """Test email validation with Millionverifier returning DISPOSABLE."""
@@ -229,7 +278,7 @@ class TestEmailValidationEndpoint:
         with app.app_context(), pytest.raises(ValueError, match="Invalid.*disposable.*Disposable email detected"):
             EmailValidator(email_address="test@tempmail.com")
 
-    @patch("notify_api.models.email.requests.get")
+    @patch("notify_api.models.email.httpx.get")
     @patch("notify_api.models.email.current_app")
     def test_millionverifier_catch_all_result(self, mock_current_app, mock_requests_get, app):
         """Test email validation with Millionverifier returning CATCH_ALL."""
@@ -250,7 +299,7 @@ class TestEmailValidationEndpoint:
         with app.app_context(), pytest.raises(ValueError, match="Invalid.*catch_all.*Catch-all email detected"):
             EmailValidator(email_address="any@catchall.com")
 
-    @patch("notify_api.models.email.requests.get")
+    @patch("notify_api.models.email.httpx.get")
     @patch("notify_api.models.email.current_app")
     def test_millionverifier_unknown_result(self, mock_current_app, mock_requests_get, app):
         """Test email validation with Millionverifier returning UNKNOWN."""
@@ -271,7 +320,7 @@ class TestEmailValidationEndpoint:
         with app.app_context(), pytest.raises(ValueError, match="Invalid.*unknown.*Unknown email status"):
             EmailValidator(email_address="unknown@gmail.com")
 
-    @patch("notify_api.models.email.requests.get")
+    @patch("notify_api.models.email.httpx.get")
     @patch("notify_api.models.email.current_app")
     def test_millionverifier_error_result(self, mock_current_app, mock_requests_get, app):
         """Test email validation with Millionverifier returning ERROR."""
@@ -334,7 +383,7 @@ class TestEmailValidationEndpoint:
 class TestMillionverifierAPIFailures:
     """Test suite for Millionverifier API failure scenarios."""
 
-    @patch("notify_api.models.email.requests.get")
+    @patch("notify_api.models.email.httpx.get")
     @patch("notify_api.models.email.current_app")
     def test_millionverifier_request_timeout(self, mock_current_app, mock_requests_get, app):
         """Test email validation when Millionverifier API times out."""
@@ -345,16 +394,16 @@ class TestMillionverifierAPIFailures:
         mock_current_app.config.get.side_effect = config_dict.get
 
         # Mock timeout exception
-        mock_requests_get.side_effect = requests.Timeout("Request timed out")
+        mock_requests_get.side_effect = httpx.TimeoutException("Request timed out")
 
         with app.app_context():
             import contextlib
 
-            with contextlib.suppress(requests.Timeout, Exception):
+            with contextlib.suppress(httpx.TimeoutException, Exception):
                 EmailValidator(email_address="test@gmail.com")
                 # If no exception, that's also acceptable
 
-    @patch("notify_api.models.email.requests.get")
+    @patch("notify_api.models.email.httpx.get")
     @patch("notify_api.models.email.current_app")
     def test_millionverifier_connection_error(self, mock_current_app, mock_requests_get, app):
         """Test email validation when Millionverifier API is unreachable."""
@@ -365,16 +414,16 @@ class TestMillionverifierAPIFailures:
         mock_current_app.config.get.side_effect = config_dict.get
 
         # Mock connection error
-        mock_requests_get.side_effect = requests.ConnectionError("Connection failed")
+        mock_requests_get.side_effect = httpx.ConnectError("Connection failed")
 
         with app.app_context():
             import contextlib
 
-            with contextlib.suppress(requests.ConnectionError, Exception):
+            with contextlib.suppress(httpx.ConnectError, Exception):
                 EmailValidator(email_address="test@gmail.com")
                 # If no exception, that's also acceptable
 
-    @patch("notify_api.models.email.requests.get")
+    @patch("notify_api.models.email.httpx.get")
     @patch("notify_api.models.email.current_app")
     def test_millionverifier_invalid_json_response(self, mock_current_app, mock_requests_get, app):
         """Test email validation when Millionverifier returns invalid JSON."""
@@ -392,8 +441,7 @@ class TestMillionverifierAPIFailures:
         with app.app_context(), pytest.raises(ValueError):
             EmailValidator(email_address="test@gmail.com")
 
-    @patch("notify_api.models.email.requests.get")
-    @patch("notify_api.models.email.requests.get")
+    @patch("notify_api.models.email.httpx.get")
     @patch("notify_api.models.email.current_app")
     def test_millionverifier_empty_response(self, mock_current_app, mock_requests_get, app):
         """Test email validation when Millionverifier returns empty response."""
