@@ -17,6 +17,7 @@ from datetime import UTC, datetime, timedelta
 from enum import auto
 
 from email_validator import EmailNotValidError, validate_email
+from flask import current_app
 import phonenumbers
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -151,14 +152,14 @@ class Notification(db.Model):
 
     # Notifications older than this are considered stale/time-sensitive-expired
     # and must not be auto-resent (e.g. annual report reminders, renewal notices).
-    RESEND_MAX_AGE_HOURS = 48
+    RESEND_MAX_AGE_HOURS = current_app.config.get("RESEND_MAX_AGE_HOURS", 48)
 
     # Notifications younger than this may still be in-flight (queued but not
     # yet processed by the delivery worker) - skip them to avoid duplicate sends.
-    RESEND_MIN_AGE_MINUTES = 10
+    RESEND_MIN_AGE_MINUTES = current_app.config.get("RESEND_MIN_AGE_MINUTES", 10)
 
     # Stop retrying a notification after this many resend attempts.
-    RESEND_MAX_RETRY_COUNT = 5
+    RESEND_MAX_RETRY_COUNT = current_app.config.get("RESEND_MAX_RETRY_COUNT", 5)
 
     @classmethod
     def find_resend_notifications(cls):
@@ -188,7 +189,7 @@ class Notification(db.Model):
 
     # Notifications stuck in a non-terminal state for longer than this are
     # considered unrecoverable and get archived (moved to history, deleted here).
-    ARCHIVE_AFTER_DAYS = 30
+    ARCHIVE_AFTER_DAYS = current_app.config.get("ARCHIVE_AFTER_DAYS", 30)
 
     @classmethod
     def find_archivable_notifications(cls):
