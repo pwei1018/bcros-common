@@ -13,10 +13,11 @@
 # limitations under the License.
 """Notification data model."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import auto
 
 from email_validator import EmailNotValidError, validate_email
+from flask import current_app
 import phonenumbers
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -89,6 +90,7 @@ class Notification(db.Model):
         DELIVERED = auto()
         FAILURE = auto()
         FORWARDED = auto()
+        EXPIRED = auto()
 
     class NotificationProvider(BaseEnum):
         """Enum for the Notification Provider."""
@@ -107,6 +109,7 @@ class Notification(db.Model):
     type_code = db.Column(db.Enum(NotificationType), default=NotificationType.EMAIL)
     status_code = db.Column(db.Enum(NotificationStatus), default=NotificationStatus.PENDING)
     provider_code = db.Column(db.Enum(NotificationProvider), nullable=True)
+    retry_count = db.Column(db.Integer, default=0, nullable=False, server_default="0")
 
     # relationships
     content = db.relationship("Content")
@@ -147,16 +150,83 @@ class Notification(db.Model):
             notifications = cls.query.filter_by(status_code=status).all()
         return notifications
 
+    # Notifications older than this are considered stale/time-sensitive-expired
+    # and must not be auto-resent (e.g. annual report reminders, renewal notices).
+    RESEND_MAX_AGE_HOURS = 48
+
+    # Notifications younger than this may still be in-flight (queued but not
+    # yet processed by the delivery worker) - skip them to avoid duplicate sends.
+    RESEND_MIN_AGE_MINUTES = 10
+
+    # Stop retrying a notification after this many resend attempts.
+    RESEND_MAX_RETRY_COUNT = 5
+
+    # Notifications stuck in a non-terminal state for longer than this are
+    # considered unrecoverable and get archived (moved to history, deleted here).
+    ARCHIVE_AFTER_DAYS = 30
+
+    @classmethod
+    def _config_int(cls, key: str, default: int) -> int:
+        """Read an int override from the current app config, falling back to a default.
+
+        Reading via ``current_app`` must happen lazily (inside a method call, within an
+        active application context) rather than at class-body evaluation time, since the
+        latter runs at module import and has no Flask app context available yet.
+        """
+        return current_app.config.get(key, default)
+
     @classmethod
     def find_resend_notifications(cls):
-        """Return all Notifications that need to resend."""
+        """Return Notifications that need to resend.
+
+        Excludes notifications that are:
+          - too young (may still be in-flight, not yet processed)
+          - too old (time-sensitive content has expired; resending is stale/wrong)
+          - already exhausted their retry budget
+        """
         resend_statuses = (
             Notification.NotificationStatus.QUEUED.value,
             Notification.NotificationStatus.PENDING.value,
             Notification.NotificationStatus.FAILURE.value,
         )
 
-        return cls.query.filter(Notification.status_code.in_(resend_statuses)).all()
+        max_age_hours = cls._config_int("RESEND_MAX_AGE_HOURS", cls.RESEND_MAX_AGE_HOURS)
+        min_age_minutes = cls._config_int("RESEND_MIN_AGE_MINUTES", cls.RESEND_MIN_AGE_MINUTES)
+        max_retry_count = cls._config_int("RESEND_MAX_RETRY_COUNT", cls.RESEND_MAX_RETRY_COUNT)
+
+        now = datetime.now(UTC)
+        oldest_allowed = now - timedelta(hours=max_age_hours)
+        newest_allowed = now - timedelta(minutes=min_age_minutes)
+
+        return cls.query.filter(
+            Notification.status_code.in_(resend_statuses),
+            Notification.request_date >= oldest_allowed,
+            Notification.request_date <= newest_allowed,
+            Notification.retry_count < max_retry_count,
+        ).all()
+
+    @classmethod
+    def find_archivable_notifications(cls):
+        """Return Notifications that have been stuck too long and should be archived.
+
+        This includes any status that never reached a clean terminal state
+        (PENDING/QUEUED/FAILURE) as well as SENT rows that failed to be
+        cleaned up after a successful delivery (see delete_notification).
+        """
+        archivable_statuses = (
+            Notification.NotificationStatus.PENDING.value,
+            Notification.NotificationStatus.QUEUED.value,
+            Notification.NotificationStatus.FAILURE.value,
+            Notification.NotificationStatus.SENT.value,
+        )
+
+        archive_after_days = cls._config_int("ARCHIVE_AFTER_DAYS", cls.ARCHIVE_AFTER_DAYS)
+        cutoff = datetime.now(UTC) - timedelta(days=archive_after_days)
+
+        return cls.query.filter(
+            Notification.status_code.in_(archivable_statuses),
+            Notification.request_date < cutoff,
+        ).all()
 
     @classmethod
     def create_notification(cls, notification: NotificationRequest, recipient: str = "", provider: str = None):

@@ -86,6 +86,24 @@ class Config:  # pylint: disable=too-few-public-methods
     except (TypeError, ValueError):
         JWT_OIDC_JWKS_CACHE_TIMEOUT = 300
 
+    # Cloud Scheduler -> /resend authorization (Google-signed OIDC token, bypasses Keycloak)
+    # RESEND_SCHEDULER_SA_EMAIL is the exact service account email Cloud Scheduler signs as.
+    # RESEND_SCHEDULER_AUDIENCE should match the --oidc-token-audience configured on the job
+    # (typically the Cloud Run service URL).
+    RESEND_SCHEDULER_SA_EMAIL = os.getenv("RESEND_SCHEDULER_SA_EMAIL", "")
+    RESEND_SCHEDULER_AUDIENCE = os.getenv("NOTIFY_API_URL", "") + os.getenv("NOTIFY_API_VERSION", "")
+    # Notifications older than this are considered stale/time-sensitive-expired
+    # and must not be auto-resent (e.g. annual report reminders, renewal notices).
+    RESEND_MAX_AGE_HOURS = int(os.getenv("RESEND_MAX_AGE_HOURS", "48"))
+    # Notifications younger than this may still be in-flight (queued but not
+    # yet processed by the delivery worker) - skip them to avoid duplicate sends.
+    RESEND_MIN_AGE_MINUTES = int(os.getenv("RESEND_MIN_AGE_MINUTES", "10"))
+    # Stop retrying a notification after this many resend attempts.
+    RESEND_MAX_RETRY_COUNT = int(os.getenv("RESEND_MAX_RETRY_COUNT", "5"))
+    # Notifications stuck in a non-terminal state for longer than this are
+    # considered unrecoverable and get archived (moved to history, deleted here).
+    ARCHIVE_AFTER_DAYS = int(os.getenv("ARCHIVE_AFTER_DAYS", "30"))
+
     # PUBSUB
     AUDIENCE = os.getenv("AUDIENCE", "https://pubsub.googleapis.com/google.pubsub.v1.Subscriber")
     PUBLISHER_AUDIENCE = os.getenv("PUBLISHER_AUDIENCE", "https://pubsub.googleapis.com/google.pubsub.v1.Publisher")
