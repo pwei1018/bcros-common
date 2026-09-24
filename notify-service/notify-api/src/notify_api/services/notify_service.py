@@ -28,6 +28,7 @@ from notify_api.models import (
     NotificationHistory,
     NotificationRequest,
     SafeList,
+    db,
 )
 from notify_api.services.gcp_queue import GcpQueue, queue
 
@@ -565,27 +566,49 @@ class NotifyService:
     def _archive_single_notification(notification: Notification) -> bool:
         """Archive a single stale notification as EXPIRED.
 
+        Writes the history row and deletes the notification/content within a
+        single DB transaction, so a mid-process failure can't leave the
+        notification stranded in an EXPIRED state without a corresponding
+        history record (or vice versa) - see the analogous fix in
+        notify-delivery's send_notification for the same class of bug.
+
         Args:
             notification: The notification to archive
 
         Returns:
             True if successful, False otherwise
         """
+        original_status = notification.status_code
+
         try:
-            original_status = notification.status_code
             notification.status_code = Notification.NotificationStatus.EXPIRED
 
-            NotificationHistory.create_history(notification)
+            if notification.content:
+                NotificationHistory.create_history(notification, commit=False)
+            else:
+                logger.warning(
+                    f"Archiving notification ID {notification.id} without content; "
+                    "using a placeholder history subject"
+                )
+                NotificationHistory.create_history(
+                    notification,
+                    subject=NotificationHistory.MISSING_CONTENT_SUBJECT,
+                    commit=False,
+                )
+
+            notification.delete_notification(commit=False)
+
+            db.session.commit()
 
             logger.info(
                 f"Archived notification ID {notification.id} for {notification.recipients} as EXPIRED "
                 f"(was {original_status})"
             )
 
-            notification.delete_notification()
-
             return True
 
         except Exception as err:
+            db.session.rollback()
+            notification.status_code = original_status
             logger.error(f"Error archiving notification ID {notification.id}: {err}")
             return False
