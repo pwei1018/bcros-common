@@ -1044,7 +1044,7 @@ wheels = [
 [[package]]
 name = "notify-api"
 version = "5.0.2"
-source = { git = "https://github.com/bcgov/bcros-common.git?subdirectory=notify-service%2Fnotify-api&branch=main#429b96bc0ca5fd555d508f6e84345a0e490fa3ff" }
+source = { git = "https://github.com/bcgov/bcros-common.git?subdirectory=notify-service%2Fnotify-api&branch=main#b13cb99b14e142594ae8171f303f72347dc6353d" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "cachecontrol" },
@@ -1059,11 +1059,13 @@ dependencies = [
     { name = "flask-sqlalchemy" },
     { name = "flask-swagger-ui" },
     { name = "gcp-queue" },
+    { name = "google-auth" },
     { name = "gunicorn" },
     { name = "httpx" },
     { name = "notifications-python-client" },
     { name = "pg8000" },
     { name = "phonenumbers" },
+    { name = "psycopg", extra = ["binary"] },
     { name = "pycountry" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
