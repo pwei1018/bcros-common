@@ -293,6 +293,20 @@ class TestNotificationHistoryModel:
             assert add_call_args.gc_notify_response_id is None
 
     @staticmethod
+    def test_create_history_with_subject_override(sample_notification):
+        """Test history creation can archive a notification without content."""
+        sample_notification.content = []
+
+        with patch("notify_api.models.notification_history.db.session") as mock_session:
+            NotificationHistory.create_history(
+                sample_notification,
+                subject=NotificationHistory.MISSING_CONTENT_SUBJECT,
+            )
+
+        add_call_args = mock_session.add.call_args[0][0]
+        assert add_call_args.subject == NotificationHistory.MISSING_CONTENT_SUBJECT
+
+    @staticmethod
     def test_create_history_uppercase_conversion(sample_notification):
         """Test that create_history converts codes to uppercase."""
         # Arrange - modify sample to have lowercase codes

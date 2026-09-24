@@ -23,6 +23,7 @@ class NotificationHistory(db.Model):
     """Immutable Notification History record. Represents Notification History."""
 
     __tablename__ = "notification_history"
+    MISSING_CONTENT_SUBJECT = "[Notification content unavailable]"
 
     id = db.Column(db.Integer, primary_key=True)
     recipients = db.Column(db.String(2000), nullable=False)
@@ -56,14 +57,36 @@ class NotificationHistory(db.Model):
         }
 
     @classmethod
-    def create_history(cls, notification: Notification, recipient: str | None = None, response_id: str | None = None):
-        """Create notification."""
+    def create_history(
+        cls,
+        notification: Notification,
+        recipient: str | None = None,
+        response_id: str | None = None,
+        subject: str | None = None,
+        commit: bool = True,
+    ):
+        """Create notification history record.
+
+        Args:
+            notification: The notification being archived/recorded.
+            recipient: Override recipient (defaults to notification.recipients).
+            response_id: Provider response id, if any.
+            subject: Override subject (used when notification.content is empty).
+            commit: When True (default), commits immediately. Pass False to
+                only flush within a caller-managed transaction (e.g. so it can
+                be committed atomically alongside the notification update and
+                deletion in the same send/archive operation).
+        """
+        history_subject = subject
+        if history_subject is None:
+            history_subject = notification.content[0].subject
+
         db_history = NotificationHistory(
             recipients=recipient or notification.recipients,
             request_date=notification.request_date,
             request_by=notification.request_by,
             sent_date=notification.sent_date,
-            subject=notification.content[0].subject,
+            subject=history_subject,
             type_code=notification.type_code.upper(),
             status_code=notification.status_code.upper(),
             provider_code=notification.provider_code.upper(),
@@ -71,7 +94,9 @@ class NotificationHistory(db.Model):
             notification_id=notification.id,
         )
         db.session.add(db_history)
-        db.session.commit()
+        db.session.flush()
+        if commit:
+            db.session.commit()
         db.session.refresh(db_history)
 
         return db_history

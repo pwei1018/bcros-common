@@ -18,6 +18,7 @@ from notify_api.models import (
     Notification,
     NotificationHistory,
     NotificationSendResponses,
+    db,
 )
 from notify_api.services.gcp_queue import queue
 from structured_logging import StructuredLogging
@@ -94,21 +95,35 @@ def validate_notification_content(notification: Notification):
 
 
 def send_notification(notification: Notification, provider_class) -> NotificationHistory | Notification:
-    """Send a notification using the specified provider."""
+    """Send a notification using the specified provider.
+
+    On success, marking the notification SENT, writing its history record(s),
+    and deleting it from the active table are committed as a single atomic
+    transaction. This prevents a mid-process crash/exception from ever
+    leaving a SENT row stranded in `notification` without a matching
+    `notification_history` record (previously each step was committed
+    separately, which could orphan SENT rows forever since they're outside
+    the resend/find_resend_notifications() scan).
+    """
     try:
         provider = provider_class(notification)
         responses: NotificationSendResponses = provider.send()
 
         if responses and responses.recipients:
             notification.status_code = Notification.NotificationStatus.SENT
-            notification.update_notification()
+            notification.update_notification(commit=False)
 
             history = None
             for response in responses.recipients:
                 logger.info(f"Creating history for notification.id={notification.id}, recipient={response.recipient}")
-                history = NotificationHistory.create_history(notification, response.recipient, response.response_id)
+                history = NotificationHistory.create_history(
+                    notification, response.recipient, response.response_id, commit=False
+                )
 
-            notification.delete_notification()
+            notification.delete_notification(commit=False)
+
+            # Single commit for mark-SENT + all history rows + delete.
+            db.session.commit()
 
             logger.info(f"Notification {notification.id} sent successfully to {len(responses.recipients)} recipients")
             return history
@@ -121,6 +136,9 @@ def send_notification(notification: Notification, provider_class) -> Notificatio
 
     except Exception as error:
         logger.error(f"Error sending notification {notification.id}: {error}")
+        # Discard any partial, uncommitted work from the atomic block above
+        # before re-marking the notification FAILURE in a fresh transaction.
+        db.session.rollback()
         notification.status_code = Notification.NotificationStatus.FAILURE
         notification.update_notification()
         raise ValueError(f"Failed to send notification {notification.id}") from error

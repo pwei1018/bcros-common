@@ -77,17 +77,29 @@ class Content(db.Model):
         return content_json
 
     @classmethod
-    def create_content(cls, content: ContentRequest, notification_id: int):
-        """Create notification content."""
+    def create_content(cls, content: ContentRequest, notification_id: int, commit: bool = True):
+        """Create notification content.
+
+        Args:
+            content: The content request data.
+            notification_id: The parent notification row id.
+            commit: When True (default), commits immediately. Pass False to
+                only flush the content and its attachments within a
+                caller-managed transaction (e.g. so they can be committed
+                atomically alongside the parent notification row).
+        """
         db_content = Content(subject=content.subject, body=content.body, notification_id=notification_id)
         db.session.add(db_content)
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
         db.session.refresh(db_content)
 
         if content.attachments:
             for attachment in content.attachments:
                 # save email attachment
-                Attachment.create_attachment(attachment=attachment, content_id=db_content.id)
+                Attachment.create_attachment(attachment=attachment, content_id=db_content.id, commit=commit)
         return db_content
 
     def update_content(self):
@@ -97,12 +109,22 @@ class Content(db.Model):
         db.session.commit()
         return self
 
-    def delete_content(self):
-        """Delete notification content."""
+    def delete_content(self, commit: bool = True):
+        """Delete notification content.
+
+        Args:
+            commit: When True (default), commits immediately. Pass False to
+                only flush the delete within a caller-managed transaction
+                (e.g. so it can be committed atomically alongside other
+                related changes).
+        """
         if self.attachments:
             for attachment in self.attachments:
                 # delete email attachment
-                attachment.delete_attachment()
+                attachment.delete_attachment(commit=commit)
 
         db.session.delete(self)
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()

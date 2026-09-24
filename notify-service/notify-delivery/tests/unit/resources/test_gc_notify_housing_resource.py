@@ -217,7 +217,9 @@ class TestGCNotifyHousingResource(unittest.TestCase):
         mock_client_instance.send_email_notification.assert_called_once()
         # Check that status was set (mocked object will have status_code attribute set)
         mock_notification_obj.update_notification.assert_called_once()
-        mock_history.create_history.assert_called_once_with(mock_notification_obj, "test@example.com", "response_123")
+        mock_history.create_history.assert_called_once_with(
+            mock_notification_obj, "test@example.com", "response_123", commit=False
+        )
         mock_notification_obj.delete_notification.assert_called_once()
         assert result == mock_history_obj
 

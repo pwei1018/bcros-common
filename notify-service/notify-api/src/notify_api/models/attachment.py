@@ -69,8 +69,17 @@ class Attachment(db.Model):
         return {"id": self.id, "fileName": self.file_name, "attachOrder": self.attach_order}
 
     @classmethod
-    def create_attachment(cls, attachment: AttachmentRequest, content_id: int):
-        """Create notification attachment."""
+    def create_attachment(cls, attachment: AttachmentRequest, content_id: int, commit: bool = True):
+        """Create notification attachment.
+
+        Args:
+            attachment: The attachment request data.
+            content_id: The parent content row id.
+            commit: When True (default), commits immediately. Pass False to
+                only flush the insert within a caller-managed transaction
+                (e.g. so all attachments for a notification can be committed
+                atomically alongside the notification and content rows).
+        """
         file_bytes = None
 
         if attachment.file_url:
@@ -85,12 +94,25 @@ class Attachment(db.Model):
             attach_order=attachment.attach_order,
         )
         db.session.add(db_attachment)
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
         db.session.refresh(db_attachment)
 
         return db_attachment
 
-    def delete_attachment(self):
-        """Delete notification attachment.."""
+    def delete_attachment(self, commit: bool = True):
+        """Delete notification attachment.
+
+        Args:
+            commit: When True (default), commits immediately. Pass False to
+                only flush the delete within an caller-managed transaction
+                (e.g. so it can be committed atomically alongside other
+                related changes).
+        """
         db.session.delete(self)
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()

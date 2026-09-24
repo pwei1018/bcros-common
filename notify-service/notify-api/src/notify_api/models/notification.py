@@ -212,14 +212,16 @@ class Notification(db.Model):
         """Return Notifications that have been stuck too long and should be archived.
 
         This includes any status that never reached a clean terminal state
-        (PENDING/QUEUED/FAILURE) as well as SENT rows that failed to be
-        cleaned up after a successful delivery (see delete_notification).
+        (PENDING/QUEUED/FAILURE), SENT rows that failed to be cleaned up after
+        a successful delivery, and EXPIRED rows left active by an interrupted
+        archive operation.
         """
         archivable_statuses = (
             Notification.NotificationStatus.PENDING.value,
             Notification.NotificationStatus.QUEUED.value,
             Notification.NotificationStatus.FAILURE.value,
             Notification.NotificationStatus.SENT.value,
+            Notification.NotificationStatus.EXPIRED.value,
         )
 
         archive_after_days = cls._config_int("ARCHIVE_AFTER_DAYS", cls.ARCHIVE_AFTER_DAYS)
@@ -232,7 +234,16 @@ class Notification(db.Model):
 
     @classmethod
     def create_notification(cls, notification: NotificationRequest, recipient: str = "", provider: str = None):
-        """Create notification."""
+        """Create notification, its content, and any attachments as a single atomic transaction.
+
+        Previously the notification row, content row, and each attachment row were each
+        committed independently. Since a failure in a later step (e.g. content validation,
+        or a network error downloading an attachment from a URL) could not roll back an
+        earlier already-committed step, this could leave a notification permanently
+        committed with no content row, or a content row with only some of its attachments.
+        A single commit at the end (with rollback-and-re-raise on any failure) ensures the
+        whole notification is either fully created or not created at all.
+        """
         db_notification = Notification(
             recipients=recipient or notification.recipients,
             request_date=datetime.now(UTC),
@@ -240,25 +251,50 @@ class Notification(db.Model):
             type_code=notification.notify_type or Notification.NotificationType.EMAIL,
             provider_code=provider,
         )
-        db.session.add(db_notification)
-        db.session.commit()
-        db.session.refresh(db_notification)
 
-        # save email content
-        Content.create_content(content=notification.content, notification_id=db_notification.id)
+        try:
+            db.session.add(db_notification)
+            db.session.flush()
+            db.session.refresh(db_notification)
+
+            # save email content and attachments
+            Content.create_content(content=notification.content, notification_id=db_notification.id, commit=False)
+
+            db.session.commit()
+            db.session.refresh(db_notification)
+        except Exception:
+            db.session.rollback()
+            raise
 
         return db_notification
 
-    def update_notification(self):
-        """Update notification."""
+    def update_notification(self, commit: bool = True):
+        """Update notification.
+
+        Args:
+            commit: When True (default), commits immediately. Pass False to
+                only flush the change within a caller-managed transaction
+                (e.g. so it can be committed atomically alongside other
+                related changes, such as history creation and deletion).
+        """
         db.session.add(self)
         db.session.flush()
-        db.session.commit()
+        if commit:
+            db.session.commit()
 
         return self
 
-    def delete_notification(self):
-        """Delete notification content."""
-        self.content[0].delete_content()
+    def delete_notification(self, commit: bool = True):
+        """Delete notification content.
+
+        Args:
+            commit: When True (default), commits immediately. Pass False to
+                only flush the delete within a caller-managed transaction.
+        """
+        for content in self.content:
+            content.delete_content(commit=commit)
         db.session.delete(self)
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
