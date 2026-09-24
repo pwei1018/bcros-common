@@ -421,16 +421,19 @@ class TestSendNotification:
     @patch("notify_delivery.resources.utils.NotificationHistory")
     @patch("notify_delivery.resources.utils.logger")
     def test_send_notification_rolls_back_on_history_failure(self, mock_logger, mock_history_class, mock_db):
-        """Test a failure while writing history rolls back the whole atomic block.
+        """Test a failure while writing history rolls back the atomic block but stays SENT.
 
-        This is the fix for orphaned SENT rows: previously each step (mark
-        SENT, write history, delete) was committed separately, so a failure
-        partway through could leave a SENT row in `notification` with no
-        matching history record. Now nothing is committed until every step
-        succeeds, and any failure rolls back and re-marks FAILURE cleanly.
+        The provider has already delivered the email by this point, so a
+        purely local bookkeeping failure (writing history) must not flip the
+        notification back to FAILURE - doing so would make it eligible for
+        the resend job, which would call the provider again and send a
+        second, real, duplicate email. It should be committed as SENT
+        instead, in a separate transaction, so it's excluded from resend and
+        picked up by the periodic archive sweep.
         """
         mock_notification = Mock()
         mock_notification.id = "test123"
+        mock_notification.status_code = Notification.NotificationStatus.QUEUED
         mock_provider_class = Mock()
         mock_provider = Mock()
 
@@ -445,10 +448,44 @@ class TestSendNotification:
 
         mock_history_class.create_history.side_effect = Exception("History write failed")
 
-        with pytest.raises(ValueError, match=f"Failed to send notification {mock_notification.id}"):
+        with pytest.raises(ValueError, match=f"Notification {mock_notification.id} was sent but bookkeeping failed"):
             send_notification(mock_notification, mock_provider_class)
 
         mock_db.session.commit.assert_not_called()
         mock_db.session.rollback.assert_called_once()
-        assert mock_notification.status_code == Notification.NotificationStatus.FAILURE
+        assert mock_notification.status_code == Notification.NotificationStatus.SENT
         mock_notification.delete_notification.assert_not_called()
+        # The SENT status is persisted in its own (separate) commit so the
+        # resend job will not pick this notification up again.
+        mock_notification.update_notification.assert_called_with()
+
+    @patch("notify_delivery.resources.utils.logger")
+    def test_send_notification_skips_if_already_sent(self, mock_logger):
+        """Test send_notification skips re-sending a notification that is already SENT."""
+        mock_notification = Mock()
+        mock_notification.id = "test123"
+        mock_notification.status_code = Notification.NotificationStatus.SENT
+        mock_provider_class = Mock()
+
+        result = send_notification(mock_notification, mock_provider_class)
+
+        assert result == mock_notification
+        mock_provider_class.assert_not_called()
+        mock_notification.update_notification.assert_not_called()
+        mock_logger.warning.assert_called_with(
+            f"Notification {mock_notification.id} is already SENT - skipping to avoid sending a duplicate email"
+        )
+
+    @patch("notify_delivery.resources.utils.logger")
+    def test_send_notification_skips_if_already_delivered(self, mock_logger):
+        """Test send_notification skips re-sending a notification that is already DELIVERED."""
+        mock_notification = Mock()
+        mock_notification.id = "test123"
+        mock_notification.status_code = Notification.NotificationStatus.DELIVERED
+        mock_provider_class = Mock()
+
+        result = send_notification(mock_notification, mock_provider_class)
+
+        assert result == mock_notification
+        mock_provider_class.assert_not_called()
+        mock_notification.update_notification.assert_not_called()

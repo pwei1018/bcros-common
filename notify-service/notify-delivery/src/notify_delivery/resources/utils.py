@@ -97,48 +97,85 @@ def validate_notification_content(notification: Notification):
 def send_notification(notification: Notification, provider_class) -> NotificationHistory | Notification:
     """Send a notification using the specified provider.
 
-    On success, marking the notification SENT, writing its history record(s),
-    and deleting it from the active table are committed as a single atomic
-    transaction. This prevents a mid-process crash/exception from ever
-    leaving a SENT row stranded in `notification` without a matching
-    `notification_history` record (previously each step was committed
-    separately, which could orphan SENT rows forever since they're outside
-    the resend/find_resend_notifications() scan).
+    Two distinct failure modes are handled differently on purpose:
+
+    1. The provider call itself fails (raises, or returns no responses) -
+       no email was sent, so it is safe to mark the notification FAILURE
+       and let it be picked up again by the periodic resend job.
+    2. The provider call *succeeds* (the recipient has already received the
+       email) but a later, purely local step - marking SENT, writing the
+       history record(s), or deleting the active row - fails. This must
+       NEVER flip the status back to a resend-eligible one (QUEUED/PENDING/
+       FAILURE), because the resend job would then call the provider again
+       and send a second, real, duplicate email to the recipient. Instead
+       the notification is left as SENT (which find_resend_notifications()
+       excludes) so it can only be cleaned up later by the archive sweep,
+       never re-sent.
+
+    As a further safeguard, a notification that is already SENT/DELIVERED
+    when this function is called is skipped rather than re-sent.
     """
+    if notification.status_code in (
+        Notification.NotificationStatus.SENT,
+        Notification.NotificationStatus.DELIVERED,
+    ):
+        logger.warning(
+            f"Notification {notification.id} is already {notification.status_code.name} - "
+            "skipping to avoid sending a duplicate email"
+        )
+        return notification
+
     try:
         provider = provider_class(notification)
         responses: NotificationSendResponses = provider.send()
-
-        if responses and responses.recipients:
-            notification.status_code = Notification.NotificationStatus.SENT
-            notification.update_notification(commit=False)
-
-            history = None
-            for response in responses.recipients:
-                logger.info(f"Creating history for notification.id={notification.id}, recipient={response.recipient}")
-                history = NotificationHistory.create_history(
-                    notification, response.recipient, response.response_id, commit=False
-                )
-
-            notification.delete_notification(commit=False)
-
-            # Single commit for mark-SENT + all history rows + delete.
-            db.session.commit()
-
-            logger.info(f"Notification {notification.id} sent successfully to {len(responses.recipients)} recipients")
-            return history
-        else:
-            notification.status_code = Notification.NotificationStatus.FAILURE
-            notification.update_notification()
-
-            logger.warning(f"Failed to send notification {notification.id} - no valid responses")
-            return notification
-
     except Exception as error:
+        # Nothing was sent - safe to mark FAILURE for the resend job to retry.
         logger.error(f"Error sending notification {notification.id}: {error}")
-        # Discard any partial, uncommitted work from the atomic block above
-        # before re-marking the notification FAILURE in a fresh transaction.
-        db.session.rollback()
         notification.status_code = Notification.NotificationStatus.FAILURE
         notification.update_notification()
         raise ValueError(f"Failed to send notification {notification.id}") from error
+
+    if not (responses and responses.recipients):
+        notification.status_code = Notification.NotificationStatus.FAILURE
+        notification.update_notification()
+
+        logger.warning(f"Failed to send notification {notification.id} - no valid responses")
+        return notification
+
+    # From here on, the recipient has already received the email. Any
+    # failure below is local bookkeeping only.
+    try:
+        notification.status_code = Notification.NotificationStatus.SENT
+        notification.update_notification(commit=False)
+
+        history = None
+        for response in responses.recipients:
+            logger.info(f"Creating history for notification.id={notification.id}, recipient={response.recipient}")
+            history = NotificationHistory.create_history(
+                notification, response.recipient, response.response_id, commit=False
+            )
+
+        notification.delete_notification(commit=False)
+
+        # Single commit for mark-SENT + all history rows + delete.
+        db.session.commit()
+
+        logger.info(f"Notification {notification.id} sent successfully to {len(responses.recipients)} recipients")
+        return history
+
+    except Exception as error:
+        db.session.rollback()
+        logger.error(
+            f"Notification {notification.id} was delivered by the provider, but saving history/cleanup failed: "
+            f"{error}. Marking it SENT (not FAILURE) so the resend job does not re-send this email; it will be "
+            "picked up by the periodic archive sweep instead."
+        )
+        try:
+            notification.status_code = Notification.NotificationStatus.SENT
+            notification.update_notification()
+        except Exception as persist_error:
+            logger.critical(
+                f"Failed to persist SENT status for notification {notification.id} after a delivered send - "
+                f"it may incorrectly remain eligible for resend and be sent again: {persist_error}"
+            )
+        raise ValueError(f"Notification {notification.id} was sent but bookkeeping failed") from error
