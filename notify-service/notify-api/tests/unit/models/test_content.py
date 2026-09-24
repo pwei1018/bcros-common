@@ -15,9 +15,12 @@
 
 from unittest.mock import Mock
 
+from pydantic import ValidationError
 import pytest
 
 from notify_api.models import Content
+from notify_api.models.attachment import AttachmentRequest
+from notify_api.models.content import ContentRequest
 
 # Test constants
 MAX_SUBJECT_LENGTH = 500
@@ -164,3 +167,63 @@ class TestContentModel:
         for body in invalid_bodies:
             if body is None or (body is not None and len(body.strip()) == 0):
                 assert True  # Invalid as expected
+
+
+class TestContentRequestSizeLimits:
+    """Test suite for ContentRequest guardrails against oversized payloads."""
+
+    @staticmethod
+    def test_large_body_within_default_limit_allowed():
+        """A body just under the default 1,000,000-character limit should be accepted."""
+        large_body = "A" * 999_999
+        content = ContentRequest(subject="Subject", body=large_body)
+        assert len(content.body) == 999_999  # noqa: PLR2004
+
+    @staticmethod
+    def test_large_body_over_default_limit_rejected():
+        """A body over the default 1,000,000-character limit should be rejected."""
+        oversized_body = "A" * 1_000_001
+        with pytest.raises(ValidationError) as exc_info:
+            ContentRequest(subject="Subject", body=oversized_body)
+
+        assert "must not exceed 1000000 characters" in str(exc_info.value)
+
+    @staticmethod
+    def test_large_body_over_custom_limit_rejected(app):
+        """The body length limit is configurable via app config (e.g. NOTIFY_MAX_BODY_LENGTH)."""
+        with app.app_context():
+            app.config["NOTIFY_MAX_BODY_LENGTH"] = 100
+            try:
+                with pytest.raises(ValidationError) as exc_info:
+                    ContentRequest(subject="Subject", body="A" * 101)
+                assert "must not exceed 100 characters" in str(exc_info.value)
+            finally:
+                del app.config["NOTIFY_MAX_BODY_LENGTH"]
+
+    @staticmethod
+    def test_subject_over_max_length_rejected():
+        """A subject longer than the DB column width (2000 chars) should be rejected early."""
+        with pytest.raises(ValidationError) as exc_info:
+            ContentRequest(subject="A" * 2001, body="Body")
+
+        assert "must not exceed 2000 characters" in str(exc_info.value)
+
+    @staticmethod
+    def test_attachments_within_default_limit_allowed():
+        """Exactly the default max number of attachments (10) should be accepted."""
+        attachments = [
+            AttachmentRequest(file_name=f"file{i}.txt", file_bytes="aGVsbG8=", attach_order=i) for i in range(10)
+        ]
+        content = ContentRequest(subject="Subject", body="Body", attachments=attachments)
+        assert len(content.attachments) == 10  # noqa: PLR2004
+
+    @staticmethod
+    def test_attachments_over_default_limit_rejected():
+        """More than the default max number of attachments (10) should be rejected."""
+        attachments = [
+            AttachmentRequest(file_name=f"file{i}.txt", file_bytes="aGVsbG8=", attach_order=i) for i in range(11)
+        ]
+        with pytest.raises(ValidationError) as exc_info:
+            ContentRequest(subject="Subject", body="Body", attachments=attachments)
+
+        assert "Too many attachments" in str(exc_info.value)

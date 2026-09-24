@@ -104,6 +104,17 @@ class Config:  # pylint: disable=too-few-public-methods
     # considered unrecoverable and get archived (moved to history, deleted here).
     ARCHIVE_AFTER_DAYS = int(os.getenv("ARCHIVE_AFTER_DAYS", "30"))
 
+    # Request-payload guardrails to reject oversized/abusive notify requests early,
+    # before they reach the DB or an email/SMS provider.
+    # Max number of comma-separated recipients accepted in a single request.
+    NOTIFY_MAX_RECIPIENTS = int(os.getenv("NOTIFY_MAX_RECIPIENTS", "100"))
+    # Max email body length, in characters (~1MB of UTF-8 text).
+    NOTIFY_MAX_BODY_LENGTH = int(os.getenv("NOTIFY_MAX_BODY_LENGTH", "1000000"))
+    # Max size, in bytes, of a single attachment's decoded file content (~10MB).
+    NOTIFY_MAX_ATTACHMENT_BYTES = int(os.getenv("NOTIFY_MAX_ATTACHMENT_BYTES", str(10 * 1024 * 1024)))
+    # Max number of attachments accepted per notification.
+    NOTIFY_MAX_ATTACHMENTS = int(os.getenv("NOTIFY_MAX_ATTACHMENTS", "10"))
+
     # PUBSUB
     AUDIENCE = os.getenv("AUDIENCE", "https://pubsub.googleapis.com/google.pubsub.v1.Subscriber")
     PUBLISHER_AUDIENCE = os.getenv("PUBLISHER_AUDIENCE", "https://pubsub.googleapis.com/google.pubsub.v1.Publisher")

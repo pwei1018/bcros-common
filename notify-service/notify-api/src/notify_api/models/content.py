@@ -17,10 +17,17 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from notify_api.utils.util import to_camel
+from notify_api.utils.util import config_limit, to_camel
 
 from .attachment import Attachment, AttachmentRequest
 from .db import db
+
+# Default guardrails (overridable via app config / env vars, see Config.NOTIFY_MAX_*).
+DEFAULT_MAX_BODY_LENGTH = 1_000_000
+DEFAULT_MAX_ATTACHMENTS = 10
+# Matches the `subject` column width (String(2000)) so oversized input is rejected
+# with a clean 400 instead of failing at the database layer.
+MAX_SUBJECT_LENGTH = 2000
 
 
 class ContentRequest(BaseModel):
@@ -38,6 +45,8 @@ class ContentRequest(BaseModel):
         """Valiate field is not empty."""
         if not v_field:
             raise ValueError("The email subject must not empty.")
+        if len(v_field) > MAX_SUBJECT_LENGTH:
+            raise ValueError(f"The email subject must not exceed {MAX_SUBJECT_LENGTH} characters.")
         return v_field
 
     @field_validator("body")
@@ -46,6 +55,21 @@ class ContentRequest(BaseModel):
         """Valiate field is not empty."""
         if not v_field:
             raise ValueError("The email body must not empty.")
+        max_body_length = config_limit("NOTIFY_MAX_BODY_LENGTH", DEFAULT_MAX_BODY_LENGTH)
+        if len(v_field) > max_body_length:
+            raise ValueError(f"The email body must not exceed {max_body_length} characters.")
+        return v_field
+
+    @field_validator("attachments")
+    @classmethod
+    def attachments_within_limit(cls, v_field):
+        """Validate the number of attachments does not exceed the configured maximum."""
+        if v_field:
+            max_attachments = config_limit("NOTIFY_MAX_ATTACHMENTS", DEFAULT_MAX_ATTACHMENTS)
+            if len(v_field) > max_attachments:
+                raise ValueError(
+                    f"Too many attachments: {len(v_field)} provided, maximum is {max_attachments}."
+                )
         return v_field
 
 

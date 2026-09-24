@@ -265,6 +265,49 @@ class TestAttachmentModelMissingCoverage:
         assert attachment.json == expected_json
 
 
+class TestAttachmentRequestSizeLimits:
+    """Test suite for AttachmentRequest guardrails against oversized inline file content."""
+
+    @staticmethod
+    def test_attachment_within_default_size_limit_allowed():
+        """A base64 payload decoding to just under the default 10MB limit should be accepted."""
+        raw_bytes = b"A" * (10 * 1024 * 1024 - 1)
+        encoded = base64.b64encode(raw_bytes).decode()
+        attachment_request = AttachmentRequest(file_name="large.bin", file_bytes=encoded, attach_order="1")
+        assert base64.b64decode(attachment_request.file_bytes) == raw_bytes
+
+    @staticmethod
+    def test_attachment_over_default_size_limit_rejected():
+        """A base64 payload decoding to over the default 10MB limit should be rejected."""
+        raw_bytes = b"A" * (10 * 1024 * 1024 + 1)
+        encoded = base64.b64encode(raw_bytes).decode()
+        with pytest.raises(ValidationError) as exc_info:
+            AttachmentRequest(file_name="too_large.bin", file_bytes=encoded, attach_order="1")
+
+        assert "exceeds the maximum" in str(exc_info.value)
+
+    @staticmethod
+    def test_attachment_over_custom_size_limit_rejected(app):
+        """The attachment size limit is configurable via app config (e.g. NOTIFY_MAX_ATTACHMENT_BYTES)."""
+        encoded = base64.b64encode(b"A" * 101).decode()
+        with app.app_context():
+            app.config["NOTIFY_MAX_ATTACHMENT_BYTES"] = 100
+            try:
+                with pytest.raises(ValidationError) as exc_info:
+                    AttachmentRequest(file_name="small_limit.bin", file_bytes=encoded, attach_order="1")
+                assert "exceeds the maximum of 100 bytes" in str(exc_info.value)
+            finally:
+                del app.config["NOTIFY_MAX_ATTACHMENT_BYTES"]
+
+    @staticmethod
+    def test_attachment_invalid_base64_rejected():
+        """Malformed base64 content should fail validation with a clean message, not a crash."""
+        with pytest.raises(ValidationError) as exc_info:
+            AttachmentRequest(file_name="bad.bin", file_bytes="not-valid-base64!!!", attach_order="1")
+
+        assert "not valid base64" in str(exc_info.value)
+
+
 class TestContentModelMissingCoverage:
     """Test class for content model missing coverage."""
 

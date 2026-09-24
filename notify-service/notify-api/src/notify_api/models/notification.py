@@ -22,10 +22,13 @@ import phonenumbers
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from notify_api.utils.base import BaseEnum
-from notify_api.utils.util import to_camel
+from notify_api.utils.util import config_limit, to_camel
 
 from .content import Content, ContentRequest
 from .db import db
+
+# Default guardrails (overridable via app config / env vars, see Config.NOTIFY_MAX_*).
+DEFAULT_MAX_RECIPIENTS = 100
 
 
 class NotificationRequest(BaseModel):  # pylint: disable=too-few-public-methods
@@ -45,7 +48,14 @@ class NotificationRequest(BaseModel):  # pylint: disable=too-few-public-methods
         if not v_field:
             raise ValueError("The recipients must not empty")
 
-        for recipient in v_field.split(","):
+        recipient_list = v_field.split(",")
+        max_recipients = config_limit("NOTIFY_MAX_RECIPIENTS", DEFAULT_MAX_RECIPIENTS)
+        if len(recipient_list) > max_recipients:
+            raise ValueError(
+                f"Too many recipients: {len(recipient_list)} provided, maximum is {max_recipients}."
+            )
+
+        for recipient in recipient_list:
             try:
                 parsed_phone = phonenumbers.parse(recipient)
                 if not phonenumbers.is_valid_number(parsed_phone):

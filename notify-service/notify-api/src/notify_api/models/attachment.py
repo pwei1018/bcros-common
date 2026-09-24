@@ -19,9 +19,12 @@ import base64
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from notify_api.utils.util import download_file, to_camel
+from notify_api.utils.util import config_limit, download_file, to_camel
 
 from .db import db
+
+# Default guardrail (overridable via app config / env var, see Config.NOTIFY_MAX_ATTACHMENT_BYTES).
+DEFAULT_MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 
 
 class AttachmentRequest(BaseModel):  # pylint: disable=too-few-public-methods
@@ -48,6 +51,25 @@ class AttachmentRequest(BaseModel):  # pylint: disable=too-few-public-methods
         if not self.file_bytes and not self.file_url:
             raise ValueError("The file content must attach")
         return self
+
+    @field_validator("file_bytes")
+    @classmethod
+    def file_bytes_within_size_limit(cls, v_field):
+        """Validate the decoded attachment content does not exceed the configured max size."""
+        if not v_field:
+            return v_field
+
+        try:
+            decoded_size = len(base64.b64decode(v_field, validate=True))
+        except (base64.binascii.Error, ValueError) as error_msg:
+            raise ValueError("The file content is not valid base64-encoded data.") from error_msg
+
+        max_bytes = config_limit("NOTIFY_MAX_ATTACHMENT_BYTES", DEFAULT_MAX_ATTACHMENT_BYTES)
+        if decoded_size > max_bytes:
+            raise ValueError(
+                f"The attachment size ({decoded_size} bytes) exceeds the maximum of {max_bytes} bytes."
+            )
+        return v_field
 
 
 class Attachment(db.Model):

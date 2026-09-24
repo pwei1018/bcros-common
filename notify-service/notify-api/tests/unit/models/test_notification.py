@@ -103,6 +103,35 @@ class TestNotificationRequest:
 
         assert "Invalid recipient" in str(exc_info.value)
 
+    @staticmethod
+    def test_validate_recipients_at_max_limit_allowed():
+        """Test that exactly the configured max number of recipients is accepted."""
+        recipients = ",".join(["+12345678901"] * 100)
+        notification = NotificationRequest(recipients=recipients)
+        assert len(notification.recipients.split(",")) == 100  # noqa: PLR2004
+
+    @staticmethod
+    def test_validate_recipients_over_max_limit_rejected():
+        """Test validation fails when recipients exceed the configured maximum (default 100)."""
+        recipients = ",".join(["+12345678901"] * 101)
+        with pytest.raises(ValidationError) as exc_info:
+            NotificationRequest(recipients=recipients)
+
+        assert "Too many recipients" in str(exc_info.value)
+
+    @staticmethod
+    def test_validate_recipients_over_custom_limit_rejected(app):
+        """Test the recipient limit is configurable via app config (e.g. NOTIFY_MAX_RECIPIENTS)."""
+        recipients = ",".join(["+12345678901"] * 6)
+        with app.app_context():
+            app.config["NOTIFY_MAX_RECIPIENTS"] = 5
+            try:
+                with pytest.raises(ValidationError) as exc_info:
+                    NotificationRequest(recipients=recipients)
+                assert "Too many recipients: 6 provided, maximum is 5." in str(exc_info.value)
+            finally:
+                del app.config["NOTIFY_MAX_RECIPIENTS"]
+
 
 class TestNotificationSendResponse:
     """Test suite for NotificationSendResponse model."""

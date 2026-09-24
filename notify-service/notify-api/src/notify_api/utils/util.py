@@ -19,7 +19,7 @@ import os
 import socket
 from urllib.parse import urlparse
 
-from flask import Flask
+from flask import Flask, current_app
 import httpx
 from sqlalchemy import event
 from sqlalchemy.engine.url import make_url
@@ -119,6 +119,21 @@ def to_camel(string: str) -> str:
 def env_truthy(name: str, default: str = "false") -> bool:
     """Return True when an environment flag is set to a truthy value (true/yes/1/on)."""
     return os.getenv(name, default).strip().lower() in _TRUTHY_VALUES
+
+
+def config_limit(key: str, default: int) -> int:
+    """Read an int limit from the current Flask app config, falling back to a default.
+
+    Used by pydantic request-model validators to enforce configurable guardrails
+    (e.g. max recipients, max body length, max attachment size). Falls back to
+    ``default`` both when the key is unset and when there is no active Flask
+    application context (e.g. a model instantiated directly in a unit test),
+    since pydantic validators can run outside of a request.
+    """
+    try:
+        return current_app.config.get(key, default)
+    except RuntimeError:
+        return default
 
 
 def describe_database_target(app: Flask) -> tuple[str, str]:
