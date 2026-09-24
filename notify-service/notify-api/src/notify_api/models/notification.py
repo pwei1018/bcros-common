@@ -210,14 +210,16 @@ class Notification(db.Model):
         """Return Notifications that have been stuck too long and should be archived.
 
         This includes any status that never reached a clean terminal state
-        (PENDING/QUEUED/FAILURE) as well as SENT rows that failed to be
-        cleaned up after a successful delivery (see delete_notification).
+        (PENDING/QUEUED/FAILURE), SENT rows that failed to be cleaned up after
+        a successful delivery, and EXPIRED rows left active by an interrupted
+        archive operation.
         """
         archivable_statuses = (
             Notification.NotificationStatus.PENDING.value,
             Notification.NotificationStatus.QUEUED.value,
             Notification.NotificationStatus.FAILURE.value,
             Notification.NotificationStatus.SENT.value,
+            Notification.NotificationStatus.EXPIRED.value,
         )
 
         archive_after_days = cls._config_int("ARCHIVE_AFTER_DAYS", cls.ARCHIVE_AFTER_DAYS)
@@ -247,16 +249,33 @@ class Notification(db.Model):
 
         return db_notification
 
-    def update_notification(self):
-        """Update notification."""
+    def update_notification(self, commit: bool = True):
+        """Update notification.
+
+        Args:
+            commit: When True (default), commits immediately. Pass False to
+                only flush the change within a caller-managed transaction
+                (e.g. so it can be committed atomically alongside other
+                related changes, such as history creation and deletion).
+        """
         db.session.add(self)
         db.session.flush()
-        db.session.commit()
+        if commit:
+            db.session.commit()
 
         return self
 
-    def delete_notification(self):
-        """Delete notification content."""
-        self.content[0].delete_content()
+    def delete_notification(self, commit: bool = True):
+        """Delete notification content.
+
+        Args:
+            commit: When True (default), commits immediately. Pass False to
+                only flush the delete within a caller-managed transaction.
+        """
+        for content in self.content:
+            content.delete_content(commit=commit)
         db.session.delete(self)
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()

@@ -654,7 +654,8 @@ class TestNotifyServiceArchiving:
 
     @staticmethod
     @patch("notify_api.services.notify_service.NotificationHistory")
-    def test_archive_single_notification_success(mock_history_class):
+    @patch("notify_api.services.notify_service.db")
+    def test_archive_single_notification_success(mock_db, mock_history_class):
         """Test successfully archiving a single stuck notification."""
         mock_notification = Mock()
         mock_notification.id = "test-notification-id"
@@ -667,22 +668,49 @@ class TestNotifyServiceArchiving:
 
         assert result is True
         assert mock_notification.status_code == Notification.NotificationStatus.EXPIRED
-        mock_history_class.create_history.assert_called_once_with(mock_notification)
-        mock_notification.delete_notification.assert_called_once()
+        mock_history_class.create_history.assert_called_once_with(mock_notification, commit=False)
+        mock_notification.delete_notification.assert_called_once_with(commit=False)
+        mock_db.session.commit.assert_called_once()
 
     @staticmethod
     @patch("notify_api.services.notify_service.NotificationHistory")
-    def test_archive_single_notification_exception(mock_history_class):
+    @patch("notify_api.services.notify_service.db")
+    def test_archive_single_notification_without_content(mock_db, mock_history_class):
+        """Test archiving a legacy notification that has no content row."""
+        mock_notification = Mock()
+        mock_notification.id = 630969
+        mock_notification.recipients = "test@example.com"
+        mock_notification.status_code = Notification.NotificationStatus.FAILURE
+        mock_notification.content = []
+
+        result = NotifyService._archive_single_notification(mock_notification)
+
+        assert result is True
+        mock_history_class.create_history.assert_called_once_with(
+            mock_notification,
+            subject=mock_history_class.MISSING_CONTENT_SUBJECT,
+            commit=False,
+        )
+        mock_notification.delete_notification.assert_called_once_with(commit=False)
+        mock_db.session.commit.assert_called_once()
+
+    @staticmethod
+    @patch("notify_api.services.notify_service.NotificationHistory")
+    @patch("notify_api.services.notify_service.db")
+    def test_archive_single_notification_exception(mock_db, mock_history_class):
         """Test archiving a notification when history creation raises."""
         mock_notification = Mock()
         mock_notification.id = "test-notification-id"
         mock_notification.status_code = Notification.NotificationStatus.QUEUED
+        mock_notification.content = [Mock()]
 
         mock_history_class.create_history.side_effect = Exception("DB error")
 
         result = NotifyService._archive_single_notification(mock_notification)
 
         assert result is False
+        assert mock_notification.status_code == Notification.NotificationStatus.QUEUED
+        mock_db.session.rollback.assert_called_once()
         mock_notification.delete_notification.assert_not_called()
 
     @staticmethod

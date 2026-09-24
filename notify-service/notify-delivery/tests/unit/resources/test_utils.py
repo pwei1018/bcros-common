@@ -384,7 +384,71 @@ class TestSendNotification:
         recipient_count = 2
         # Verify history created for each recipient
         assert mock_history_class.create_history.call_count == recipient_count
-        mock_history_class.create_history.assert_any_call(mock_notification, "test1@example.com", "resp1")
-        mock_history_class.create_history.assert_any_call(mock_notification, "test2@example.com", "resp2")
+        mock_history_class.create_history.assert_any_call(mock_notification, "test1@example.com", "resp1", commit=False)
+        mock_history_class.create_history.assert_any_call(mock_notification, "test2@example.com", "resp2", commit=False)
 
         mock_logger.info.assert_called_with(f"Notification {mock_notification.id} sent successfully to 2 recipients")
+
+    @patch("notify_delivery.resources.utils.db")
+    @patch("notify_delivery.resources.utils.NotificationHistory")
+    @patch("notify_delivery.resources.utils.logger")
+    def test_send_notification_success_single_commit(self, mock_logger, mock_history_class, mock_db):
+        """Test the success path commits mark-SENT + history + delete in a single transaction."""
+        mock_notification = Mock()
+        mock_notification.id = "test123"
+        mock_provider_class = Mock()
+        mock_provider = Mock()
+
+        mock_response = Mock()
+        mock_response.recipient = "test1@example.com"
+        mock_response.response_id = "resp1"
+
+        mock_responses = Mock()
+        mock_responses.recipients = [mock_response]
+        mock_provider.send.return_value = mock_responses
+        mock_provider_class.return_value = mock_provider
+
+        mock_history_class.create_history.return_value = Mock()
+
+        send_notification(mock_notification, mock_provider_class)
+
+        mock_notification.update_notification.assert_called_once_with(commit=False)
+        mock_notification.delete_notification.assert_called_once_with(commit=False)
+        mock_db.session.commit.assert_called_once()
+        mock_db.session.rollback.assert_not_called()
+
+    @patch("notify_delivery.resources.utils.db")
+    @patch("notify_delivery.resources.utils.NotificationHistory")
+    @patch("notify_delivery.resources.utils.logger")
+    def test_send_notification_rolls_back_on_history_failure(self, mock_logger, mock_history_class, mock_db):
+        """Test a failure while writing history rolls back the whole atomic block.
+
+        This is the fix for orphaned SENT rows: previously each step (mark
+        SENT, write history, delete) was committed separately, so a failure
+        partway through could leave a SENT row in `notification` with no
+        matching history record. Now nothing is committed until every step
+        succeeds, and any failure rolls back and re-marks FAILURE cleanly.
+        """
+        mock_notification = Mock()
+        mock_notification.id = "test123"
+        mock_provider_class = Mock()
+        mock_provider = Mock()
+
+        mock_response = Mock()
+        mock_response.recipient = "test1@example.com"
+        mock_response.response_id = "resp1"
+
+        mock_responses = Mock()
+        mock_responses.recipients = [mock_response]
+        mock_provider.send.return_value = mock_responses
+        mock_provider_class.return_value = mock_provider
+
+        mock_history_class.create_history.side_effect = Exception("History write failed")
+
+        with pytest.raises(ValueError, match=f"Failed to send notification {mock_notification.id}"):
+            send_notification(mock_notification, mock_provider_class)
+
+        mock_db.session.commit.assert_not_called()
+        mock_db.session.rollback.assert_called_once()
+        assert mock_notification.status_code == Notification.NotificationStatus.FAILURE
+        mock_notification.delete_notification.assert_not_called()

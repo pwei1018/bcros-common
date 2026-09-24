@@ -90,7 +90,17 @@ class Attachment(db.Model):
 
         return db_attachment
 
-    def delete_attachment(self):
-        """Delete notification attachment.."""
+    def delete_attachment(self, commit: bool = True):
+        """Delete notification attachment.
+
+        Args:
+            commit: When True (default), commits immediately. Pass False to
+                only flush the delete within an caller-managed transaction
+                (e.g. so it can be committed atomically alongside other
+                related changes).
+        """
         db.session.delete(self)
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
