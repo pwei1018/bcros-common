@@ -63,14 +63,53 @@ class ExceptionHandler:
         return {"error": f"{error_text}", "message": f"{message_text}"}, status_code, RESPONSE_HEADERS
 
     @staticmethod
-    def validation_handler(error):
-        """Handle pydantic validation error."""
-        error_param = error.body_params or error.query_params or error.path_params
-        error_message = f"{{error: 'Validation Error' {error_param}}}"
-        logger.warning(error_message)
-        if error_param:
-            return {"error": f"{error_param[0]['msg']}"}, 400, RESPONSE_HEADERS
-        return {"error": "Validation Error"}, 400, RESPONSE_HEADERS
+    def _clean_validation_message(raw_message: str) -> str:
+        """Strip pydantic's internal "Value error, " prefix from a custom validator message.
+
+        Pydantic wraps any ``ValueError`` raised inside a ``@field_validator`` with a
+        generic "Value error, " prefix (e.g. "Value error, Invalid recipient: -.").
+        That prefix is meaningless to an API caller, who only needs the actual
+        message the validator raised.
+        """
+        prefix = "Value error, "
+        if raw_message.startswith(prefix):
+            return raw_message[len(prefix) :]
+        return raw_message
+
+    @staticmethod
+    def _validation_field_name(location: tuple) -> str:
+        """Turn a pydantic error ``loc`` tuple into a readable dotted field name."""
+        return ".".join(str(part) for part in location) if location else "body"
+
+    @classmethod
+    def validation_handler(cls, error):
+        """Handle pydantic/flask-pydantic validation errors with a clean, readable response.
+
+        flask-pydantic surfaces raw pydantic error dicts (``type``, ``loc``, ``msg``,
+        ``input``, ``ctx``, ``url``) which are noisy and not meant for API consumers or
+        logs. This distills them down to a ``field``/``message`` pair per error.
+        """
+        raw_errors = error.body_params or error.query_params or error.path_params or error.form_params or []
+
+        details = [
+            {
+                "field": cls._validation_field_name(raw_error.get("loc", ())),
+                "message": cls._clean_validation_message(raw_error.get("msg", "Invalid value")),
+            }
+            for raw_error in raw_errors
+        ]
+
+        if details:
+            summary = "; ".join(f"{detail['field']}: {detail['message']}" for detail in details)
+            logger.warning(f"Validation error: {summary}")
+            return (
+                {"error": "Validation Error", "message": summary, "details": details},
+                400,
+                RESPONSE_HEADERS,
+            )
+
+        logger.warning("Validation error: no details provided")
+        return {"error": "Validation Error", "message": "Validation Error"}, 400, RESPONSE_HEADERS
 
     @staticmethod
     def std_handler(error):  # pylint: disable=useless-option-value
