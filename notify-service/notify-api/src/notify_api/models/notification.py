@@ -234,7 +234,16 @@ class Notification(db.Model):
 
     @classmethod
     def create_notification(cls, notification: NotificationRequest, recipient: str = "", provider: str = None):
-        """Create notification."""
+        """Create notification, its content, and any attachments as a single atomic transaction.
+
+        Previously the notification row, content row, and each attachment row were each
+        committed independently. Since a failure in a later step (e.g. content validation,
+        or a network error downloading an attachment from a URL) could not roll back an
+        earlier already-committed step, this could leave a notification permanently
+        committed with no content row, or a content row with only some of its attachments.
+        A single commit at the end (with rollback-and-re-raise on any failure) ensures the
+        whole notification is either fully created or not created at all.
+        """
         db_notification = Notification(
             recipients=recipient or notification.recipients,
             request_date=datetime.now(UTC),
@@ -242,12 +251,20 @@ class Notification(db.Model):
             type_code=notification.notify_type or Notification.NotificationType.EMAIL,
             provider_code=provider,
         )
-        db.session.add(db_notification)
-        db.session.commit()
-        db.session.refresh(db_notification)
 
-        # save email content
-        Content.create_content(content=notification.content, notification_id=db_notification.id)
+        try:
+            db.session.add(db_notification)
+            db.session.flush()
+            db.session.refresh(db_notification)
+
+            # save email content and attachments
+            Content.create_content(content=notification.content, notification_id=db_notification.id, commit=False)
+
+            db.session.commit()
+            db.session.refresh(db_notification)
+        except Exception:
+            db.session.rollback()
+            raise
 
         return db_notification
 

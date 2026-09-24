@@ -730,14 +730,21 @@ class TestNotificationModel:
 
                 assert result == mock_notification
                 mock_session.add.assert_called_once()
+                mock_session.flush.assert_called_once()
                 mock_session.commit.assert_called_once()
-                mock_session.refresh.assert_called_once()
-                mock_create_content.assert_called_once()
+                expected_refresh_calls = 2  # once after the initial flush, once after the final commit
+                assert mock_session.refresh.call_count == expected_refresh_calls
+                mock_create_content.assert_called_once_with(
+                    content=mock_request.content, notification_id=mock_notification.id, commit=False
+                )
 
     @staticmethod
     def test_notification_create_notification_exception_handling():
         """Test Notification create_notification method exception handling."""
-        with patch("notify_api.models.notification.db") as mock_db:
+        with (
+            patch("notify_api.models.notification.db") as mock_db,
+            patch.object(Content, "create_content") as mock_create_content,
+        ):
             mock_session = Mock()
             mock_db.session = mock_session
             mock_session.commit.side_effect = Exception("Create error")
@@ -758,7 +765,10 @@ class TestNotificationModel:
                     Notification.create_notification(mock_request)
 
                 mock_session.add.assert_called_once()
+                mock_session.flush.assert_called_once()
+                mock_create_content.assert_called_once()
                 mock_session.commit.assert_called_once()
+                mock_session.rollback.assert_called_once()
 
     @staticmethod
     def test_notification_update_notification_success():

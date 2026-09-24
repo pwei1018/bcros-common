@@ -357,7 +357,9 @@ class TestContentModelMissingCoverage:
                 mock_session.add.assert_called_once()
                 mock_session.commit.assert_called_once()
                 mock_session.refresh.assert_called_once()
-                mock_create_attachment.assert_called_once_with(attachment=attachment_request, content_id=123)
+                mock_create_attachment.assert_called_once_with(
+                    attachment=attachment_request, content_id=123, commit=True
+                )
 
     @staticmethod
     def test_content_create_without_attachments():
