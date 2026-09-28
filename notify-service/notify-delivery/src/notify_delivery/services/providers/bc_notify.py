@@ -13,6 +13,8 @@
 # limitations under the License.
 """This provides email delivery through BC Notify."""
 
+import base64
+import mimetypes
 import time
 
 import requests
@@ -97,6 +99,16 @@ class BCNotify:
 
         return NotificationSendResponses(recipients=responses)
 
+    @staticmethod
+    def _build_attachment(attachment) -> dict:
+        """Build a BC Notify attachment entry from a notification attachment."""
+        mime_type = mimetypes.guess_type(attachment.file_name)[0] or "application/octet-stream"
+        return {
+            "filename": attachment.file_name,
+            "mimeType": mime_type,
+            "content": base64.b64encode(attachment.file_bytes).decode(),
+        }
+
     def _send_with_retry(self, recipient: str, content: Content) -> dict | None:
         """Send email with retries for rate limits and transient server errors."""
         if not self.api_key or not self.bc_notify_url:
@@ -117,6 +129,9 @@ class BCNotify:
                 "bodyType": "html",
             },
         }
+
+        if content.attachments:
+            payload["attachments"] = [self._build_attachment(attachment) for attachment in content.attachments]
 
         for attempt in range(self.MAX_RETRIES + 1):
             try:

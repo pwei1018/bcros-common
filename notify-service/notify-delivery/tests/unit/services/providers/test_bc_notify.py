@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test suite for BC Notify service provider."""
 
+import base64
 import unittest
 from unittest.mock import Mock, patch
 
@@ -155,6 +156,113 @@ class TestBCNotify(unittest.TestCase):
             },
         )
         self.assertEqual(call_kwargs["headers"]["X-API-KEY"], _VALID_API_KEY)
+
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
+    def test_send_includes_attachments_in_payload(self, mock_post):
+        """send() should base64-encode attachments and guess their mime type."""
+        mock_attachment = Mock()
+        mock_attachment.file_name = "permit.pdf"
+        mock_attachment.file_bytes = b"%PDF-1.4..."
+
+        mock_content = Mock(spec=NotificationContent)
+        mock_content.subject = "BC Notify Test"
+        mock_content.body = "Plain text body"
+        mock_content.attachments = [mock_attachment]
+
+        mock_notification = Mock(spec=Notification)
+        mock_notification.content = [mock_content]
+        mock_notification.recipients = "user@example.com"
+
+        mock_response = Mock()
+        mock_response.json.return_value = {"id": "bc-response-id"}
+        mock_response.status_code = 201
+        mock_post.return_value = mock_response
+
+        bc_notify = BCNotify(mock_notification)
+        bc_notify.send()
+
+        call_kwargs = mock_post.call_args.kwargs
+        self.assertEqual(
+            call_kwargs["json"]["attachments"],
+            [
+                {
+                    "filename": "permit.pdf",
+                    "mimeType": "application/pdf",
+                    "content": base64.b64encode(b"%PDF-1.4...").decode(),
+                }
+            ],
+        )
+
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
+    def test_send_includes_multiple_attachments_in_payload(self, mock_post):
+        """send() should include an entry for every attachment, in order."""
+        mock_attachment_1 = Mock()
+        mock_attachment_1.file_name = "permit.pdf"
+        mock_attachment_1.file_bytes = b"%PDF-1.4..."
+
+        mock_attachment_2 = Mock()
+        mock_attachment_2.file_name = "photo.png"
+        mock_attachment_2.file_bytes = b"\x89PNG..."
+
+        mock_content = Mock(spec=NotificationContent)
+        mock_content.subject = "BC Notify Test"
+        mock_content.body = "Plain text body"
+        mock_content.attachments = [mock_attachment_1, mock_attachment_2]
+
+        mock_notification = Mock(spec=Notification)
+        mock_notification.content = [mock_content]
+        mock_notification.recipients = "user@example.com"
+
+        mock_response = Mock()
+        mock_response.json.return_value = {"id": "bc-response-id"}
+        mock_response.status_code = 201
+        mock_post.return_value = mock_response
+
+        bc_notify = BCNotify(mock_notification)
+        bc_notify.send()
+
+        call_kwargs = mock_post.call_args.kwargs
+        self.assertEqual(
+            call_kwargs["json"]["attachments"],
+            [
+                {
+                    "filename": "permit.pdf",
+                    "mimeType": "application/pdf",
+                    "content": base64.b64encode(b"%PDF-1.4...").decode(),
+                },
+                {
+                    "filename": "photo.png",
+                    "mimeType": "image/png",
+                    "content": base64.b64encode(b"\x89PNG...").decode(),
+                },
+            ],
+        )
+
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
+    def test_send_attachment_unknown_extension_defaults_octet_stream(self, mock_post):
+        """send() should default to application/octet-stream when the mime type can't be guessed."""
+        mock_attachment = Mock()
+        mock_attachment.file_name = "data.unknownext"
+        mock_attachment.file_bytes = b"raw-bytes"
+
+        mock_content = Mock(spec=NotificationContent)
+        mock_content.subject = "Subject"
+        mock_content.body = "Body"
+        mock_content.attachments = [mock_attachment]
+
+        mock_notification = Mock(spec=Notification)
+        mock_notification.content = [mock_content]
+        mock_notification.recipients = "user@example.com"
+
+        mock_response = Mock()
+        mock_response.json.return_value = {"id": "bc-response-id"}
+        mock_post.return_value = mock_response
+
+        bc_notify = BCNotify(mock_notification)
+        bc_notify.send()
+
+        attachment_payload = mock_post.call_args.kwargs["json"]["attachments"][0]
+        self.assertEqual(attachment_payload["mimeType"], "application/octet-stream")
 
     @patch("notify_delivery.services.providers.bc_notify.requests.post")
     def test_send_multiple_recipients(self, mock_post):
