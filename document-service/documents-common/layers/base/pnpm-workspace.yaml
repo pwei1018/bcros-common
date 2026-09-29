@@ -1,0 +1,3 @@
+# Keeps this layer its own pnpm project, separate from the hooks-only
+# pnpm-workspace.yaml at the repo root.
+packages: []
