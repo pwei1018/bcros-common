@@ -122,7 +122,7 @@ class BCNotify:
             "content": {
                 "subject": content.subject,
                 "body": content.body,
-                "bodyType": "html",
+                "bodyType": "markdown",
             },
         }
 
