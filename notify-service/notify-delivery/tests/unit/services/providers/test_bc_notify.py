@@ -128,7 +128,7 @@ class TestBCNotify(unittest.TestCase):
         mock_notification.recipients = "user@example.com"
 
         mock_response = Mock()
-        mock_response.json.return_value = {"id": "bc-response-id"}
+        mock_response.json.return_value = {"notifyId": "bc-response-id"}
         mock_response.status_code = 201
         mock_post.return_value = mock_response
 
@@ -146,7 +146,6 @@ class TestBCNotify(unittest.TestCase):
             {
                 "recipients": {
                     "to": ["user@example.com"],
-                    "bcc": [],
                 },
                 "content": {
                     "subject": "BC Notify Test",
@@ -174,7 +173,7 @@ class TestBCNotify(unittest.TestCase):
         mock_notification.recipients = "user@example.com"
 
         mock_response = Mock()
-        mock_response.json.return_value = {"id": "bc-response-id"}
+        mock_response.json.return_value = {"notifyId": "bc-response-id"}
         mock_response.status_code = 201
         mock_post.return_value = mock_response
 
@@ -214,7 +213,7 @@ class TestBCNotify(unittest.TestCase):
         mock_notification.recipients = "user@example.com"
 
         mock_response = Mock()
-        mock_response.json.return_value = {"id": "bc-response-id"}
+        mock_response.json.return_value = {"notifyId": "bc-response-id"}
         mock_response.status_code = 201
         mock_post.return_value = mock_response
 
@@ -255,7 +254,7 @@ class TestBCNotify(unittest.TestCase):
         mock_notification.recipients = "user@example.com"
 
         mock_response = Mock()
-        mock_response.json.return_value = {"id": "bc-response-id"}
+        mock_response.json.return_value = {"notifyId": "bc-response-id"}
         mock_post.return_value = mock_response
 
         bc_notify = BCNotify(mock_notification)
@@ -277,9 +276,9 @@ class TestBCNotify(unittest.TestCase):
         mock_notification.recipients = "alice@example.com, bob@example.com"
 
         mock_resp_1 = Mock()
-        mock_resp_1.json.return_value = {"id": "id-alice"}
+        mock_resp_1.json.return_value = {"notifyId": "id-alice"}
         mock_resp_2 = Mock()
-        mock_resp_2.json.return_value = {"id": "id-bob"}
+        mock_resp_2.json.return_value = {"notifyId": "id-bob"}
 
         mock_post.side_effect = [mock_resp_1, mock_resp_2]
 
@@ -321,7 +320,7 @@ class TestBCNotify(unittest.TestCase):
         rate_limit_error = requests.exceptions.HTTPError(response=mock_error_resp)
 
         mock_success_resp = Mock()
-        mock_success_resp.json.return_value = {"id": "success-after-retry"}
+        mock_success_resp.json.return_value = {"notifyId": "success-after-retry"}
         mock_success_resp.status_code = 200
 
         mock_post.side_effect = [

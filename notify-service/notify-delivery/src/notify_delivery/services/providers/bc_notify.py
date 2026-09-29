@@ -45,7 +45,6 @@ class BCNotify:
         "api_url": "BC_NOTIFY_API_URL",
         "api_key": "BC_NOTIFY_API_KEY",
     }
-    BCC_RECIPIENTS: list[str] = []
 
     def __init__(self, notification: Notification) -> None:
         """Construct object, initialising with BC Notify-specific configuration."""
@@ -91,7 +90,7 @@ class BCNotify:
             try:
                 response = self._send_with_retry(recipient, content)
                 if response:
-                    responses.append(NotificationSendResponse(response_id=response["id"], recipient=recipient))
+                    responses.append(NotificationSendResponse(response_id=response["notifyId"], recipient=recipient))
             except RequestException as error:
                 logger.error(f"Error sending email to {recipient}: {error}")
             except Exception as error:
@@ -119,10 +118,7 @@ class BCNotify:
         headers = {"X-API-KEY": f"{self.api_key}", "Content-Type": "application/json"}
 
         payload = {
-            "recipients": {
-                "to": [recipient],
-                "bcc": self.BCC_RECIPIENTS,
-            },
+            "recipients": {"to": [recipient]},
             "content": {
                 "subject": content.subject,
                 "body": content.body,
