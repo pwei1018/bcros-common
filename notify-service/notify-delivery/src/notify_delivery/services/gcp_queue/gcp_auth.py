@@ -17,12 +17,12 @@ from structured_logging import StructuredLogging
 logger = StructuredLogging.get_logger()
 
 
-def verify_jwt(session: Session) -> Optional[Tuple[str, int]]:
+def verify_jwt(session: Session, audience_config_key: str = "NOTIFY_SUB_AUDIENCE") -> Optional[Tuple[str, int]]:
     """Check token is valid with the correct audience and email claims for configured email address."""
     try:
         jwt_token = request.headers.get("Authorization", "").split()[1]
         claims = id_token.verify_oauth2_token(
-            jwt_token, Request(session=session), audience=current_app.config.get("NOTIFY_SUB_AUDIENCE")
+            jwt_token, Request(session=session), audience=current_app.config.get(audience_config_key)
         )
         # Check if the email is verified and matches the configured email
         required_email = current_app.config.get("VERIFY_PUBSUB_EMAIL")
@@ -33,19 +33,26 @@ def verify_jwt(session: Session) -> Optional[Tuple[str, int]]:
     return None
 
 
-def ensure_authorized_queue_user(f: Callable) -> Callable:
-    """Ensures the user is authorized to use the queue."""
+def ensure_authorized_queue_user(audience_config_key: str = "NOTIFY_SUB_AUDIENCE") -> Callable:
+    """Ensures the user is authorized to use the queue, verifying against the given audience config key.
 
-    @functools.wraps(f)
-    def decorated_function(*args: Any, **kwargs: Any) -> Any:
-        # Use CacheControl to avoid re-fetching certificates for every request.
-        if current_app.config.get("DEBUG_REQUEST") is True:
-            logger.info(f"Headers: {request.headers}")
-        verifyJWT = current_app.config.get("VERIFY_PUBSUB_VIA_JWT", True)
-        logger.debug(f"verifyJWT: {verifyJWT}")
-        if verifyJWT is True:
-            if message := verify_jwt(CacheControl(Session())):
-                abort(HTTPStatus.UNAUTHORIZED)
-        return f(*args, **kwargs)
+    Each provider's push subscription is issued OIDC tokens for its own audience, so the
+    config key must match the provider the decorated route serves (e.g. NOTIFY_BC_NOTIFY_SUB_AUDIENCE).
+    """
 
-    return decorated_function
+    def decorator(f: Callable) -> Callable:
+        @functools.wraps(f)
+        def decorated_function(*args: Any, **kwargs: Any) -> Any:
+            # Use CacheControl to avoid re-fetching certificates for every request.
+            if current_app.config.get("DEBUG_REQUEST") is True:
+                logger.info(f"Headers: {request.headers}")
+            verifyJWT = current_app.config.get("VERIFY_PUBSUB_VIA_JWT", True)
+            logger.debug(f"verifyJWT: {verifyJWT}")
+            if verifyJWT is True:
+                if message := verify_jwt(CacheControl(Session()), audience_config_key):
+                    abort(HTTPStatus.UNAUTHORIZED)
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator

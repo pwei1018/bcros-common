@@ -159,7 +159,7 @@ class TestGCPAuth(unittest.TestCase):
         mock_session = Mock()
         mock_cache_control.return_value = mock_session
 
-        @ensure_authorized_queue_user
+        @ensure_authorized_queue_user()
         def test_function():
             return "success"
 
@@ -169,7 +169,7 @@ class TestGCPAuth(unittest.TestCase):
 
         # Assert
         assert result == "success"
-        mock_verify_jwt.assert_called_once_with(mock_session)
+        mock_verify_jwt.assert_called_once_with(mock_session, "NOTIFY_SUB_AUDIENCE")
 
     @patch("notify_delivery.services.gcp_queue.gcp_auth.verify_jwt")
     @patch("notify_delivery.services.gcp_queue.gcp_auth.CacheControl")
@@ -182,7 +182,7 @@ class TestGCPAuth(unittest.TestCase):
         mock_session = Mock()
         mock_cache_control.return_value = mock_session
 
-        @ensure_authorized_queue_user
+        @ensure_authorized_queue_user()
         def test_function():
             return "success"
 
@@ -201,7 +201,7 @@ class TestGCPAuth(unittest.TestCase):
         # Arrange
         self.app.config["VERIFY_PUBSUB_VIA_JWT"] = False
 
-        @ensure_authorized_queue_user
+        @ensure_authorized_queue_user()
         def test_function():
             return "success"
 
@@ -222,7 +222,7 @@ class TestGCPAuth(unittest.TestCase):
         self.app.config["DEBUG_REQUEST"] = True
         mock_verify_jwt.return_value = None
 
-        @ensure_authorized_queue_user
+        @ensure_authorized_queue_user()
         def test_function():
             return "success"
 
@@ -239,7 +239,7 @@ class TestGCPAuth(unittest.TestCase):
         """Test that decorator logs the verifyJWT setting."""
 
         # Arrange
-        @ensure_authorized_queue_user
+        @ensure_authorized_queue_user()
         def test_function():
             return "success"
 
@@ -254,7 +254,7 @@ class TestGCPAuth(unittest.TestCase):
         """Test ensure_authorized_queue_user decorator preserves function metadata."""
 
         # Arrange
-        @ensure_authorized_queue_user
+        @ensure_authorized_queue_user()
         def test_function():
             """Test function docstring."""
             return "success"
@@ -271,7 +271,7 @@ class TestGCPAuth(unittest.TestCase):
         # Arrange
         mock_verify_jwt.return_value = None
 
-        @ensure_authorized_queue_user
+        @ensure_authorized_queue_user()
         def test_function(arg1, arg2, kwarg1=None):
             return f"{arg1}-{arg2}-{kwarg1}"
 
