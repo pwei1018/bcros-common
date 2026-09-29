@@ -25,7 +25,7 @@ from notify_delivery.resources.utils import (
 )
 from notify_delivery.services.providers.bc_notify_housing import BCNotifyHousing
 
-bp = Blueprint("bc-notify-housing", __name__)
+bp = Blueprint("bcnotify-housing", __name__)
 logger = StructuredLogging.get_logger()
 
 # Constants
