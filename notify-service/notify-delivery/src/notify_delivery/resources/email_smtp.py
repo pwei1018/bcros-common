@@ -23,6 +23,7 @@ from notify_delivery.resources.utils import (
     process_notification,
     validate_event_type,
 )
+from notify_delivery.services.gcp_queue.gcp_auth import ensure_authorized_queue_user
 from notify_delivery.services.providers.email_smtp import EmailSMTP
 
 bp = Blueprint("smtp", __name__)
@@ -33,6 +34,7 @@ EXPECTED_EVENT_TYPE = "bc.registry.notify.smtp"
 
 
 @bp.route("/", methods=("POST",))
+@ensure_authorized_queue_user("NOTIFY_SUB_AUDIENCE")
 def worker():
     """Worker to handle incoming queue pushes."""
     try:
