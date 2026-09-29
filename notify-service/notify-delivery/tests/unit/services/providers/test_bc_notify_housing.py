@@ -140,7 +140,7 @@ class TestBCNotifyHousing(unittest.TestCase):
         mock_notification.recipients = "user@example.com"
 
         mock_response = Mock()
-        mock_response.json.return_value = {"id": "housing-response-id"}
+        mock_response.json.return_value = {"notifyId": "housing-response-id"}
         mock_response.status_code = 201
         mock_post.return_value = mock_response
 
@@ -157,7 +157,6 @@ class TestBCNotifyHousing(unittest.TestCase):
             {
                 "recipients": {
                     "to": ["user@example.com"],
-                    "bcc": [],
                 },
                 "content": {
                     "subject": "Housing Test",
