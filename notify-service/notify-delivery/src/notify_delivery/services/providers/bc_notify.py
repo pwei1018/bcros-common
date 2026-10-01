@@ -15,7 +15,9 @@
 
 import base64
 import mimetypes
+import re
 import time
+from html.parser import HTMLParser
 
 import requests
 from flask import current_app
@@ -29,6 +31,23 @@ from requests.exceptions import RequestException
 from structured_logging import StructuredLogging
 
 logger = StructuredLogging.get_logger()
+
+
+class _HTMLTagDetector(HTMLParser):
+    """Detect whether a body contains HTML tags."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.has_tags = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.has_tags = True
+
+    def handle_endtag(self, tag: str) -> None:
+        self.has_tags = True
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.has_tags = True
 
 
 class BCNotify:
@@ -108,6 +127,28 @@ class BCNotify:
             "content": base64.b64encode(attachment.file_bytes).decode(),
         }
 
+    @staticmethod
+    def _determine_body_type(body: str) -> str:
+        """Infer the body format from HTML and Markdown syntax, defaulting to plain text."""
+        markdown_patterns = (
+            r"(?m)^\s{0,3}#{1,6}\s+\S",
+            r"(?m)^\s{0,3}(?:[-*+]|\d+[.)])\s+\S",
+            r"(?m)^\s{0,3}>\s+\S",
+            r"```|~~~",
+            r"(\*\*|__|~~).+?\1",
+            r"(?<!\w)(\*|_).+?\1(?!\w)",
+            r"`[^`\n]+`",
+            r"\[[^\]]+\]\([^)]+\)",
+        )
+        if any(re.search(pattern, body) for pattern in markdown_patterns):
+            return "markdown"
+
+        html_detector = _HTMLTagDetector()
+        html_detector.feed(body)
+        if html_detector.has_tags:
+            return "html"
+        return "text"
+
     def _send_with_retry(self, recipient: str, content: Content) -> dict | None:
         """Send email with retries for rate limits and transient server errors."""
         if not self.api_key or not self.bc_notify_url:
@@ -122,7 +163,7 @@ class BCNotify:
             "content": {
                 "subject": content.subject,
                 "body": content.body,
-                "bodyType": "markdown",
+                "bodyType": self._determine_body_type(content.body),
             },
         }
 
