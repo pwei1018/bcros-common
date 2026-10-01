@@ -150,11 +150,25 @@ class TestBCNotify(unittest.TestCase):
                 "content": {
                     "subject": "BC Notify Test",
                     "body": "Plain text body",
-                    "bodyType": "html",
+                    "bodyType": "text",
                 },
             },
         )
         self.assertEqual(call_kwargs["headers"]["X-API-KEY"], _VALID_API_KEY)
+
+    def test_determine_body_type_from_syntax(self):
+        """Body format should be inferred from HTML, Markdown, or plain text syntax."""
+        examples = (
+            ("<p>Hello</p>", "html"),
+            ("# Hello\n\n**Welcome**", "markdown"),
+            ("# Hello\n<p>Welcome</p>", "markdown"),
+            ("*Welcome*", "markdown"),
+            ("Hello, this is plain text.", "text"),
+        )
+
+        for body, expected_type in examples:
+            with self.subTest(body=body):
+                self.assertEqual(BCNotify._determine_body_type(body), expected_type)
 
     @patch("notify_delivery.services.providers.bc_notify.requests.post")
     def test_send_includes_attachments_in_payload(self, mock_post):
