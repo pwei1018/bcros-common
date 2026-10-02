@@ -156,6 +156,13 @@ class TestBCNotify(unittest.TestCase):
         )
         self.assertEqual(call_kwargs["headers"]["X-API-KEY"], _VALID_API_KEY)
 
+        self.app.config["DEPLOYMENT_ENV"] = "staging"
+        bc_notify.send()
+        self.assertEqual(
+            mock_post.call_args.kwargs["json"]["content"]["subject"],
+            "BC Notify Test - from STAGING environment",
+        )
+
     def test_determine_body_type_from_syntax(self):
         """Body format should be inferred from HTML, Markdown, or plain text syntax."""
         examples = (
