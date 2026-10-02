@@ -157,11 +157,15 @@ class BCNotify:
 
         url = f"{self.bc_notify_url.rstrip('/')}/api/v1/notifysimple/email"
         headers = {"X-API-KEY": f"{self.api_key}", "Content-Type": "application/json"}
+        deployment_env = current_app.config.get("DEPLOYMENT_ENV", "production").lower()
+        subject = content.subject
+        if deployment_env != "production":
+            subject += f" - from {deployment_env.upper()} environment"
 
         payload = {
             "recipients": {"to": [recipient]},
             "content": {
-                "subject": content.subject,
+                "subject": subject,
                 "body": content.body,
                 "bodyType": self._determine_body_type(content.body),
             },
