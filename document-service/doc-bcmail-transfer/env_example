@@ -1,0 +1,61 @@
+#
+# This file contains the environment-specific settings that are read by python-dotenv. Place it somewhere above your
+# source code and it will be used.
+#
+
+# =====  assets-payment ======================================================================================================
+
+# third party Services
+NOTIFY_API_URL=""
+NOTIFY_API_VERSION=""
+
+JWT_OIDC_TOKEN_URL=""
+# service accounts
+ACCOUNT_SVC_CLIENT_ID=""
+ACCOUNT_SVC_CLIENT_SECRET=""
+
+# GCP CS SA local only
+GCP_AUTH_KEY=""
+GCP_CS_SA_SCOPES="https://www.googleapis.com/auth/cloud-platform"
+
+# Connection to GCP DRS postgres database.
+DOC_DATABASE_URL=""
+DOC_DATABASE_USERNAME=""
+DOC_DATABASE_PASSWORD=""
+DOC_DATABASE_NAME=""
+DOC_DATABASE_HOST=""
+DOC_DATABASE_PORT="5432"
+
+# GCP document storage buckets
+GCP_CS_BUCKET_ID_BUS=""
+GCP_CS_BUCKET_ID_BCMAIL=""
+
+# Job schedule in days, used to include recent SFTP files within the last JOB_INTERVAL_DAYS days. 0 disables.
+JOB_INTERVAL_DAYS="7"
+
+# If true then list BCMail directories and files instead of migrating. Only use for connectivity testing.
+LIST_FILES="true"
+# If true then migrate LAN files instead of files transferred from BCMail+ via SFTP.
+MIGRATE_LAN="true"
+
+# business bucket base path to store job status csv files.
+CSV_STATUS_PATH=""
+
+# BCMail SFTP connection info
+SFTP_HOST=""
+SFTP_PORT=""
+SFTP_USERID=""
+SFTP_KEY=""
+# Remote root location of files to transfer.
+SFTP_DIR=""
+
+# Local migrate from LAN: requires both VPN and mounting of LAN network drive.
+BCMAIL_LAN_DIR=""
+# Specify the list of LAN subfolders to migrate as a JSON list
+BCMAIL_LAN_FOLDERS=""
+BCMAIL_TEMP_DIR=""
+
+# Staff notify status
+NOTIFY_STATUS_RECIPIENTS=""
+NOTIFY_STATUS_SUBJECT=""
+NOTIFY_STATUS_BODY=""

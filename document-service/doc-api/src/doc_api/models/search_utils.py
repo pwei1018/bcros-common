@@ -232,7 +232,7 @@ def get_docs_by_date_range(doc_class: str, start_date: str, end_date: str, doc_t
         query_s += QUERY_DOC_TYPE_CLAUSE
         query_params["query_doc_type"] = doc_type
     if cons_id:
-        query_s += QUERY_CONSUMER_ID_CLAUSE.format(consumer_id=cons_id)
+        query_s += QUERY_CONSUMER_ID_CLAUSE
         query_params["query_consumer_id"] = cons_id
     query_s += QUERY_DEFAULT_ORDER_BY
     query = text(query_s)
