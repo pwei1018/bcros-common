@@ -161,7 +161,7 @@ class TestBCNotifyHousing(unittest.TestCase):
                 "content": {
                     "subject": "Housing Test",
                     "body": "Plain text body",
-                    "bodyType": "html",
+                    "bodyType": "text",
                 },
             },
         )
