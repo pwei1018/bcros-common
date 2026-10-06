@@ -618,8 +618,7 @@ class NotifyService:
                 NotificationHistory.create_history(notification, commit=False)
             else:
                 logger.warning(
-                    f"Archiving notification ID {notification.id} without content; "
-                    "using a placeholder history subject"
+                    f"Archiving notification ID {notification.id} without content; using a placeholder history subject"
                 )
                 NotificationHistory.create_history(
                     notification,
