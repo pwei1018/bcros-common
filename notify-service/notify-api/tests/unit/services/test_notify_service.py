@@ -239,7 +239,7 @@ class TestNotifyServiceProviderSelection:
         """Test HTML detection with parsing error."""
         service = NotifyService()
 
-        with patch("notify_api.services.notify_service.BeautifulSoup", side_effect=Exception("Parse error")):
+        with patch("notify_api.services.notify_service._HTMLTagDetector.feed", side_effect=Exception("Parse error")):
             result = service._contains_html("<invalid>html")
             assert result is False
 
@@ -634,6 +634,8 @@ class TestNotifyServiceQueueOperations:
         assert service._contains_html("plain text") is False
         assert service._contains_html("") is False
         assert service._contains_html("<invalid tag") is False
+        assert service._contains_html("```csharp\nList<int> values;\n```") is False
+        assert service._contains_html("# Heading\n<p>Markdown with inline HTML</p>") is False
 
     @staticmethod
     def test_filter_safe_recipients_edge_cases(app):

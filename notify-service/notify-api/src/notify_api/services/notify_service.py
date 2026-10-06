@@ -15,10 +15,10 @@
 
 import base64
 from datetime import UTC, datetime
+from html.parser import HTMLParser
+import re
 import uuid
-import warnings
 
-from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 from flask import current_app
 from simple_cloudevent import SimpleCloudEvent
 from structured_logging import StructuredLogging
@@ -33,12 +33,28 @@ from notify_api.models import (
 from notify_api.services.gcp_queue import GcpQueue, queue
 
 logger = StructuredLogging.get_logger()
-warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 # Constants
 CLOUD_EVENT_SOURCE = "notify-api"
 CLOUD_EVENT_TYPE_PREFIX = "bc.registry.notify"
 STRR_REQUEST_IDENTIFIER = "STRR"
+
+
+class _HTMLTagDetector(HTMLParser):
+    """Detect whether a body contains HTML tags."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.has_tags = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.has_tags = True
+
+    def handle_endtag(self, tag: str) -> None:
+        self.has_tags = True
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.has_tags = True
 
 
 class NotifyService:
@@ -142,7 +158,22 @@ class NotifyService:
             True if HTML tags are found, False otherwise
         """
         try:
-            return bool(BeautifulSoup(content, "html.parser").find())
+            markdown_patterns = (
+                r"(?m)^\s{0,3}#{1,6}\s+\S",
+                r"(?m)^\s{0,3}(?:[-*+]|\d+[.)])\s+\S",
+                r"(?m)^\s{0,3}>\s+\S",
+                r"```|~~~",
+                r"(\*\*|__|~~).+?\1",
+                r"(?<!\w)(\*|_).+?\1(?!\w)",
+                r"`[^`\n]+`",
+                r"\[[^\]]+\]\([^)]+\)",
+            )
+            if any(re.search(pattern, content) for pattern in markdown_patterns):
+                return False
+
+            html_detector = _HTMLTagDetector()
+            html_detector.feed(content)
+            return html_detector.has_tags
         except Exception as err:
             logger.warning(f"Error parsing content for HTML: {err}")
             return False

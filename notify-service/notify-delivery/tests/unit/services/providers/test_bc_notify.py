@@ -169,6 +169,7 @@ class TestBCNotify(unittest.TestCase):
             ("<p>Hello</p>", "html"),
             ("# Hello\n\n**Welcome**", "markdown"),
             ("# Hello\n<p>Welcome</p>", "markdown"),
+            ("```csharp\nList<int> values;\n```", "markdown"),
             ("*Welcome*", "markdown"),
             ("Hello, this is plain text.", "text"),
         )
