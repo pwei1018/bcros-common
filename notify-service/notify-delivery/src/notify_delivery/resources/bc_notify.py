@@ -26,7 +26,7 @@ from notify_delivery.resources.utils import (
 from notify_delivery.services.gcp_queue.gcp_auth import ensure_authorized_queue_user
 from notify_delivery.services.providers.bc_notify import BCNotify
 
-bp = Blueprint("bcnotify", __name__)
+bp = Blueprint("bc-notify", __name__)
 logger = StructuredLogging.get_logger()
 
 # Constants
