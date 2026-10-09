@@ -490,6 +490,31 @@ class TestSendNotification:
         # resend job will not pick this notification up again.
         mock_notification.update_notification.assert_called_with()
 
+    @patch("notify_delivery.resources.utils.db")
+    @patch("notify_delivery.resources.utils.NotificationHistory")
+    @patch("notify_delivery.resources.utils.logger")
+    def test_send_notification_logs_critical_if_sent_status_cannot_be_persisted(
+        self, mock_logger, mock_history_class, mock_db
+    ):
+        notification = Mock()
+        notification.id = "notification-123"
+        notification.status_code = Notification.NotificationStatus.QUEUED
+        notification.update_notification.side_effect = [None, RuntimeError("database unavailable")]
+
+        response = Mock(recipient="user@example.com", response_id="response-123")
+        provider = Mock()
+        provider.send.return_value = Mock(recipients=[response])
+        provider_class = Mock(return_value=provider)
+        mock_history_class.create_history.side_effect = RuntimeError("history write failed")
+
+        with pytest.raises(ValueError, match="was sent but bookkeeping failed"):
+            send_notification(notification, provider_class)
+
+        assert notification.status_code == Notification.NotificationStatus.SENT
+        mock_db.session.rollback.assert_called_once()
+        mock_db.session.commit.assert_not_called()
+        mock_logger.critical.assert_called_once()
+
     @patch("notify_delivery.resources.utils.logger")
     def test_send_notification_skips_if_already_sent(self, mock_logger):
         """Test send_notification skips re-sending a notification that is already SENT."""

@@ -759,11 +759,11 @@ class TestNotifyServiceQueueOperations:
                 NotifyService.get_provider("test", "Text with angle chars but not HTML")
                 == Notification.NotificationProvider.GC_NOTIFY
             )
-            # HTML comments are not detected as HTML by BeautifulSoup.find() so they go to GC_NOTIFY
+            # Short HTML without an image does not force SMTP.
             assert NotifyService.get_provider("test", "<!-- comment -->") == Notification.NotificationProvider.GC_NOTIFY
             assert (
                 NotifyService.get_provider("test", "<script>alert('test')</script>")
-                == Notification.NotificationProvider.SMTP
+                == Notification.NotificationProvider.GC_NOTIFY
             )
 
 

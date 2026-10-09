@@ -19,6 +19,7 @@ This includes testing authentication, callback processing, and error handling.
 
 from datetime import datetime
 from http import HTTPStatus
+import inspect
 import time
 from unittest.mock import Mock, patch
 
@@ -32,6 +33,7 @@ from notify_api.models import (
     Notification,
     NotificationHistory,
 )
+from notify_api.resources.v2.callback import callback as callback_endpoint
 from notify_api.resources.v2.callback import process_bc_notify_callback
 from notify_api.utils.enums import Role
 
@@ -120,6 +122,151 @@ class TestCallbackEndpoint:
         find_history.assert_not_called()
         notification.delete_notification.assert_not_called()
         session.commit.assert_not_called()
+
+    @staticmethod
+    def test_callback_updates_existing_history_when_notification_is_already_archived():
+        body = BCNotifyCallbackRequest.model_validate({
+            "event": "notification.status.changed",
+            "notificationId": "notification-123",
+            "tenantId": "tenant-123",
+            "data": {
+                "notifyId": "notify-123",
+                "status": "completed",
+                "statusDisplayName": "Completed",
+                "channel": "EMAIL",
+                "createdAt": "2026-10-08T17:02:11.123Z",
+                "updatedAt": "2026-10-08T17:02:14.456Z",
+            },
+            "deliveredAt": "2026-10-08T17:02:15.012Z",
+        })
+        history = Mock()
+
+        with (
+            patch("notify_api.resources.v2.callback.BCNotifyCallback.save") as save_callback,
+            patch("notify_api.resources.v2.callback.Notification.find_by_response_id", return_value=None),
+            patch(
+                "notify_api.resources.v2.callback.NotificationHistory.find_by_response_id", return_value=history
+            ) as find_history,
+        ):
+            result = process_bc_notify_callback(body)
+
+        assert result is history
+        save_callback.assert_called_once_with(body)
+        find_history.assert_called_once_with("notify-123")
+        assert history.notify_status == "completed"
+        history.update.assert_called_once()
+
+    @staticmethod
+    def test_callback_without_active_notification_or_history_is_noop():
+        body = BCNotifyCallbackRequest.model_validate({
+            "event": "notification.status.changed",
+            "notificationId": "notification-123",
+            "tenantId": "tenant-123",
+            "data": {
+                "notifyId": "notify-123",
+                "status": "completed",
+                "statusDisplayName": "Completed",
+                "channel": "EMAIL",
+                "createdAt": "2026-10-08T17:02:11.123Z",
+                "updatedAt": "2026-10-08T17:02:14.456Z",
+            },
+            "deliveredAt": "2026-10-08T17:02:15.012Z",
+        })
+
+        with (
+            patch("notify_api.resources.v2.callback.BCNotifyCallback.save"),
+            patch("notify_api.resources.v2.callback.Notification.find_by_response_id", return_value=None),
+            patch("notify_api.resources.v2.callback.NotificationHistory.find_by_response_id", return_value=None),
+        ):
+            assert process_bc_notify_callback(body) is None
+
+    @staticmethod
+    def test_callback_route_acknowledges_processing_exception():
+        body = BCNotifyCallbackRequest.model_validate({
+            "event": "notification.status.changed",
+            "notificationId": "notification-123",
+            "tenantId": "tenant-123",
+            "data": {
+                "notifyId": "notify-123",
+                "status": "completed",
+                "statusDisplayName": "Completed",
+                "channel": "EMAIL",
+                "createdAt": "2026-10-08T17:02:11.123Z",
+                "updatedAt": "2026-10-08T17:02:14.456Z",
+            },
+            "deliveredAt": "2026-10-08T17:02:15.012Z",
+        })
+        route_handler = inspect.unwrap(callback_endpoint)
+
+        with (
+            patch(
+                "notify_api.resources.v2.callback.process_bc_notify_callback",
+                side_effect=RuntimeError("database unavailable"),
+            ),
+            patch("notify_api.resources.v2.callback.logger") as mock_logger,
+        ):
+            response = route_handler(body)
+
+        assert response == ({}, HTTPStatus.OK)
+        mock_logger.error.assert_called_once()
+
+    @staticmethod
+    def test_callback_route_delegates_processing():
+        body = BCNotifyCallbackRequest.model_validate({
+            "event": "notification.status.changed",
+            "notificationId": "notification-123",
+            "tenantId": "tenant-123",
+            "data": {
+                "notifyId": "notify-123",
+                "status": "completed",
+                "statusDisplayName": "Completed",
+                "channel": "EMAIL",
+                "createdAt": "2026-10-08T17:02:11.123Z",
+                "updatedAt": "2026-10-08T17:02:14.456Z",
+            },
+            "deliveredAt": "2026-10-08T17:02:15.012Z",
+        })
+        route_handler = inspect.unwrap(callback_endpoint)
+
+        with patch("notify_api.resources.v2.callback.process_bc_notify_callback") as process_callback:
+            response = route_handler(body)
+
+        assert response == ({}, HTTPStatus.OK)
+        process_callback.assert_called_once_with(body)
+
+    @staticmethod
+    def test_terminal_callback_rolls_back_when_history_creation_fails():
+        body = BCNotifyCallbackRequest.model_validate({
+            "event": "notification.status.changed",
+            "notificationId": "notification-123",
+            "tenantId": "tenant-123",
+            "data": {
+                "notifyId": "notify-123",
+                "status": "completed",
+                "statusDisplayName": "Completed",
+                "channel": "EMAIL",
+                "createdAt": "2026-10-08T17:02:11.123Z",
+                "updatedAt": "2026-10-08T17:02:14.456Z",
+            },
+            "deliveredAt": "2026-10-08T17:02:15.012Z",
+        })
+        notification = Mock()
+
+        with (
+            patch("notify_api.resources.v2.callback.BCNotifyCallback.save"),
+            patch("notify_api.resources.v2.callback.Notification.find_by_response_id", return_value=notification),
+            patch(
+                "notify_api.resources.v2.callback.NotificationHistory.create_history",
+                side_effect=RuntimeError("history write failed"),
+            ),
+            patch("notify_api.resources.v2.callback.db.session") as session,
+            pytest.raises(RuntimeError, match="history write failed"),
+        ):
+            process_bc_notify_callback(body)
+
+        session.rollback.assert_called_once()
+        session.commit.assert_not_called()
+        notification.delete_notification.assert_not_called()
 
     @staticmethod
     def test_no_token_unauthorized(client):
