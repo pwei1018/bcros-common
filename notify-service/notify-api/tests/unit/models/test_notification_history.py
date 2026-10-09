@@ -65,8 +65,8 @@ class TestNotificationHistoryModel:
             type_code="EMAIL",
             status_code="DELIVERED",
             provider_code="GC_NOTIFY",
-            gc_notify_response_id="gc_123",
-            gc_notify_status="delivered",
+            notify_response_id="gc_123",
+            notify_status="delivered",
         )
 
     @staticmethod
@@ -83,7 +83,7 @@ class TestNotificationHistoryModel:
         mock_history.provider_code = "GC_NOTIFY"
         mock_history.sent_date = datetime.now(UTC)
         mock_history.request_date = datetime.now(UTC)
-        mock_history.gc_notify_response_id = "gc_123"
+        mock_history.notify_response_id = "gc_123"
 
         # Act - Simulate database operations
         session.add(mock_history)
@@ -94,7 +94,7 @@ class TestNotificationHistoryModel:
         assert session.commit.called
         assert mock_history.id == 1
         assert mock_history.recipients == "test@example.com"
-        assert mock_history.gc_notify_response_id == "gc_123"
+        assert mock_history.notify_response_id == "gc_123"
 
     @staticmethod
     def test_history_provider_response_parsing():
@@ -166,8 +166,8 @@ class TestNotificationHistoryModel:
             type_code="EMAIL",
             status_code="DELIVERED",
             provider_code="GC_NOTIFY",
-            gc_notify_response_id="gc_123",
-            gc_notify_status="delivered",
+            notify_response_id="gc_123",
+            notify_status="delivered",
         )
 
         # Assert
@@ -179,8 +179,8 @@ class TestNotificationHistoryModel:
         assert history.type_code == "EMAIL"
         assert history.status_code == "DELIVERED"
         assert history.provider_code == "GC_NOTIFY"
-        assert history.gc_notify_response_id == "gc_123"
-        assert history.gc_notify_status == "delivered"
+        assert history.notify_response_id == "gc_123"
+        assert history.notify_status == "delivered"
 
     @staticmethod
     def test_notification_history_json_property(sample_history):
@@ -199,8 +199,8 @@ class TestNotificationHistoryModel:
             "notifyType": "EMAIL",
             "notifyStatus": "DELIVERED",
             "notifyProvider": "GC_NOTIFY",
-            "gc_notify_response_id": "gc_123",
-            "gc_notify_status": "delivered",
+            "notify_response_id": "gc_123",
+            "notify_status": "delivered",
             "notificationId": None,
         }
 
@@ -228,8 +228,8 @@ class TestNotificationHistoryModel:
         assert json_data["id"] == TEST_HISTORY_ID
         assert json_data["recipients"] == "test@example.com"
         assert json_data["requestBy"] is None
-        assert json_data["gc_notify_response_id"] is None
-        assert json_data["gc_notify_status"] is None
+        assert json_data["notify_response_id"] is None
+        assert json_data["notify_status"] is None
 
     @staticmethod
     def test_create_history_success(sample_notification):
@@ -260,7 +260,7 @@ class TestNotificationHistoryModel:
             assert add_call_args.type_code == "EMAIL"
             assert add_call_args.status_code == "DELIVERED"
             assert add_call_args.provider_code == "GC_NOTIFY"
-            assert add_call_args.gc_notify_response_id == "response_123"
+            assert add_call_args.notify_response_id == "response_123"
 
     @staticmethod
     def test_create_history_default_recipient(sample_notification):
@@ -290,7 +290,7 @@ class TestNotificationHistoryModel:
 
             # Assert
             add_call_args = mock_session.add.call_args[0][0]
-            assert add_call_args.gc_notify_response_id is None
+            assert add_call_args.notify_response_id is None
 
     @staticmethod
     def test_create_history_with_subject_override(sample_notification):
@@ -344,7 +344,7 @@ class TestNotificationHistoryModel:
 
             # Assert
             assert result == mock_history
-            mock_query.filter_by.assert_called_once_with(gc_notify_response_id="response_123")
+            mock_query.filter_by.assert_called_once_with(notify_response_id="response_123")
             mock_filter.one_or_none.assert_called_once()
 
     @staticmethod
@@ -360,7 +360,7 @@ class TestNotificationHistoryModel:
 
             # Assert
             assert result is None
-            mock_query.filter_by.assert_called_once_with(gc_notify_response_id="nonexistent_id")
+            mock_query.filter_by.assert_called_once_with(notify_response_id="nonexistent_id")
 
     @staticmethod
     def test_find_by_response_id_none_input():
@@ -419,14 +419,14 @@ class TestNotificationHistoryModel:
 
             # Modify the object
             history.status_code = "DELIVERED"
-            history.gc_notify_status = "delivered"
+            history.notify_status = "delivered"
 
             # Act
             result = history.update()
 
             # Assert
             assert result.status_code == "DELIVERED"
-            assert result.gc_notify_status == "delivered"
+            assert result.notify_status == "delivered"
             mock_session.add.assert_called_once_with(history)
 
     @staticmethod

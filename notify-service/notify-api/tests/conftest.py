@@ -324,7 +324,7 @@ def mock_notification_history_model():
         mock_instance.provider_code = "GC_NOTIFY"
         mock_instance.sent_date = datetime.datetime.now(datetime.UTC)
         mock_instance.request_date = datetime.datetime.now(datetime.UTC)
-        mock_instance.gc_notify_response_id = "gc_123"
+        mock_instance.notify_response_id = "gc_123"
 
         mock_model.return_value = mock_instance
         yield mock_model

@@ -50,6 +50,7 @@ flowchart LR
     Delivery -->|Shared notification lookup| DB
     Delivery --> GC[GC Notify]
     Delivery --> BC[BC Notify]
+    BC -->|Status callback| API
     Delivery --> SMTP[SMTP]
     Delivery --> Housing[Housing provider]
     Delivery -->|History writes| DB
@@ -78,6 +79,7 @@ flowchart LR
     PubSub -->|HTML format<br/>FORWARDED| OCP[OpenShift - Gold<br/>Notify Delivery]
     Delivery -->|Delivery SENT| GC[GC Notify]
     Delivery -->|Delivery SENT| BC[BC Notify]
+    BC -->|Status callback| API
     OCP -->|Dev| Mailhog
     OCP -->|Delivery SENT| SMTP
 ```
@@ -110,14 +112,14 @@ Selection order:
 
 1. `STRR` requests use Housing or BC Notify Housing according to `BC_NOTIFY_ENABLE`.
 2. Attachments whose decoded inline content exceeds 6 MiB use SMTP.
-3. HTML content uses SMTP.
+3. HTML containing an `<img>` element or exceeding 50,000 characters uses SMTP.
 4. Remaining notifications use BC Notify when enabled, then GC Notify when enabled, otherwise SMTP.
 
 The selected provider determines the Pub/Sub topic and CloudEvent type.
 
 ### 3.3 notify-delivery
 
-**Purpose:** Receive provider-specific Pub/Sub push events, reload notification data, call an external provider, write delivery history, and complete or fail the work record.
+**Purpose:** Receive provider-specific Pub/Sub push events, reload notification data, call an external provider, write delivery history, and complete or fail the work record. BC Notify and BC Notify Housing sends remain active as `SENT` while their delivery callback is pending.
 
 **Technology:** Python 3.12+, Flask, shared `notify-api` models, PostgreSQL, Google Cloud Pub/Sub, provider SDKs and HTTP clients.
 
@@ -138,6 +140,12 @@ A delivery handler returns `200` for accepted or stale work, `400` for invalid m
 
 Both services use the `gcp-queue` integration and CloudEvents. The API publishes an event with source `notify-api`, type `bc.registry.notify.<provider>`, and data containing `notificationId`. Delivery validates the event type before processing it.
 
+### 3.5 BC Notify callback lifecycle
+
+After BC Notify or BC Notify Housing accepts a send, `notify-delivery` stores the provider response ID on the active `Notification`, marks it `SENT`, and does not create a history row or delete the notification/content. This response ID is used to correlate the asynchronous callback.
+
+BC Notify posts its status event to the authenticated `/api/v2/callback/` endpoint. The API stores each event in `bc_notify_callback`. Intermediate statuses leave the active notification in place. A `success` or `completed` status atomically marks the notification `DELIVERED`, writes `NotificationHistory` with the callback status and response ID, and removes the active notification and content. The stale-notification archive sweep excludes BC Notify `SENT` rows so they remain available for callback correlation.
+
 ## 4. Data Stores
 
 ### 4.1 PostgreSQL / Cloud SQL
@@ -148,11 +156,12 @@ Both services use the `gcp-queue` integration and CloudEvents. The API publishes
 
 **Important models:**
 
-- `Notification`: queued work and current status/provider
+- `Notification`: queued work, current status/provider, and pending BC Notify response ID
 - `Content`: email body and related content
 - `Attachment`: inline or URL-backed attachments
 - `NotificationHistory`: durable delivery result/history
-- `Callback`: provider callback state and response
+- `Callback`: legacy GC Notify callback state and response
+- `BCNotifyCallback`: BC Notify status event envelope and provider details
 - `SafeList`: development recipient restriction
 
 **Migration owner:** `notify-api/migrations/`. Delivery depends on the resulting schema and compatible shared models.
@@ -173,6 +182,7 @@ Topic names, subscriptions, retry policy, dead-letter topics, and retention are 
 | PostgreSQL / Cloud SQL | Shared notification persistence | SQLAlchemy/pg8000 or psycopg |
 | GC Notify | Standard notification delivery | Provider adapter/API client |
 | BC Notify | Preferred standard and Housing delivery when enabled | Provider adapter/API client |
+| BC Notify callback | Asynchronous delivery status for BC Notify sends | Authenticated callback event at `/api/v2/callback/` |
 | SMTP | HTML, large-inline-attachment, or fallback delivery | SMTP provider adapter |
 | Housing service | STRR-specific notifications when BC Notify Housing is disabled | Housing provider adapter |
 | OIDC/JWT issuer | API authentication and role extraction | JWT/OIDC configuration |

@@ -61,7 +61,7 @@ def test_find_notification_returns_history_fallback(client, session, jwt):
             "requestBy": None,
             "requestDate": None,
             "sentDate": None,
-            "gc_notify_status": "sent",
+            "notify_status": "sent",
         }
         mock_history.find_by_notification_id.return_value = mock_history_instance
 
@@ -73,7 +73,7 @@ def test_find_notification_returns_history_fallback(client, session, jwt):
         assert data["recipients"] == "test@example.com"
         assert data["notifyStatus"] == "QUEUED"
         # Check new/fallback fields exist
-        assert "gc_notify_status" in data
+        assert "notify_status" in data
 
         mock_history.find_by_notification_id.assert_called_with(int(notify_id))
 

@@ -102,15 +102,19 @@ def send_notification(notification: Notification, provider_class) -> Notificatio
     1. The provider call itself fails (raises, or returns no responses) -
        no email was sent, so it is safe to mark the notification FAILURE
        and let it be picked up again by the periodic resend job.
-    2. The provider call *succeeds* (the recipient has already received the
-       email) but a later, purely local step - marking SENT, writing the
-       history record(s), or deleting the active row - fails. This must
+     2. The provider call *succeeds* (the recipient has already received the
+         email) but a later, purely local step - marking SENT, writing the
+         history record(s), or deleting the active row - fails. This must
        NEVER flip the status back to a resend-eligible one (QUEUED/PENDING/
        FAILURE), because the resend job would then call the provider again
        and send a second, real, duplicate email to the recipient. Instead
        the notification is left as SENT (which find_resend_notifications()
        excludes) so it can only be cleaned up later by the archive sweep,
        never re-sent.
+
+     BC Notify and BC Notify Housing are left active as SENT after the send
+     response; their provider response ID is stored and final history archival
+     waits for a successful status callback.
 
     As a further safeguard, a notification that is already SENT/DELIVERED
     when this function is called is skipped rather than re-sent.
@@ -146,7 +150,17 @@ def send_notification(notification: Notification, provider_class) -> Notificatio
     # failure below is local bookkeeping only.
     try:
         notification.status_code = Notification.NotificationStatus.SENT
+        provider_code = getattr(notification.provider_code, "name", notification.provider_code)
+        waits_for_callback = str(provider_code).upper() in {"BC_NOTIFY", "BC_NOTIFY_HOUSING"}
+        if waits_for_callback:
+            notification.notify_response_id = responses.recipients[0].response_id
+
         notification.update_notification(commit=False)
+
+        if waits_for_callback:
+            db.session.commit()
+            logger.info(f"Notification {notification.id} sent to provider; waiting for callback status")
+            return notification
 
         history = None
         for response in responses.recipients:
@@ -166,7 +180,7 @@ def send_notification(notification: Notification, provider_class) -> Notificatio
     except Exception as error:
         db.session.rollback()
         logger.error(
-            f"Notification {notification.id} was delivered by the provider, but saving history/cleanup failed: "
+            f"Notification {notification.id} was delivered by the provider, but saving callback/history/cleanup failed: "
             f"{error}. Marking it SENT (not FAILURE) so the resend job does not re-send this email; it will be "
             "picked up by the periodic archive sweep instead."
         )

@@ -24,7 +24,15 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from notify_api.models import Callback, CallbackRequest, NotificationHistory
+from notify_api.models import (
+    BCNotifyCallback,
+    BCNotifyCallbackRequest,
+    Callback,
+    CallbackRequest,
+    Notification,
+    NotificationHistory,
+)
+from notify_api.resources.v2.callback import process_bc_notify_callback
 from notify_api.utils.enums import Role
 
 
@@ -40,6 +48,78 @@ def create_header(jwt, roles, **kwargs):
 
 class TestCallbackEndpoint:
     """Test suite for callback endpoint."""
+
+    @staticmethod
+    @pytest.mark.parametrize("status", ["success", "completed"])
+    def test_terminal_callback_archives_active_notification(status):
+        body = BCNotifyCallbackRequest.model_validate({
+            "event": "notification.status.changed",
+            "notificationId": "notification-123",
+            "tenantId": "tenant-123",
+            "data": {
+                "notifyId": "notify-123",
+                "status": status,
+                "statusDisplayName": status.title(),
+                "channel": "EMAIL",
+                "createdAt": "2026-10-08T17:02:11.123Z",
+                "updatedAt": "2026-10-08T17:02:14.456Z",
+            },
+            "deliveredAt": "2026-10-08T17:02:15.012Z",
+        })
+        notification = Mock()
+        history = Mock()
+
+        with (
+            patch("notify_api.resources.v2.callback.BCNotifyCallback.save") as save_callback,
+            patch("notify_api.resources.v2.callback.Notification.find_by_response_id", return_value=notification),
+            patch(
+                "notify_api.resources.v2.callback.NotificationHistory.create_history", return_value=history
+            ) as create_history,
+            patch("notify_api.resources.v2.callback.db.session") as session,
+        ):
+            result = process_bc_notify_callback(body)
+
+        assert result is history
+        save_callback.assert_called_once_with(body)
+        assert notification.status_code == Notification.NotificationStatus.DELIVERED
+        create_history.assert_called_once_with(notification, response_id="notify-123", commit=False)
+        assert history.notify_status == status
+        notification.update_notification.assert_called_once_with(commit=False)
+        notification.delete_notification.assert_called_once_with(commit=False)
+        session.commit.assert_called_once()
+
+    @staticmethod
+    def test_intermediate_callback_keeps_notification_active():
+        body = BCNotifyCallbackRequest.model_validate({
+            "event": "notification.status.changed",
+            "notificationId": "notification-123",
+            "tenantId": "tenant-123",
+            "data": {
+                "notifyId": "notify-123",
+                "status": "sending",
+                "statusDisplayName": "Sending",
+                "channel": "EMAIL",
+                "createdAt": "2026-10-08T17:02:11.123Z",
+                "updatedAt": "2026-10-08T17:02:14.456Z",
+            },
+            "deliveredAt": "2026-10-08T17:02:15.012Z",
+        })
+        notification = Mock()
+
+        with (
+            patch("notify_api.resources.v2.callback.BCNotifyCallback.save"),
+            patch("notify_api.resources.v2.callback.Notification.find_by_response_id", return_value=notification),
+            patch("notify_api.resources.v2.callback.NotificationHistory.create_history") as create_history,
+            patch("notify_api.resources.v2.callback.NotificationHistory.find_by_response_id") as find_history,
+            patch("notify_api.resources.v2.callback.db.session") as session,
+        ):
+            result = process_bc_notify_callback(body)
+
+        assert result is notification
+        create_history.assert_not_called()
+        find_history.assert_not_called()
+        notification.delete_notification.assert_not_called()
+        session.commit.assert_not_called()
 
     @staticmethod
     def test_no_token_unauthorized(client):
@@ -249,13 +329,13 @@ class TestCallbackEndpoint:
 
         # Mock notification history record
         mock_history = Mock()
-        mock_history.gc_notify_status = "sending"
+        mock_history.notify_status = "sending"
         mock_find.return_value = mock_history
 
         history = NotificationHistory.find_by_response_id(response_id)
 
         assert history is not None
-        assert history.gc_notify_status == "sending"
+        assert history.notify_status == "sending"
         mock_find.assert_called_once_with(response_id)
 
     @staticmethod
@@ -276,14 +356,14 @@ class TestCallbackEndpoint:
         """Test updating notification history status."""
         # Mock notification history record
         mock_history = Mock()
-        mock_history.gc_notify_status = "sending"
+        mock_history.notify_status = "sending"
         mock_history.update = Mock()
 
         # Update status
-        mock_history.gc_notify_status = "delivered"
+        mock_history.notify_status = "delivered"
         mock_history.update()
 
-        assert mock_history.gc_notify_status == "delivered"
+        assert mock_history.notify_status == "delivered"
         mock_history.update.assert_called_once()
 
     @staticmethod
@@ -427,58 +507,78 @@ class TestCallbackEndpoint:
             assert callback_request.reference == f"ref-{uuid_format}"
 
     @staticmethod
-    @patch("notify_api.models.callback.Callback.save")
+    @patch("notify_api.models.bc_notify_callback.BCNotifyCallback.save")
     @patch("notify_api.models.notification_history.NotificationHistory.find_by_response_id")
     def test_complete_callback_flow_with_history_update(mock_find, mock_save):
         """Test complete callback processing with history update."""
         callback_data = {
-            "id": "123e4567-e89b-12d3-a456-426614174000",
-            "reference": "notification-ref-123",
-            "to": "test@example.com",
-            "status": "delivered",
-            "status_description": "Message delivered successfully",
+            "event": "notification.status.changed",
+            "notificationId": "notification-123",
+            "tenantId": "tenant-123",
+            "data": {
+                "notifyId": "notify-123",
+                "status": "completed",
+                "statusDisplayName": "Completed",
+                "channel": "EMAIL",
+                "createdAt": "2026-10-08T17:02:11.123Z",
+                "updatedAt": "2026-10-08T17:02:14.456Z",
+            },
+            "deliveredAt": "2026-10-08T17:02:15.012Z",
         }
 
         # Mock notification history
         mock_history = Mock()
-        mock_history.gc_notify_status = "sending"
+        mock_history.notify_status = "sending"
         mock_find.return_value = mock_history
 
-        callback_request = CallbackRequest(**callback_data)
+        callback_request = BCNotifyCallbackRequest.model_validate(callback_data)
 
         # Simulate the callback processing
-        Callback.save(callback_request)
-        history = NotificationHistory.find_by_response_id(callback_request.id)
+        BCNotifyCallback.save(callback_request)
+        history = NotificationHistory.find_by_response_id(callback_request.data.notify_id)
 
         if history:
-            history.gc_notify_status = callback_request.status
+            history.notify_status = callback_request.data.status
             history.update()
 
         # Verify the flow
         mock_save.assert_called_once_with(callback_request)
-        mock_find.assert_called_once_with("123e4567-e89b-12d3-a456-426614174000")
-        assert mock_history.gc_notify_status == "delivered"
+        mock_find.assert_called_once_with("notify-123")
+        assert mock_history.notify_status == "completed"
         mock_history.update.assert_called_once()
 
     @staticmethod
-    @patch("notify_api.models.callback.Callback.save")
+    @patch("notify_api.models.bc_notify_callback.BCNotifyCallback.save")
     @patch("notify_api.models.notification_history.NotificationHistory.find_by_response_id")
     def test_complete_callback_flow_without_history(mock_find, mock_save):
         """Test complete callback processing without history record."""
-        callback_data = {"id": "123e4567-e89b-12d3-a456-426614174000", "status": "delivered", "to": "test@example.com"}
+        callback_data = {
+            "event": "notification.status.changed",
+            "notificationId": "notification-123",
+            "tenantId": "tenant-123",
+            "data": {
+                "notifyId": "notify-123",
+                "status": "completed",
+                "statusDisplayName": "Completed",
+                "channel": "EMAIL",
+                "createdAt": "2026-10-08T17:02:11.123Z",
+                "updatedAt": "2026-10-08T17:02:14.456Z",
+            },
+            "deliveredAt": "2026-10-08T17:02:15.012Z",
+        }
 
         # No history record found
         mock_find.return_value = None
 
-        callback_request = CallbackRequest(**callback_data)
+        callback_request = BCNotifyCallbackRequest.model_validate(callback_data)
 
         # Simulate the callback processing
-        Callback.save(callback_request)
-        history = NotificationHistory.find_by_response_id(callback_request.id)
+        BCNotifyCallback.save(callback_request)
+        history = NotificationHistory.find_by_response_id(callback_request.data.notify_id)
 
         # Verify the flow
         mock_save.assert_called_once_with(callback_request)
-        mock_find.assert_called_once_with("123e4567-e89b-12d3-a456-426614174000")
+        mock_find.assert_called_once_with("notify-123")
         assert history is None
 
     @staticmethod

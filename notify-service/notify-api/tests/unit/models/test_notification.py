@@ -415,6 +415,11 @@ class TestNotificationModel:
 
         assert result == []
         mock_query.filter.assert_called_once()
+        archive_filters = mock_query.filter.call_args.args
+        provider_filter = str(archive_filters[2].compile(compile_kwargs={"literal_binds": True})).lower()
+        assert "provider_code not in" in provider_filter
+        assert "bc_notify" in provider_filter
+        assert "bc_notify_housing" in provider_filter
 
     @staticmethod
     def test_find_archivable_notifications_returns_stale_records(session):

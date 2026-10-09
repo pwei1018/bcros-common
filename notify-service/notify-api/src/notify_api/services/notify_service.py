@@ -2,7 +2,6 @@
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -38,6 +37,7 @@ logger = StructuredLogging.get_logger()
 CLOUD_EVENT_SOURCE = "notify-api"
 CLOUD_EVENT_TYPE_PREFIX = "bc.registry.notify"
 STRR_REQUEST_IDENTIFIER = "STRR"
+MAX_HTML_BODY_LENGTH = 50_000
 
 
 class _HTMLTagDetector(HTMLParser):
@@ -46,15 +46,18 @@ class _HTMLTagDetector(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.has_tags = False
+        self.has_images = False
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.has_tags = True
+        self.has_images = self.has_images or tag.lower() == "img"
 
     def handle_endtag(self, tag: str) -> None:
         self.has_tags = True
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.has_tags = True
+        self.has_images = self.has_images or tag.lower() == "img"
 
 
 class NotifyService:
@@ -93,9 +96,14 @@ class NotifyService:
                 "SMTP provider for large attachments (>6MB)",
             ),
             (
-                lambda: content_body and cls._contains_html(content_body),
+                lambda: content_body and cls._contains_html_image(content_body),
                 Notification.NotificationProvider.SMTP,
-                "SMTP provider for HTML content",
+                "SMTP provider for HTML content containing an image",
+            ),
+            (
+                lambda: content_body and len(content_body) > MAX_HTML_BODY_LENGTH and cls._contains_html(content_body),
+                Notification.NotificationProvider.SMTP,
+                "SMTP provider for HTML content over 50000 characters",
             ),
         ]
 
@@ -176,6 +184,20 @@ class NotifyService:
             return html_detector.has_tags
         except Exception as err:
             logger.warning(f"Error parsing content for HTML: {err}")
+            return False
+
+    @classmethod
+    def _contains_html_image(cls, content: str) -> bool:
+        """Check whether HTML content contains an image element."""
+        if not cls._contains_html(content):
+            return False
+
+        try:
+            html_detector = _HTMLTagDetector()
+            html_detector.feed(content)
+            return html_detector.has_images
+        except Exception as err:
+            logger.warning(f"Error parsing content for HTML images: {err}")
             return False
 
     @classmethod
@@ -341,7 +363,16 @@ class NotifyService:
             )
 
             # Filter recipients based on safe list in development
-            safe_recipients = NotifyService._filter_safe_recipients(notification_request.recipients)
+            # BC Notify bypasses safe-list filtering; other providers still use it.
+            if provider in {
+                Notification.NotificationProvider.BC_NOTIFY,
+                Notification.NotificationProvider.BC_NOTIFY_HOUSING,
+            }:
+                safe_recipients = [
+                    recipient.strip() for recipient in notification_request.recipients.split(",") if recipient.strip()
+                ]
+            else:
+                safe_recipients = NotifyService._filter_safe_recipients(notification_request.recipients)
 
             if not safe_recipients:
                 logger.warning("No valid recipients after safe list filtering")

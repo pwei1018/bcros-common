@@ -275,6 +275,37 @@ class TestValidateNotificationContent:
 class TestSendNotification:
     """Test send_notification function."""
 
+    @pytest.mark.parametrize(
+        "provider_code",
+        [Notification.NotificationProvider.BC_NOTIFY, Notification.NotificationProvider.BC_NOTIFY_HOUSING],
+    )
+    @patch("notify_delivery.resources.utils.NotificationHistory")
+    @patch("notify_delivery.resources.utils.db")
+    def test_bc_notify_waits_for_callback_before_archiving(self, mock_db, mock_history_class, provider_code):
+        """BC Notify sends remain active until their callback arrives."""
+        notification = Mock()
+        notification.id = "notification-123"
+        notification.provider_code = provider_code
+
+        response = Mock()
+        response.recipient = "test@example.com"
+        response.response_id = "provider-response-123"
+        responses = Mock(recipients=[response])
+
+        provider = Mock()
+        provider.send.return_value = responses
+        provider_class = Mock(return_value=provider)
+
+        result = send_notification(notification, provider_class)
+
+        assert result is notification
+        assert notification.status_code == Notification.NotificationStatus.SENT
+        assert notification.notify_response_id == "provider-response-123"
+        notification.update_notification.assert_called_once_with(commit=False)
+        notification.delete_notification.assert_not_called()
+        mock_history_class.create_history.assert_not_called()
+        mock_db.session.commit.assert_called_once()
+
     @patch("notify_delivery.resources.utils.logger")
     def test_send_notification_provider_exception(self, mock_logger):
         """Test send_notification when provider raises exception."""
