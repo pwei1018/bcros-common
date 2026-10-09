@@ -38,9 +38,14 @@ from notify_api.config import config as api_config
 from notify_api.models import db
 from notify_delivery import create_app as create_delivery_app
 from notify_delivery.config import UnitTestingConfig as DeliveryUnitTestingConfig
+from notify_delivery.config import (
+    UnitTestingSMTPConfig as DeliveryUnitTestingSMTPConfig,
+)
 from notify_delivery.config import config as delivery_config
 
 BC_NOTIFY_TOPIC = "projects/e2e/topics/bc-notify"
+SMTP_TOPIC = "projects/e2e/topics/smtp"
+SMTP_FROM = "notify@e2e.gov.bc.ca"
 
 
 @pytest.fixture(scope="session")
@@ -57,6 +62,7 @@ def api_app(database_uri):
         SQLALCHEMY_DATABASE_URI = database_uri
         BC_NOTIFY_ENABLE = True
         DELIVERY_BC_NOTIFY_TOPIC = BC_NOTIFY_TOPIC
+        DELIVERY_SMTP_TOPIC = SMTP_TOPIC
 
     api_config["e2e"] = E2EApiConfig
     app = create_api_app("e2e")
@@ -78,6 +84,38 @@ def delivery_app(database_uri, api_app):  # noqa: ARG001  (api_app creates the s
 
     delivery_config["e2e"] = E2EDeliveryConfig
     return create_delivery_app("e2e")
+
+
+@pytest.fixture(scope="session")
+def delivery_smtp_app(database_uri, api_app):  # noqa: ARG001
+    """Return the notify-delivery app in OCP mode, where the SMTP worker is mounted."""
+
+    class E2EDeliverySMTPConfig(DeliveryUnitTestingSMTPConfig):
+        SQLALCHEMY_DATABASE_URI = database_uri
+        VERIFY_PUBSUB_VIA_JWT = False
+        DEPLOYMENT_ENV = "production"
+        MAIL_SERVER = "smtp.e2e.test"
+        MAIL_PORT = 25
+        MAIL_FROM_ID = SMTP_FROM
+
+    delivery_config["e2e-smtp"] = E2EDeliverySMTPConfig
+    return create_delivery_app("e2e-smtp")
+
+
+@pytest.fixture
+def delivery_smtp_client(delivery_smtp_app):
+    """Return a notify-delivery (SMTP mode) test client."""
+    return delivery_smtp_app.test_client()
+
+
+@pytest.fixture(autouse=True)
+def clean_tables(api_app):
+    """Empty every table after each test; SQLite reuses ids, so stale history rows would collide."""
+    yield
+    with api_app.app_context():
+        for table in reversed(db.metadata.sorted_tables):
+            db.session.execute(table.delete())
+        db.session.commit()
 
 
 @pytest.fixture
