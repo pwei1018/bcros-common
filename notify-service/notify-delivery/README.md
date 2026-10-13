@@ -95,6 +95,14 @@ uv run pytest -v tests/unit/api/test_filename.py::test_case_name
 uv run pytest --cov=src/notify_api --cov-report=html --cov-report=term-missing
 ```
 
+### Running E2E Tests
+
+The shared notify-api + notify-delivery success-path suite lives in `../e2e`. Run it after the unit tests:
+
+```bash
+uv run pytest -v && uv run python -m pytest ../e2e -v
+```
+
 ### Run the application in local
 
 ```bash

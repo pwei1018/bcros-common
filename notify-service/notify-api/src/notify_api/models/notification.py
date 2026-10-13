@@ -20,6 +20,7 @@ from email_validator import EmailNotValidError, validate_email
 from flask import current_app
 import phonenumbers
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy import or_
 
 from notify_api.utils.base import BaseEnum
 from notify_api.utils.util import to_camel
@@ -112,6 +113,7 @@ class Notification(db.Model):
     status_code = db.Column(db.Enum(NotificationStatus), default=NotificationStatus.PENDING)
     provider_code = db.Column(db.Enum(NotificationProvider), nullable=True)
     retry_count = db.Column(db.Integer, default=0, nullable=False, server_default="0")
+    notify_response_id = db.Column(db.String, nullable=True, index=True)
 
     # relationships
     content = db.relationship("Content")
@@ -151,6 +153,13 @@ class Notification(db.Model):
         if status:
             notifications = cls.query.filter_by(status_code=status).all()
         return notifications
+
+    @classmethod
+    def find_by_response_id(cls, response_id: str | None = None):
+        """Find an active notification by its provider response ID."""
+        if not response_id:
+            return None
+        return cls.query.filter_by(notify_response_id=response_id).one_or_none()
 
     # Notifications older than this are considered stale/time-sensitive-expired
     # and must not be auto-resent (e.g. annual report reminders, renewal notices).
@@ -212,9 +221,10 @@ class Notification(db.Model):
         """Return Notifications that have been stuck too long and should be archived.
 
         This includes any status that never reached a clean terminal state
-        (PENDING/QUEUED/FAILURE), SENT rows that failed to be cleaned up after
-        a successful delivery, and EXPIRED rows left active by an interrupted
-        archive operation.
+        (PENDING/QUEUED/FAILURE), non-BC SENT rows that failed to be cleaned up
+        after a successful delivery, and EXPIRED rows left active by an
+        interrupted archive operation. BC Notify SENT rows remain active until
+        their terminal callback arrives.
         """
         archivable_statuses = (
             Notification.NotificationStatus.PENDING.value,
@@ -230,6 +240,16 @@ class Notification(db.Model):
         return cls.query.filter(
             Notification.status_code.in_(archivable_statuses),
             Notification.request_date < cutoff,
+            or_(
+                Notification.status_code != Notification.NotificationStatus.SENT,
+                Notification.provider_code.is_(None),
+                Notification.provider_code.notin_(
+                    (
+                        Notification.NotificationProvider.BC_NOTIFY,
+                        Notification.NotificationProvider.BC_NOTIFY_HOUSING,
+                    )
+                ),
+            ),
         ).all()
 
     @classmethod

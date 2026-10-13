@@ -14,6 +14,7 @@
 """This exports all of the models and schemas used by the application."""
 
 from .attachment import Attachment
+from .bc_notify_callback import BCNotifyCallback, BCNotifyCallbackData, BCNotifyCallbackRequest
 from .callback import Callback, CallbackRequest
 from .content import Content, ContentRequest
 from .db import db
@@ -24,6 +25,9 @@ from .safe_list import SafeList, SafeListRequest
 
 __all__ = (
     "Attachment",
+    "BCNotifyCallback",
+    "BCNotifyCallbackData",
+    "BCNotifyCallbackRequest",
     "Callback",
     "CallbackRequest",
     "Content",

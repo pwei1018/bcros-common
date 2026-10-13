@@ -108,6 +108,14 @@ uv run python -m pytest -m unit -v
 uv run python -m pytest tests/unit/models/ -v --no-cov
 ```
 
+### Running E2E Tests
+
+The shared notify-api + notify-delivery success-path suite lives in `../e2e`. Run it after the unit tests:
+
+```bash
+uv run python -m pytest && uv run python -m pytest ../e2e -v
+```
+
 ### Run the application in local
 
 ```bash

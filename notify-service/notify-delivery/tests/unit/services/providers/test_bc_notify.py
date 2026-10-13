@@ -357,6 +357,47 @@ class TestBCNotify(unittest.TestCase):
         self.assertEqual(result.recipients[0].response_id, "success-after-retry")
         mock_sleep.assert_called_once()
 
+    @patch("notify_delivery.services.providers.bc_notify.time.sleep")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
+    def test_send_stops_after_max_retries_for_rate_limit(self, mock_post, mock_sleep):
+        mock_content = Mock(spec=NotificationContent)
+        mock_content.subject = "Subject"
+        mock_content.body = "Body"
+        mock_content.attachments = None
+
+        mock_notification = Mock(spec=Notification)
+        mock_notification.content = [mock_content]
+        mock_notification.recipients = "user@example.com"
+
+        error_response = Mock(status_code=429, text="Rate limit exceeded")
+        mock_post.side_effect = requests.exceptions.HTTPError(response=error_response)
+
+        result = BCNotify(mock_notification).send()
+
+        self.assertEqual(result.recipients, [])
+        self.assertEqual(mock_post.call_count, BCNotify.MAX_RETRIES + 1)
+        self.assertEqual(mock_sleep.call_count, BCNotify.MAX_RETRIES)
+
+    @patch("notify_delivery.services.providers.bc_notify.time.sleep")
+    @patch("notify_delivery.services.providers.bc_notify.requests.post")
+    def test_send_stops_after_max_retries_for_connection_error(self, mock_post, mock_sleep):
+        mock_content = Mock(spec=NotificationContent)
+        mock_content.subject = "Subject"
+        mock_content.body = "Body"
+        mock_content.attachments = None
+
+        mock_notification = Mock(spec=Notification)
+        mock_notification.content = [mock_content]
+        mock_notification.recipients = "user@example.com"
+
+        mock_post.side_effect = requests.exceptions.ConnectionError("Network unavailable")
+
+        result = BCNotify(mock_notification).send()
+
+        self.assertEqual(result.recipients, [])
+        self.assertEqual(mock_post.call_count, BCNotify.MAX_RETRIES + 1)
+        self.assertEqual(mock_sleep.call_count, BCNotify.MAX_RETRIES)
+
     def test_get_bc_notify_config_value_whitespace_only_falls_back(self):
         """Config values that are whitespace-only should be treated as absent."""
         self.app.config["BC_NOTIFY_API_KEY"] = "   "

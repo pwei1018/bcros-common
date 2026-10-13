@@ -4,6 +4,8 @@ import base64
 import unittest.mock
 from unittest.mock import Mock, patch
 
+import pytest
+
 from notify_api.models import Notification, NotificationHistory, NotificationRequest
 from notify_api.models.attachment import AttachmentRequest
 from notify_api.models.content import ContentRequest
@@ -47,15 +49,30 @@ class TestNotifyServiceProviderSelection:
 
     @staticmethod
     def test_get_provider_html_content():
-        """Test provider selection for HTML content."""
-        provider = NotifyService.get_provider("other", "<html><body>HTML content</body></html>")
+        """Test provider selection sends HTML content over 50000 characters through SMTP."""
+        body = "<html><body>" + "x" * 50_000 + "</body></html>"
+        provider = NotifyService.get_provider("other", body)
         assert provider == Notification.NotificationProvider.SMTP
 
     @staticmethod
-    def test_get_provider_html_tags_in_content():
-        """Test provider selection for content with HTML tags."""
-        provider = NotifyService.get_provider("other", "<p>Paragraph content</p>")
-        assert provider == Notification.NotificationProvider.SMTP
+    def test_get_provider_html_body_at_limit_uses_default_provider(app):
+        """HTML at exactly 50000 characters should use the configured default provider."""
+        with app.app_context():
+            app.config["BC_NOTIFY_ENABLE"] = True
+            app.config["GC_NOTIFY_ENABLE"] = True
+            body = "<p>" + "x" * (50_000 - len("<p></p>")) + "</p>"
+            provider = NotifyService.get_provider("other", body)
+            assert provider == Notification.NotificationProvider.BC_NOTIFY
+
+    @staticmethod
+    def test_get_provider_html_body_with_embedded_image_uses_smtp(app):
+        """HTML with an embedded image uses SMTP regardless of body length."""
+        with app.app_context():
+            app.config["BC_NOTIFY_ENABLE"] = True
+            app.config["GC_NOTIFY_ENABLE"] = True
+            body = '<html><body><img src="data:image/png;base64,AAAA"></body></html>'
+            provider = NotifyService.get_provider("other", body)
+            assert provider == Notification.NotificationProvider.SMTP
 
     @staticmethod
     def test_get_provider_default_gc_notify(app):
@@ -379,6 +396,48 @@ class TestNotifyServiceQueueOperations:
             assert result == []
 
     @staticmethod
+    @pytest.mark.parametrize(
+        ("provider", "filtered_recipients", "expected_recipients", "filter_called"),
+        [
+            (
+                Notification.NotificationProvider.BC_NOTIFY,
+                ["allowed@example.com"],
+                ["allowed@example.com", "blocked@example.com"],
+                False,
+            ),
+            (
+                Notification.NotificationProvider.BC_NOTIFY_HOUSING,
+                ["allowed@example.com"],
+                ["allowed@example.com", "blocked@example.com"],
+                False,
+            ),
+        ],
+    )
+    def test_queue_publish_bypasses_safe_list_for_bc_notify_providers(
+        app, provider, filtered_recipients, expected_recipients, filter_called
+    ):
+        with app.app_context():
+            request = Mock()
+            request.request_by = "test-service"
+            request.content.body = "Plain text"
+            request.content.subject = "Test subject"
+            request.recipients = "allowed@example.com, blocked@example.com"
+
+            service = NotifyService()
+            with (
+                patch.object(service, "get_provider", return_value=provider),
+                patch.object(
+                    NotifyService, "_filter_safe_recipients", return_value=filtered_recipients
+                ) as filter_recipients,
+                patch.object(NotifyService, "_get_delivery_topic", return_value="test-topic"),
+                patch.object(NotifyService, "_process_single_recipient", return_value=Mock()) as process_recipient,
+            ):
+                service.queue_publish(request)
+
+            assert filter_recipients.called is filter_called
+            assert [call.args[0] for call in process_recipient.call_args_list] == expected_recipients
+
+    @staticmethod
     def test_queue_publish_success(app):
         """Test successful queue publishing."""
         with app.app_context():
@@ -700,11 +759,11 @@ class TestNotifyServiceQueueOperations:
                 NotifyService.get_provider("test", "Text with angle chars but not HTML")
                 == Notification.NotificationProvider.GC_NOTIFY
             )
-            # HTML comments are not detected as HTML by BeautifulSoup.find() so they go to GC_NOTIFY
+            # Short HTML without an image does not force SMTP.
             assert NotifyService.get_provider("test", "<!-- comment -->") == Notification.NotificationProvider.GC_NOTIFY
             assert (
                 NotifyService.get_provider("test", "<script>alert('test')</script>")
-                == Notification.NotificationProvider.SMTP
+                == Notification.NotificationProvider.GC_NOTIFY
             )
 
 

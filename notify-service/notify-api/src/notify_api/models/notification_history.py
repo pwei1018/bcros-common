@@ -34,8 +34,8 @@ class NotificationHistory(db.Model):
     type_code = db.Column(db.String(15), nullable=False)
     status_code = db.Column(db.String(15), nullable=False)
     provider_code = db.Column(db.String(15), nullable=False)
-    gc_notify_response_id = db.Column(db.String, nullable=True)
-    gc_notify_status = db.Column(db.String, nullable=True)
+    notify_response_id = db.Column(db.String, nullable=True)
+    notify_status = db.Column(db.String, nullable=True)
     notification_id = db.Column(db.Integer, nullable=True, index=True)
 
     @property
@@ -51,8 +51,8 @@ class NotificationHistory(db.Model):
             "notifyType": self.type_code,
             "notifyStatus": self.status_code,
             "notifyProvider": self.provider_code,
-            "gc_notify_response_id": self.gc_notify_response_id,
-            "gc_notify_status": self.gc_notify_status,
+            "notify_response_id": self.notify_response_id,
+            "notify_status": self.notify_status,
             "notificationId": self.notification_id,
         }
 
@@ -90,7 +90,7 @@ class NotificationHistory(db.Model):
             type_code=notification.type_code.upper(),
             status_code=notification.status_code.upper(),
             provider_code=notification.provider_code.upper(),
-            gc_notify_response_id=response_id,
+            notify_response_id=response_id,
             notification_id=notification.id,
         )
         db.session.add(db_history)
@@ -113,10 +113,10 @@ class NotificationHistory(db.Model):
 
     @classmethod
     def find_by_response_id(cls, response_id: str | None = None):
-        """Return a Notification by the gc notify response id."""
+        """Return a NotificationHistory by its provider response id."""
         notification_history = None
         if response_id:
-            notification_history = cls.query.filter_by(gc_notify_response_id=response_id).one_or_none()
+            notification_history = cls.query.filter_by(notify_response_id=response_id).one_or_none()
 
         return notification_history
 

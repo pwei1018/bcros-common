@@ -3,7 +3,7 @@ info:
   title: BC Registries Notify API
   description: |
     API for sending and managing notifications in the BC Registries ecosystem.
-    
+
     ## Authentication
     All endpoints require JWT authentication. Include the token in the `Authorization` header:
     ```
@@ -50,19 +50,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NotificationRequest'
+              $ref: "#/components/schemas/NotificationRequest"
       responses:
-        '200':
+        "200":
           description: Notification queued successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotificationResponse'
-        '400':
+                $ref: "#/components/schemas/NotificationResponse"
+        "400":
           description: Invalid request
-        '401':
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden - insufficient role
 
   /notify/{notification_id}:
@@ -82,17 +82,17 @@ paths:
             type: string
           description: Notification ID (numeric)
       responses:
-        '200':
+        "200":
           description: Notification found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotificationResponse'
-        '400':
+                $ref: "#/components/schemas/NotificationResponse"
+        "400":
           description: Invalid notification ID
-        '401':
+        "401":
           description: Unauthorized
-        '404':
+        "404":
           description: Notification not found
 
   /notify/status/{notification_status}:
@@ -113,7 +113,7 @@ paths:
             enum: [PENDING, FAILURE]
           description: Notification status filter
       responses:
-        '200':
+        "200":
           description: List of notifications
           content:
             application/json:
@@ -123,10 +123,10 @@ paths:
                   notifications:
                     type: array
                     items:
-                      $ref: '#/components/schemas/NotificationResponse'
-        '400':
+                      $ref: "#/components/schemas/NotificationResponse"
+        "400":
           description: Invalid status
-        '401':
+        "401":
           description: Unauthorized
 
   /email_validation/:
@@ -145,9 +145,9 @@ paths:
             format: email
           description: Email address to validate
       responses:
-        '200':
+        "200":
           description: Validation result
-        '400':
+        "400":
           description: Invalid email format
 
   /safe_list/:
@@ -160,15 +160,15 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: List of safe emails
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/SafeListItem'
-        '401':
+                  $ref: "#/components/schemas/SafeListItem"
+        "401":
           description: Unauthorized
     post:
       tags:
@@ -183,11 +183,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SafeListRequest'
+              $ref: "#/components/schemas/SafeListRequest"
       responses:
-        '200':
+        "200":
           description: Emails added
-        '401':
+        "401":
           description: Unauthorized
 
   /safe_list/{email}:
@@ -207,17 +207,17 @@ paths:
             type: string
             format: email
       responses:
-        '200':
+        "200":
           description: Email removed
-        '401':
+        "401":
           description: Unauthorized
 
   /callback/:
     post:
       tags:
         - Callback (v2)
-      summary: GC Notify callback
-      description: Receive callback from GC Notify service
+      summary: BC Notify callback
+      description: Receive a BC Notify notification status event
       operationId: callback
       security:
         - bearerAuth: []
@@ -226,11 +226,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CallbackRequest'
+              $ref: "#/components/schemas/BCNotifyCallbackRequest"
       responses:
-        '200':
+        "200":
           description: Callback processed
-        '401':
+        "401":
           description: Unauthorized
 
   /resend:
@@ -243,9 +243,9 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Resend initiated
-        '401':
+        "401":
           description: Unauthorized
 
 components:
@@ -322,9 +322,9 @@ components:
           enum: [PENDING, DELIVERED, FAILURE]
         notifyProvider:
           type: string
-        gc_notify_response_id:
+        notify_response_id:
           type: string
-        gc_notify_status:
+        notify_status:
           type: string
 
     SafeListRequest:
@@ -351,27 +351,47 @@ components:
           type: string
           format: date-time
 
-    CallbackRequest:
+    BCNotifyCallbackRequest:
       type: object
+      required:
+        - event
+        - notificationId
+        - tenantId
+        - data
+        - deliveredAt
       properties:
-        id:
+        event:
           type: string
-          description: GC Notify response ID
-        reference:
+          example: notification.status.changed
+        notificationId:
           type: string
-        to:
+        tenantId:
           type: string
-        status:
-          type: string
-          description: Delivery status from GC Notify
-        created_at:
+        data:
+          type: object
+          required:
+            - notifyId
+            - status
+            - statusDisplayName
+            - channel
+            - createdAt
+            - updatedAt
+          properties:
+            notifyId:
+              type: string
+            status:
+              type: string
+            statusDisplayName:
+              type: string
+            channel:
+              type: string
+              enum: [EMAIL, SMS]
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+        deliveredAt:
           type: string
           format: date-time
-        completed_at:
-          type: string
-          format: date-time
-        sent_at:
-          type: string
-          format: date-time
-        notification_type:
-          type: string

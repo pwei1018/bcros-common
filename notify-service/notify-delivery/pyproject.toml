@@ -1,11 +1,11 @@
 [project]
 name = "notify-delivery"
-version = "5.0.2"
+version = "6.0.0"
 description = "This module is the service worker for delivery emails."
 authors = [{ name = "pwei1018", email = "patrick.wei@gov.bc.ca" }]
 license = { text = "BSD-3-Clause" }
 readme = "README.md"
-requires-python = ">=3.12, <3.14"
+requires-python = ">=3.13, <3.14"
 dependencies = [
     "notify-api",
     "cloud-sql-connector",
@@ -58,8 +58,8 @@ exclude = [
 line-length = 120
 indent-width = 4
 
-# Assume Python 3.12
-target-version = "py312"
+# Assume Python 3.13
+target-version = "py313"
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
