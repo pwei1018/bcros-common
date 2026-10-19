@@ -161,6 +161,12 @@ DOC_CERTIFIED_CONFIG_DEFAULT = {
     "textCoordY": 78, 
     "rect": { "coordX1": 510.0, "coordY1": 10.0, "coordX2": 585.0, "coordY2": 70.0}
 }
+DOC_FORM_STAMP_DEFAULT = {
+    "textCoordX": 223,
+    "textCoordY": 30, 
+    "rect": { "coordX1": 205.0, "coordY1": 10.0, "coordX2": 280.0, "coordY2": 50.0}
+}
+
 # testdata pattern is ({req_type}, {req_path}, {doc_type}, {doc_storage_type}, {staff} , {ref_id})
 TEST_DATA_REQUEST_INFO = [
     (RequestTypes.ADD.value, "/CORP/CORR", DocumentTypes.CORR.value, StorageDocTypes.BUSINESS.value, True, "UT0001"),
@@ -245,6 +251,10 @@ TEST_DOC_CERTIFIED_DATA = [
 # testdata pattern is ({document}, {storage_doc_type})
 TEST_CALLBACK_LEGACY_SCAN_DATA = [
     (TEST_DOC_REC_LEGACY_SCAN, "NR"),
+]
+# testdata pattern is ({config_key}, {doc_type}, {form_config})
+TEST_DOC_FORM_STAMP_DATA = [
+    ("DEFAULT", "APCO", DOC_FORM_STAMP_DEFAULT),
 ]
 
 
@@ -616,6 +626,28 @@ def test_doc_certified_config(session, doc_class, doc_type, certified_config):
         assert doc_config2.get("textCoordX") == certified_config.get("textCoordX")
         assert doc_config2.get("textCoordY") == certified_config.get("textCoordY")
         assert doc_config2.get("rect") == certified_config.get("rect")
+
+
+@pytest.mark.parametrize("config_key,doc_type,stamp_config", TEST_DOC_FORM_STAMP_DATA)
+def test_doc_form_stamp_config(session, config_key, doc_type, stamp_config):
+    """Assert that client submitted form documents stamp configuration set up works as expected."""
+    all_stamp_config = current_app.config.get("DOC_FORM_STAMP_CONFIG")
+    if not all_stamp_config:
+        return
+    doc_config = all_stamp_config.get(config_key)
+    doc_config2 = resource_utils.get_form_stamp_config(doc_type)
+    if not stamp_config:
+        assert not doc_config
+        assert not doc_config2
+    else:
+        assert doc_config
+        assert doc_config2
+        assert doc_config.get("textCoordX") == stamp_config.get("textCoordX")
+        assert doc_config.get("textCoordY") == stamp_config.get("textCoordY")
+        assert doc_config.get("rect") == stamp_config.get("rect")
+        assert doc_config2.get("textCoordX") == stamp_config.get("textCoordX")
+        assert doc_config2.get("textCoordY") == stamp_config.get("textCoordY")
+        assert doc_config2.get("rect") == stamp_config.get("rect")
 
 
 def is_ci_testing() -> bool:

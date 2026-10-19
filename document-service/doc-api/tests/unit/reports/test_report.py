@@ -24,7 +24,7 @@ import pytest
 
 from doc_api.reports.report import Report, report_utils
 from doc_api.reports.report_utils import ReportTypes
-from doc_api.resources.utils import get_certified_copy_config
+from doc_api.resources.utils import get_certified_copy_config, get_form_stamp_config
 from doc_api.utils.logging import logger
 
 DOC_RECORD_TEST_DATAFILE = "tests/unit/reports/data/doc-record-test-example.json"
@@ -45,6 +45,8 @@ CERT_COPY_TEST_COOP_STAFF_INFILE = "tests/unit/reports/data/coop-rules-filing-st
 CERT_COPY_TEST_COOP_STAFF_OUTFILE = "tests/unit/reports/data/coop-rules-filing-staff-ex1.pdf"
 CERT_COPY_TEST_COOP_STAFF_INFILE2 = "tests/unit/reports/data/coop-mem-filing-staff-1.pdf"
 CERT_COPY_TEST_COOP_STAFF_OUTFILE2 = "tests/unit/reports/data/coop-mem-filing-staff-ex1.pdf"
+CERT_COPY_TEST_FORM_INFILE = "tests/unit/reports/data/form47-correction.pdf"
+CERT_COPY_TEST_FORM_OUTFILE = "tests/unit/reports/data/form-stamp-{doc_type}.pdf"
 
 
 # testdata pattern is ({legacy}, {conversion}, {infile}, {outfile})
@@ -58,6 +60,11 @@ TEST_DOC_CERT_COPY_DATA = [
     ("COOP", "COOP_MEMORANDUM", CERT_COPY_TEST_COOP_INFILE, CERT_COPY_TEST_COOP_OUTFILE),
     ("COOP", "COOP_RULES", CERT_COPY_TEST_COOP_STAFF_INFILE, CERT_COPY_TEST_COOP_STAFF_OUTFILE),
     ("COOP", "COOP_MEMORANDUM", CERT_COPY_TEST_COOP_STAFF_INFILE2, CERT_COPY_TEST_COOP_STAFF_OUTFILE2),
+]
+# testdata pattern is ({doc_class}, {doc_type}, {infile}, {outfile})
+TEST_DOC_FORM_STAMP_DATA = [
+    ("CORP", "APCO", CERT_COPY_TEST_FORM_INFILE, CERT_COPY_TEST_FORM_OUTFILE),
+    ("CORP", "JUNK", CERT_COPY_TEST_FORM_INFILE, CERT_COPY_TEST_FORM_OUTFILE),
 ]
 
 
@@ -146,6 +153,22 @@ def test_doc_add_certified(session, client, jwt, doc_class, doc_type, infile, ou
             pdf_file.close()
 
 
+@pytest.mark.parametrize("doc_class,doc_type,infile,outfile", TEST_DOC_FORM_STAMP_DATA)
+def test_doc_add_form_stamp(session, client, jwt, doc_class, doc_type, infile, outfile):
+    """Assert that adding a certified copy image and date and time to an client document works as expected."""
+    raw_data = None
+    stamp_config = get_form_stamp_config(doc_type)
+    if stamp_config:
+        with open(infile, 'rb') as data_file:
+            raw_data = data_file.read()
+            data_file.close()
+
+        updated_pdf = report_utils.add_doc_form_stamp(raw_data, stamp_config)
+        with open(outfile.format(doc_type=doc_type), "wb") as pdf_file:
+            pdf_file.write(updated_pdf)
+            pdf_file.close()
+
+
 def test_add_modern_certified(session, client, jwt):
     """Assert that adding a certified copy image and date and time to an app report works as expected."""
     raw_data = None
@@ -198,5 +221,30 @@ def test_add_coop_certified(session, client, jwt):
     updated_pdf = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
     doc.close()
     with open(outfile, "wb") as pdf_file:
+        pdf_file.write(updated_pdf)
+        pdf_file.close()
+
+
+def test_add_form_stamp(session, client, jwt):
+    """Assert that adding a certified copy image and date and time to a new formxx report works as expected."""
+    raw_data = None
+    image_data = report_utils.get_form_stamp_image()
+    infile = CERT_COPY_TEST_FORM_INFILE
+    outfile = CERT_COPY_TEST_FORM_OUTFILE
+    with open(infile, 'rb') as data_file:
+        raw_data = data_file.read()
+        data_file.close()
+    doc = pymupdf.Document(stream=raw_data)
+    page = doc[0]
+
+    point = pymupdf.Point(223, 30)  # pymupdf.Point(483, 78)
+    add_text = report_utils.get_form_stamp_date()
+    # print(f"stamp date={add_text}")
+    image_rect = pymupdf.Rect(205.0, 10.0, 280.0, 50.0) # pymupdf.Rect(510.0, 10.0, 585.0, 70.0)
+    page.insert_image(image_rect, stream=image_data)
+    page.insert_text(point, add_text, fontsize=6, fontname="Helvetica-Bold", color=(0, 0, 0)) # Black color
+    updated_pdf = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
+    doc.close()
+    with open(outfile.format(doc_type="APCO"), "wb") as pdf_file:
         pdf_file.write(updated_pdf)
         pdf_file.close()

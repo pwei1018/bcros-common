@@ -27,9 +27,9 @@ TEST_DATA_DATE_FORMAT = [
     ("2024-08-01T19:00:00+00:00", False, "August 1, 2024"),
     ("2024-08-01T19:00:00+00:00", True, "August 1, 2024 at 12:00:00 pm Pacific time"),
     ("2024-08-20T17:20:20+00:00", True, "August 20, 2024 at 10:20:20 am Pacific time"),
-    ("2024-12-01T20:00:00+00:00", True, "December 1, 2024 at 12:00:00 pm Pacific time"),
-    ("2024-12-05T18:20:20+00:00", True, "December 5, 2024 at 10:20:20 am Pacific time"),
-    ("2024-12-20T01:30:30+00:00", True, "December 19, 2024 at 5:30:30 pm Pacific time"),
+    ("2024-12-01T19:00:00+00:00", True, "December 1, 2024 at 12:00:00 pm Pacific time"),
+    ("2024-12-05T17:20:20+00:00", True, "December 5, 2024 at 10:20:20 am Pacific time"),
+    ("2024-12-20T01:30:30+00:00", True, "December 19, 2024 at 6:30:30 pm Pacific time"),
 ]
 # testdata pattern is ({filename}, {legacy})
 TEST_LEGACY_REPORT_FILENAME = [

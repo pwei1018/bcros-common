@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "doc-bcmail-transfer"
-version = "0.0.1"
+version = "0.0.2"
 description = "SFTP pull of BCMail scanned documents and migration to the DRS."
 authors = ["doug lovett <doug@daxiom.com>"]
 license = "BSD 3"

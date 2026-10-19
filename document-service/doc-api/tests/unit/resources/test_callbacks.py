@@ -24,11 +24,19 @@ import json
 import pytest
 from flask import current_app
 
-from doc_api.models import Document
+from doc_api.models import Document, utils as model_utils
 from doc_api.resources.v1.callbacks import build_update_json, build_legacy_scan_json
+from doc_api.services.authz import BC_REGISTRY, STAFF_ROLE
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils.logging import logger
+from tests.unit.services.utils import create_header_account_upload
 
+
+MOCK_AUTH_URL = "https://test.api.connect.gov.bc.ca/mockTarget/auth/api/v1/"
+TEST_FORMFILE = "tests/unit/reports/data/form47-correction.pdf"
+STAFF_ROLES = [STAFF_ROLE, BC_REGISTRY]
+MEDIA_PDF = model_utils.CONTENT_TYPE_PDF
+PATH_FORM1: str = "/api/v1/documents/CORP/APCO?consumerIdentifier=BC1234567&consumerFilename=test.pdf"
 
 TEST_DATAFILE = "tests/unit/services/unit_test.pdf"
 PARAM_TEST_APIKEY = "?x-apikey={api_key}"
@@ -124,6 +132,7 @@ TEST_CREATE_DATA = [
 TEST_UPDATE_DATA = [
     ("Valid business api", TEST_DOC_REC_BUSINESS_API, HTTPStatus.CREATED, "ADDR", "changeOfAddress"),
 ]
+
 # testdata pattern is ({payload_json}, {drs_id}, {consumer_id}, {consumer_date}, {consumer_ref})
 TEST_PATCH_PAYLOAD_DATA = [
     (TEST_UPDATE_BUSINESS_API_1, None, None, None, None),
@@ -159,6 +168,38 @@ TEST_CREATE_LEGACY_SCAN_DATA = [
     ("Valid", TEST_LEGACY_SCAN_PAYLOAD, True, HTTPStatus.CREATED, "NR"),
     ("Valid wrapped", TEST_LEGACY_SCAN_PAYLOAD_WRAPPED, True, HTTPStatus.CREATED, "NR"),
 ]
+# testdata pattern is ({description}, {payload_json}, {status}, {create_path}, {upload_file})
+TEST_UPDATE_STAMP_DATA = [
+    ("Valid form stamp doc", TEST_UPDATE_BUSINESS_API_2, HTTPStatus.OK, PATH_FORM1, TEST_FORMFILE),
+]
+
+
+@pytest.mark.parametrize("desc,update_json,status,create_path,upload_file", TEST_UPDATE_STAMP_DATA)
+def test_update_with_stamp(session, client, jwt, desc, update_json, status, create_path, upload_file):
+    """Assert that a callback updated for a document that adds a form stamp works as expected."""
+    if is_ci_testing() or not current_app.config.get("SUBSCRIPTION_API_KEY"):
+        return
+    current_app.config.update(AUTH_SVC_URL=MOCK_AUTH_URL)
+    headers = create_header_account_upload(jwt, STAFF_ROLES, "UNIT-TEST", "unit-test", MEDIA_PDF)
+    raw_data = None
+    with open(upload_file, "rb") as data_file:
+        raw_data = data_file.read()
+        data_file.close()
+    response = client.post(create_path, data=raw_data, headers=headers, content_type=MEDIA_PDF)
+    logger.info(response.json)
+    assert response.status_code == HTTPStatus.CREATED
+    payload = copy.deepcopy(update_json)
+    payload["documentServiceId"] = response.json.get("documentServiceId")
+    payload["consumerIdentifier"] = response.json.get("consumerIdentifier")
+    update_path = DOC_REC_UPDATE_PATH
+    api_key = current_app.config.get("SUBSCRIPTION_API_KEY")
+    update_path += PARAM_TEST_APIKEY.format(api_key=api_key)
+    update_payload = json.dumps(payload).encode("utf-8")
+    response = client.post(update_path, data=update_payload, headers=None)
+    # logger.info(response.json)
+
+    # check
+    assert response.status_code == status
 
 
 @pytest.mark.parametrize("desc,payload_json,has_key,author,status,ref_id", TEST_CREATE_DATA)

@@ -26,8 +26,10 @@ from flask import current_app
 
 from doc_api.utils.logging import logger
 
-# Local timzone
-LOCAL_TZ = pytz.timezone("America/Los_Angeles")
+# Local timezone with daylight savings support:
+# LOCAL_TZ = pytz.timezone("America/Vancouver")
+# Local timezone without daylight savings as offset in minutes: -7 * 60.
+LOCAL_TZ = pytz.FixedOffset(-420)
 CONTENT_TYPE_CSV = "text/csv"
 CONTENT_TYPE_GIF = "image/gif"
 CONTENT_TYPE_JPEG = "image/jpeg"
@@ -70,7 +72,7 @@ REPORT_TYPE_FILING = "FILING"
 REPORT_TYPE_NOA = "NOA"
 REPORT_TYPE_RECEIPT = "RECEIPT"
 REPORT_TYPE_FILING_2 = "FILING-2"
-REPORT_TYPE_FILING_3 = "FILING-3"
+REPORT_TYPE_FILING_3 = "FILING-3"  # Filing report but not certified copy.
 REPORT_TYPE_FILING_4 = "FILING-4"
 
 
@@ -114,7 +116,7 @@ def ts_from_iso_date_noon(timestamp_iso: str):
     local_time = time(12, 0, 0, tzinfo=None)
     base_date = local_date_from_iso_format(timestamp_iso)
     ts = _datetime.combine(base_date, local_time)
-    local_ts = LOCAL_TZ.localize(ts, is_dst=True)
+    local_ts = LOCAL_TZ.localize(ts)
     # Return as UTC
     return local_ts.astimezone(timezone.utc)
 
@@ -134,7 +136,7 @@ def ts_from_iso_date_end(timestamp_iso: str):
     local_time = time(23, 59, 59, tzinfo=None)
     base_date = local_date_from_iso_format(timestamp_iso)
     ts = _datetime.combine(base_date, local_time)
-    local_ts = LOCAL_TZ.localize(ts, is_dst=True)
+    local_ts = LOCAL_TZ.localize(ts)
     # Return as UTC
     return local_ts.astimezone(timezone.utc)
 
@@ -180,7 +182,7 @@ def ts_from_iso_format_no_tz(timestamp_iso: str):
     if len(timestamp_iso) > 19:
         return ts_from_iso_format(timestamp_iso)
     ts: _datetime = _datetime.fromisoformat(timestamp_iso)
-    local_ts = LOCAL_TZ.localize(ts, is_dst=True)
+    local_ts = LOCAL_TZ.localize(ts)
     # Return as UTC
     return local_ts.astimezone(timezone.utc)
 

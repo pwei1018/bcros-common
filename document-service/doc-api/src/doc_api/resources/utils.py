@@ -20,7 +20,7 @@ from doc_api.exceptions import ResourceErrorCodes
 from doc_api.models import Document, DocumentRequest, DocumentScanning, User, db, search_utils
 from doc_api.models import utils as model_utils
 from doc_api.models.type_tables import DocumentClasses, DocumentTypes, ProductCodes, RequestTypes
-from doc_api.reports.report_utils import add_doc_certified_copy
+from doc_api.reports.report_utils import add_doc_certified_copy, add_doc_form_stamp
 from doc_api.services.abstract_storage_service import DocumentTypes as StorageDocTypes
 from doc_api.services.document_storage.storage_service import GoogleStorageService
 from doc_api.utils import request_validator
@@ -64,6 +64,7 @@ PARAM_DESCRIPTION = "description"
 PARAM_DOCUMENT_TYPE = "documentType"
 PARAM_DOCUMENT_CLASS = "documentClass"
 PARAM_PAGE_NUMBER = "pageNumber"
+STAMP_CONFIG_DEFAULT_KEY = "DEFAULT"
 
 TO_STORAGE_TYPE = {
     DocumentClasses.MHR: StorageDocTypes.MHR,
@@ -624,7 +625,11 @@ def save_callback_legacy_add(info: RequestInfo) -> dict:
 
 
 def save_callback_update_rec(info: RequestInfo, document: Document) -> dict:
-    """Save updated document record information."""
+    """
+    Save updated document record information. Enhanced for busines filer updates to conditionally add
+    a form stamp using the update filing date based on the document type. An existing document, consumer
+    filing date, and consumer event id must all be present to conditionally add the form stamp.
+    """
     logger.info("save_callback_update_rec starting, updating Document model...")
     document.update(info.request_data)
     info.request_type = RequestTypes.UPDATE.value
@@ -635,6 +640,7 @@ def save_callback_update_rec(info: RequestInfo, document: Document) -> dict:
     db.session.commit()
     doc_json = document.json
     logger.info("save_callback_update_rec completed...")
+    add_form_stamp(document, info.request_data)
     return doc_json
 
 
@@ -761,3 +767,37 @@ def get_certified_copy_config(doc_class: str, doc_type: str) -> dict:
     certified_config = current_app.config.get("DOC_CERT_STAMP_CONFIG")
     config_key = doc_class + "-" + doc_type
     return certified_config.get(config_key)
+
+
+def get_form_stamp_config(doc_type: str) -> dict:
+    """For client submitted form documents look up form stamp information."""
+    if not doc_type or not current_app.config.get("DOC_FORM_STAMP_CONFIG"):
+        return {}
+    stamp_config = current_app.config.get("DOC_FORM_STAMP_CONFIG")
+    # Custom image, text positioning by doc type
+    if stamp_config.get(doc_type):
+        return stamp_config.get(doc_type)
+    # Or use default.
+    doc_types = stamp_config.get(STAMP_CONFIG_DEFAULT_KEY, {}).get("documentTypes", [])
+    return stamp_config.get(STAMP_CONFIG_DEFAULT_KEY) if doc_type in doc_types else {}
+
+
+def add_form_stamp(document: Document, request_info: dict):
+    """Conditionally add the form stamp to an existing document based on the document type."""
+    if document.document_class != DocumentClasses.CORP or not document.doc_storage_url:
+        return
+    if not request_info.get(PARAM_CONSUMER_REFERENCE_ID) or not request_info.get(PARAM_CONSUMER_FILEDATE):
+        return
+    stamp_config = get_form_stamp_config(document.document_type)
+    if not stamp_config:
+        return
+    storage_type = get_doc_storage_type(document.document_class)
+    storage_name = document.doc_storage_url
+    logger.info(f"add_form_stamp {storage_type} updating {document.document_service_id} {storage_name}")
+    try:
+        doc_data = GoogleStorageService.get_document(storage_name, storage_type)
+        updated_data = add_doc_form_stamp(doc_data, stamp_config)
+        GoogleStorageService.save_document(storage_name, updated_data, storage_type, model_utils.CONTENT_TYPE_PDF)
+        logger.info(f"Save doc to storage {document.document_service_id} {storage_name} successful.")
+    except Exception as e:  # noqa: B902; return nicer default error
+        logger.error(f"add_form_stamp failed for doc id={document.document_service_id}: {e}")

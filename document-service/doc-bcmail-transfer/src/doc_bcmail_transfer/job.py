@@ -13,12 +13,11 @@
 # limitations under the License.
 """This module executes all the job steps."""
 import copy
-
-# import io
 import json
 import shutil
 import stat
 import sys
+import time
 
 # from contextlib import suppress
 from datetime import datetime as _datetime
@@ -35,7 +34,10 @@ from doc_bcmail_transfer.services.document_storage.storage_service import Google
 from doc_bcmail_transfer.services.notify import Notify
 from doc_bcmail_transfer.utils.logging import logger
 
-LOCAL_TZ = pytz.timezone("America/Los_Angeles")
+# Local timezone with daylight savings support:
+# LOCAL_TZ = pytz.timezone("America/Vancouver")
+# Local timezone without daylight savings as offset in minutes: -7 * 60.
+LOCAL_TZ = pytz.FixedOffset(-420)
 DOCUMENT_CLASSES = ["COOP", "CORP", "FIRM", "LP_LLP", "MHR", "NR", "OTHER", "PPR", "SOCIETY"]
 STORAGE_DOC_NAME = "{legacy_date}/{doc_type}-{doc_key}.pdf"
 CSV_FILENAME = "{bucket_path}/{storage_date}/status-bcmail-lan-to-drs.csv"
@@ -82,39 +84,53 @@ def sftp_migrate_bcmail(config: Config):
     files_summary: list = []
     counter: int = 0
     bcmail_dirs: list = []
+    # First get list of remote directories
     try:
         logger.info("sftp migrate docs connecting.")
         ssh_client = sftp_connect(config)
-        with ssh_client.open_sftp() as sftp:
-            logger.info(f"sftp migrate docs to {config.SFTP_DIR}.")
-            sftp.chdir(config.SFTP_DIR)
-            listing = sorted(sftp.listdir_attr("."), key=lambda x: x.filename)
-            cutoff_date = sftp_cutoff_date(config)
-            logger.info(f"sftp {config.SFTP_DIR} number of items {len(listing)} cutoff_date={cutoff_date}.")
-            for rdir in listing:
-                dir_ts = _datetime.fromtimestamp(rdir.st_mtime)
-                if stat.S_ISDIR(rdir.st_mode) and (cutoff_date is None or dir_ts > cutoff_date):
-                    current_dir = rdir.filename
-                    bcmail_dirs.append(current_dir)
-                    sftp.chdir(current_dir)
-                    files = sorted(sftp.listdir_attr("."), key=lambda x: x.filename)
-                    logger.info(f"{current_dir} file count={len(files)}")
-                    for entry in files:
-                        if not stat.S_ISDIR(entry.st_mode):
-                            counter += 1
-                            file_info: dict = sftp_upload_to_bcmail_bucket(sftp, current_dir, counter, entry)
-                            files_summary.append(file_info)
-                            if counter % 20 == 0:
-                                logger.info(f"{current_dir} migration count: {counter}")
-                    sftp.chdir("..")
-                elif stat.S_ISDIR(rdir.st_mode) and cutoff_date and dir_ts <= cutoff_date:
-                    logger.info(
-                        f"Skipping {rdir.filename} modified date {dir_ts} <= last job run cutoff date {cutoff_date}."
-                    )
-                else:
-                    logger.warning(
-                        f"Unexpected file ignored {rdir.filename} size {rdir.st_size} bytes modified {dir_ts}"
-                    )
+        sftp = ssh_client.open_sftp()
+        logger.info(f"sftp session migrate docs from {config.SFTP_DIR}.")
+        sftp.chdir(config.SFTP_DIR)
+        listing = sorted(sftp.listdir_attr("."), key=lambda x: x.filename)
+        cutoff_date = sftp_cutoff_date(config)
+        logger.info(f"sftp {config.SFTP_DIR} number of items {len(listing)} cutoff_date={cutoff_date}.")
+        for rdir in listing:
+            dir_ts = _datetime.fromtimestamp(rdir.st_mtime)
+            if stat.S_ISDIR(rdir.st_mode) and (cutoff_date is None or dir_ts > cutoff_date):
+                bcmail_dirs.append(rdir.filename)
+            elif stat.S_ISDIR(rdir.st_mode) and cutoff_date and dir_ts <= cutoff_date:
+                logger.info(
+                    f"Skipping {rdir.filename} modified date {dir_ts} <= last job run cutoff date {cutoff_date}."
+                )
+            else:
+                logger.warning(f"Unexpected file ignored {rdir.filename} size {rdir.st_size} bytes modified {dir_ts}")
+        sftp.close()
+        ssh_client.close()
+        ssh_client = None
+    except Exception as sftp_exception:  # noqa: B902; return nicer error
+        logger.error(f"BCMail sftp list remote dirs error dir={config.SFTP_DIR}: {sftp_exception}")
+    logger.info(f"List of remote directories: {bcmail_dirs}")
+
+    # For each directory, open a sftp session and transfer the files
+    try:
+        for current_dir in bcmail_dirs:
+            ssh_client = sftp_connect(config)
+            sftp = ssh_client.open_sftp()
+            logger.info(f"sftp migrating docs from dir {config.SFTP_DIR}/{current_dir}.")
+            sftp.chdir(f"{config.SFTP_DIR}/{current_dir}")
+            files = sorted(sftp.listdir_attr("."), key=lambda x: x.filename)
+            logger.info(f"{current_dir} file count={len(files)}")
+            for entry in files:
+                if not stat.S_ISDIR(entry.st_mode):
+                    counter += 1
+                    file_info: dict = sftp_upload_to_bcmail_bucket(sftp, current_dir, counter, entry)
+                    files_summary.append(file_info)
+                    if counter % 20 == 0:
+                        logger.info(f"{current_dir} migration count: {counter}")
+            sftp.close()
+            ssh_client.close()
+            ssh_client = None
+            time.sleep(5)
     except Exception as sftp_exception:  # noqa: B902; return nicer error
         logger.error(f"BCMail sftp migrate docs remote errors dir={config.SFTP_DIR}: {sftp_exception}")
     finally:
@@ -158,6 +174,14 @@ def sftp_connect(config: Config):
     ssh.connect(
         hostname=config.SFTP_HOST, port=config.SFTP_PORT, username=config.SFTP_USERID, pkey=config.SFTP_PRIVATE_KEY
     )
+    transport = ssh.get_transport()
+    # Send a keep-alive packet every 30 seconds
+    transport.set_keepalive(30)
+    # Adjust the transport windows to handle large data chunks safely
+    transport.default_max_packet_size = 100000000  # 32768
+    transport.default_window_size = 100000000  # paramiko.common.MAX_WINDOW_SIZE
+    transport.packetizer.REKEY_BYTES = pow(2, 40)    # Postpone byte rekeying
+    transport.packetizer.REKEY_PACKETS = pow(2, 40)  # Postpone packet rekeying
     return ssh
 
 
@@ -192,12 +216,13 @@ def sftp_upload_to_bcmail_bucket(sftp, current_dir: str, counter: int, entry) ->
         elif fname.startswith("C") and not fname.startswith("C "):
             fname = fname.replace("C", "C ")
         # Upload file to DRS bucket.
-        with sftp.open(entry.filename, "rb") as remote_file:
-            remote_file.prefetch()
-            binary_data = remote_file.read()
-            GoogleStorageService.save_bcmail_document(fname, binary_data)
+        remote_file = sftp.open(entry.filename, "rb")
+        remote_file.prefetch(max_concurrent_requests=32)
+        binary_data = remote_file.read()
+        remote_file.close()
+        GoogleStorageService.save_bcmail_document(fname, binary_data)
     except Exception as file_exception:  # noqa: B902; return nicer error
-        logger.error(f"sftp file {current_dir}/{entry.name} migrate/upload failed: {file_exception}")
+        logger.error(f"sftp file {current_dir}/{entry.filename} migrate/upload failed: {file_exception}")
         file_info["status_msg"] = status_msg + " SFTP migrate/upload file failed."
         file_info["status"] = 500
     return file_info

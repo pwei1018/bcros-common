@@ -133,6 +133,8 @@ class Config:  # pylint: disable=too-few-public-methods
 
     cert_stamp_config = os.getenv("DOC_CERT_STAMP_CONFIG")
     DOC_CERT_STAMP_CONFIG = json.loads(cert_stamp_config) if cert_stamp_config else {}
+    cert_form_config = os.getenv("DOC_FORM_STAMP_CONFIG")
+    DOC_FORM_STAMP_CONFIG = json.loads(cert_form_config) if cert_form_config else {}
 
 
 class ProductionConfig(Config):  # pylint: disable=too-few-public-methods

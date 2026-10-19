@@ -46,6 +46,7 @@ REPORT_META_DATA = {
 REPORT_FILES = {"index.html": "", "header.html": "", "footer.html": ""}
 CERTIFIED_COPY_PATH_LEGACY: str = "{templates}/static/certified-copy-legacy.png"
 CERTIFIED_COPY_PATH: str = "{templates}/static/certified-copy.png"
+FORM_STAMP_PATH: str = "{templates}/static/form-stamp.jpeg"
 CERTIFIED_COPY_TEXT_POINT_LEGACY = pymupdf.Point(423, 212)
 CERTIFIED_COPY_IMAGE_RECT_LEGACY = pymupdf.Rect(450.0, 145.0, 525.0, 205.0)
 CERTIFIED_COPY_TEXT_POINT_CONVERSION = pymupdf.Point(195, 212)
@@ -75,6 +76,7 @@ class Config:  # pylint: disable=too-few-public-methods
     FOOTER_REG_COVER_TEMPLATE: str = None
     CERTIFIED_COPY_DATA_LEGACY = None
     CERTIFIED_COPY_DATA = None
+    FORM_STAMP_DATA = None
 
     @classmethod
     def get_header_template(cls) -> str:
@@ -178,6 +180,17 @@ class Config:  # pylint: disable=too-few-public-methods
                 cls.CERTIFIED_COPY_DATA = image_data_file.read()
                 image_data_file.close()
         return cls.CERTIFIED_COPY_DATA
+
+    @classmethod
+    def get_form_stamp_image(cls) -> bytes:
+        """Get the image data for the new form stamp."""
+        if cls.FORM_STAMP_DATA is None:
+            template_path: str = current_app.config.get("REPORT_TEMPLATE_PATH")
+            image_file = FORM_STAMP_PATH.format(templates=template_path)
+            with open(image_file, "rb") as image_data_file:
+                cls.FORM_STAMP_DATA = image_data_file.read()
+                image_data_file.close()
+        return cls.FORM_STAMP_DATA
 
 
 def get_header_data(title: str, subtitle: str = "") -> str:
@@ -464,9 +477,20 @@ def get_certified_copy_image(is_legacy: bool) -> bytes:
     return Config().get_certified_copy_image(is_legacy)
 
 
-def get_app_report_datetime():
+def get_form_stamp_image() -> bytes:
+    """Get the image data for the new forms stamp."""
+    return Config().get_form_stamp_image()
+
+
+def get_form_stamp_date() -> str:
+    """Convert date in the Form stamp date format."""
+    local_datetime = _datetime.now(pytz.timezone("America/Vancouver"))
+    return local_datetime.strftime("%b %d %Y").upper()
+
+
+def get_app_report_datetime() -> str:
     """Convert local time zone now to report date and time format."""
-    local_datetime = _datetime.now(pytz.timezone("America/Los_Angeles"))
+    local_datetime = _datetime.now(pytz.timezone("America/Vancouver"))
     timestamp = local_datetime.strftime("%B %-d, %Y at %-I:%M %p Pacific time")
     if timestamp.find(" AM ") > 0:
         return timestamp.replace(" AM ", " am ")
@@ -513,6 +537,27 @@ def add_doc_certified_copy(report_data: bytes, cert_config: dict) -> bytes:
     )
     page.insert_text(point, add_text, fontsize=7, fontname="Helvetica-Oblique", color=(0, 0, 0))  # Black color
     page.insert_image(image_rect, stream=image_data)
+    updated_report = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
+    doc.close()
+    return updated_report
+
+
+def add_doc_form_stamp(doc_data: bytes, form_config: dict) -> bytes:
+    """Add the form stamp image and date text to the form document."""
+    if not doc_data or not form_config:
+        return doc_data
+
+    image_data = get_form_stamp_image()
+    doc = pymupdf.Document(stream=doc_data)
+    page = doc[0]
+    point = pymupdf.Point(form_config.get("textCoordX"), form_config.get("textCoordY"))
+    add_text = get_form_stamp_date()
+    config_rect = form_config.get("rect")
+    image_rect = pymupdf.Rect(
+        config_rect.get("coordX1"), config_rect.get("coordY1"), config_rect.get("coordX2"), config_rect.get("coordY2")
+    )
+    page.insert_image(image_rect, stream=image_data)
+    page.insert_text(point, add_text, fontsize=6, fontname="Helvetica-Bold", color=(0, 0, 0))  # Black color
     updated_report = doc.tobytes(garbage=3, clean=True, deflate=True, deflate_images=True, deflate_fonts=True)
     doc.close()
     return updated_report
