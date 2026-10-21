@@ -385,7 +385,15 @@ components:
         notifyProvider:
           type: string
           enum:
-            [SMTP, GC_NOTIFY, HOUSING, BC_NOTIFY, BC_NOTIFY_HOUSING, BC_NOTIFY_SMS, BC_NOTIFY_HOUSING_SMS]
+            [
+              SMTP,
+              GC_NOTIFY,
+              HOUSING,
+              BC_NOTIFY,
+              BC_NOTIFY_HOUSING,
+              BC_NOTIFY_SMS,
+              BC_NOTIFY_HOUSING_SMS,
+            ]
         notify_response_id:
           type: string
         notify_status:
