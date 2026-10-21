@@ -23,12 +23,15 @@ from simple_cloudevent import SimpleCloudEvent
 from structured_logging import StructuredLogging
 
 from notify_api.models import (
+    ContentRequest,
     Notification,
     NotificationHistory,
     NotificationRequest,
     SafeList,
+    SmsRequest,
     db,
 )
+from notify_api.services.flags import FeatureFlag, flags
 from notify_api.services.gcp_queue import GcpQueue, queue
 
 logger = StructuredLogging.get_logger()
@@ -38,6 +41,21 @@ CLOUD_EVENT_SOURCE = "notify-api"
 CLOUD_EVENT_TYPE_PREFIX = "bc.registry.notify"
 STRR_REQUEST_IDENTIFIER = "STRR"
 MAX_HTML_BODY_LENGTH = 50_000
+# SMS has no subject, but content.subject is required for storage and history.
+SMS_CONTENT_SUBJECT = "SMS"
+
+# Feature flag and its fallback config key (used without LaunchDarkly) for each flagged provider.
+PROVIDER_FLAGS: dict[str, tuple[FeatureFlag, str | None]] = {
+    Notification.NotificationProvider.GC_NOTIFY: (FeatureFlag.GC_NOTIFY, "GC_NOTIFY_ENABLE"),
+    Notification.NotificationProvider.HOUSING: (FeatureFlag.GC_NOTIFY, "GC_NOTIFY_ENABLE"),
+    Notification.NotificationProvider.BC_NOTIFY: (FeatureFlag.BC_NOTIFY, None),
+    Notification.NotificationProvider.BC_NOTIFY_HOUSING: (FeatureFlag.BC_NOTIFY_HOUSING, None),
+    Notification.NotificationProvider.BC_NOTIFY_SMS: (FeatureFlag.BC_NOTIFY_SMS, "BC_NOTIFY_SMS_ENABLE"),
+    Notification.NotificationProvider.BC_NOTIFY_HOUSING_SMS: (
+        FeatureFlag.BC_NOTIFY_HOUSING_SMS,
+        "BC_NOTIFY_SMS_ENABLE",
+    ),
+}
 
 
 class _HTMLTagDetector(HTMLParser):
@@ -79,8 +97,8 @@ class NotifyService:
             The appropriate notification provider.
         """
         if not isinstance(request_by, str):
-            logger.warning(f"Invalid request_by parameter type: {type(request_by)}, defaulting to GC_NOTIFY")
-            return Notification.NotificationProvider.GC_NOTIFY
+            logger.warning(f"Invalid request_by parameter type: {type(request_by)}, using the default provider")
+            return cls._get_default_provider()
 
         # Rule-based provider selection. Business/technical rules take precedence;
         # otherwise the default provider is resolved from the feature flags.
@@ -125,35 +143,67 @@ class NotifyService:
 
     @classmethod
     def _get_housing_provider(cls) -> str:
-        """Resolve the Housing provider based on the BC Notify feature flag.
+        """Resolve the Housing email provider from feature flags.
 
-        Housing notifications are delivered via BC Notify when ``BC_NOTIFY_ENABLE``
-        is enabled, otherwise via GC Notify Housing.
+        Selection order:
+            1. BC Notify Housing - when ``enable-bc-notify-housing`` is on.
+            2. GC Notify Housing - when ``enable-gc-notify`` is on.
+            3. SMTP - when both flags are off.
 
         Returns:
             The Housing notification provider.
         """
-        if current_app.config.get("BC_NOTIFY_ENABLE"):
+        if cls._is_provider_enabled(Notification.NotificationProvider.BC_NOTIFY_HOUSING):
             return Notification.NotificationProvider.BC_NOTIFY_HOUSING
-        return Notification.NotificationProvider.HOUSING
+        if cls._is_provider_enabled(Notification.NotificationProvider.HOUSING):
+            return Notification.NotificationProvider.HOUSING
+        return Notification.NotificationProvider.SMTP
 
     @classmethod
     def _get_default_provider(cls) -> str:
         """Resolve the default email provider from feature flags.
 
         Selection order:
-            1. BC Notify - when ``BC_NOTIFY_ENABLE`` is enabled.
-            2. GC Notify - when ``BC_NOTIFY_ENABLE`` is disabled but ``GC_NOTIFY_ENABLE`` is enabled.
-            3. SMTP - when both flags are disabled.
+            1. BC Notify - when ``enable-bc-notify`` is on.
+            2. GC Notify - when ``enable-gc-notify`` is on.
+            3. SMTP - when both flags are off.
 
         Returns:
             The default notification provider.
         """
-        if current_app.config.get("BC_NOTIFY_ENABLE"):
+        if cls._is_provider_enabled(Notification.NotificationProvider.BC_NOTIFY):
             return Notification.NotificationProvider.BC_NOTIFY
-        if current_app.config.get("GC_NOTIFY_ENABLE"):
+        if cls._is_provider_enabled(Notification.NotificationProvider.GC_NOTIFY):
             return Notification.NotificationProvider.GC_NOTIFY
         return Notification.NotificationProvider.SMTP
+
+    @staticmethod
+    def _is_enabled(flag: FeatureFlag, config_key: str | None = None) -> bool:
+        """Evaluate a LaunchDarkly flag, defaulting to the app config value (or off when no key is given)."""
+        default = bool(current_app.config.get(config_key)) if config_key else False
+        return flags.is_on(flag, default)
+
+    @classmethod
+    def _is_provider_enabled(cls, provider: str) -> bool:
+        """Return whether the provider's feature flag is on; providers without a flag (SMTP) are always on."""
+        flag_config = PROVIDER_FLAGS.get(provider)
+        if not flag_config:
+            return True
+        return cls._is_enabled(*flag_config)
+
+    @classmethod
+    def _resolve_resend_provider(cls, provider: str) -> str | None:
+        """Return the provider to resend with, re-routing email away from a provider whose flag is now off.
+
+        Returns None when the provider is disabled and has no fallback (SMS).
+        """
+        if cls._is_provider_enabled(provider):
+            return provider
+        if provider in {Notification.NotificationProvider.BC_NOTIFY, Notification.NotificationProvider.GC_NOTIFY}:
+            return cls._get_default_provider()
+        if provider in {Notification.NotificationProvider.BC_NOTIFY_HOUSING, Notification.NotificationProvider.HOUSING}:
+            return cls._get_housing_provider()
+        return None
 
     @classmethod
     def _contains_html(cls, content: str) -> bool:
@@ -277,6 +327,10 @@ class NotifyService:
             Notification.NotificationProvider.BC_NOTIFY_HOUSING: current_app.config.get(
                 "DELIVERY_BC_NOTIFY_HOUSING_TOPIC"
             ),
+            Notification.NotificationProvider.BC_NOTIFY_SMS: current_app.config.get("DELIVERY_BC_NOTIFY_SMS_TOPIC"),
+            Notification.NotificationProvider.BC_NOTIFY_HOUSING_SMS: current_app.config.get(
+                "DELIVERY_BC_NOTIFY_HOUSING_SMS_TOPIC"
+            ),
         }
 
         topic = topic_mapping.get(provider)
@@ -381,54 +435,7 @@ class NotifyService:
                 notification.status_code = Notification.NotificationStatus.FAILURE
                 return notification
 
-            # Get delivery topic for the provider
-            delivery_topic = NotifyService._get_delivery_topic(provider)
-            if not delivery_topic:
-                logger.error(f"No delivery topic configured for provider: {provider}")
-                notification = Notification()
-                notification.recipients = notification_request.recipients
-                notification.status_code = Notification.NotificationStatus.FAILURE
-                return notification
-
-            # Prepare notification data template
-            # Only include notificationId; the delivery service will fetch the full
-            # notification from the database. Including the full request (with large
-            # attachments) in the Pub/Sub message would exceed the 10MB size limit.
-            notification_data = {
-                "notificationId": None,
-            }
-
-            successful_notifications = []
-
-            # Process each recipient
-            for recipient in safe_recipients:
-                clean_recipient = recipient.strip()
-                if not clean_recipient:
-                    continue
-
-                notification = NotifyService._process_single_recipient(
-                    clean_recipient, notification_request, provider, delivery_topic, notification_data
-                )
-                if notification:
-                    successful_notifications.append(notification)
-                else:
-                    logger.error(f"Failed to process notification for recipient: {clean_recipient}")
-                    notification = Notification()
-                    notification.recipients = clean_recipient
-                    notification.status_code = Notification.NotificationStatus.FAILURE
-                    return notification
-
-            logger.info(f"Successfully queued notifications for {len(successful_notifications)} recipients")
-
-            # Return the first notification to match expected response format
-            # If multiple recipients were handled, they are all queued, but API returns one object structure
-            if successful_notifications:
-                return successful_notifications[0]
-
-            notification = Notification()
-            notification.recipients = ",".join(safe_recipients)
-            notification.status_code = Notification.NotificationStatus.QUEUED
-            return notification
+            return NotifyService._queue_recipients(notification_request, provider, safe_recipients)
 
         except Exception as err:
             logger.error(f"Unexpected error in queue_publish: {err}")
@@ -436,6 +443,94 @@ class NotifyService:
             notification.recipients = notification_request.recipients
             notification.status_code = Notification.NotificationStatus.FAILURE
             return notification
+
+    def queue_publish_sms(self, sms_request: SmsRequest) -> Notification:
+        """Save the SMS notification and send it to the BC Notify (or Housing) SMS queue.
+
+        Args:
+            sms_request: The SMS request to process
+
+        Returns:
+            A Notification object with the processing result
+        """
+        try:
+            notification_request = NotificationRequest(
+                recipients=sms_request.recipients,
+                request_by=sms_request.request_by,
+                notify_type=Notification.NotificationType.TEXT,
+                content=ContentRequest(subject=SMS_CONTENT_SUBJECT, body=sms_request.body),
+            )
+            recipients = [recipient.strip() for recipient in sms_request.recipients.split(",") if recipient.strip()]
+            if (sms_request.request_by or "").upper() == STRR_REQUEST_IDENTIFIER:
+                provider = Notification.NotificationProvider.BC_NOTIFY_HOUSING_SMS
+            else:
+                provider = Notification.NotificationProvider.BC_NOTIFY_SMS
+
+            if not NotifyService._is_provider_enabled(provider):
+                logger.warning(f"SMS provider {provider} is disabled by feature flag {PROVIDER_FLAGS[provider][0]}")
+                notification = Notification()
+                notification.recipients = sms_request.recipients
+                notification.status_code = Notification.NotificationStatus.FAILURE
+                return notification
+
+            return NotifyService._queue_recipients(notification_request, provider, recipients)
+
+        except Exception as err:
+            logger.error(f"Unexpected error in queue_publish_sms: {err}")
+            notification = Notification()
+            notification.recipients = sms_request.recipients
+            notification.status_code = Notification.NotificationStatus.FAILURE
+            return notification
+
+    @staticmethod
+    def _queue_recipients(
+        notification_request: NotificationRequest, provider: str, safe_recipients: list[str]
+    ) -> Notification:
+        """Create a notification per recipient and publish each to the provider's delivery topic."""
+        delivery_topic = NotifyService._get_delivery_topic(provider)
+        if not delivery_topic:
+            logger.error(f"No delivery topic configured for provider: {provider}")
+            notification = Notification()
+            notification.recipients = notification_request.recipients
+            notification.status_code = Notification.NotificationStatus.FAILURE
+            return notification
+
+        # Only include notificationId; the delivery service will fetch the full
+        # notification from the database. Including the full request (with large
+        # attachments) in the Pub/Sub message would exceed the 10MB size limit.
+        notification_data = {
+            "notificationId": None,
+        }
+
+        successful_notifications = []
+
+        for recipient in safe_recipients:
+            clean_recipient = recipient.strip()
+            if not clean_recipient:
+                continue
+
+            notification = NotifyService._process_single_recipient(
+                clean_recipient, notification_request, provider, delivery_topic, notification_data
+            )
+            if notification:
+                successful_notifications.append(notification)
+            else:
+                logger.error(f"Failed to process notification for recipient: {clean_recipient}")
+                notification = Notification()
+                notification.recipients = clean_recipient
+                notification.status_code = Notification.NotificationStatus.FAILURE
+                return notification
+
+        logger.info(f"Successfully queued notifications for {len(successful_notifications)} recipients")
+
+        # If multiple recipients were handled, they are all queued, but API returns one object structure
+        if successful_notifications:
+            return successful_notifications[0]
+
+        notification = Notification()
+        notification.recipients = ",".join(safe_recipients)
+        notification.status_code = Notification.NotificationStatus.QUEUED
+        return notification
 
     @staticmethod
     def _process_single_recipient(
@@ -550,12 +645,22 @@ class NotifyService:
             True if successful, False otherwise
         """
         try:
-            # Get delivery topic for the provider
-            delivery_topic = NotifyService._get_delivery_topic(notification.provider_code)
-            if not delivery_topic:
-                logger.error(
-                    f"No delivery topic for provider {notification.provider_code}, notification ID: {notification.id}"
+            provider = NotifyService._resolve_resend_provider(notification.provider_code)
+            if not provider:
+                logger.warning(
+                    f"Provider {notification.provider_code} is disabled by feature flag - "
+                    f"not republishing notification ID: {notification.id}"
                 )
+                return False
+            if provider != notification.provider_code:
+                logger.info(
+                    f"Re-routing notification ID {notification.id} from disabled provider "
+                    f"{notification.provider_code} to {provider}"
+                )
+
+            delivery_topic = NotifyService._get_delivery_topic(provider)
+            if not delivery_topic:
+                logger.error(f"No delivery topic for provider {provider}, notification ID: {notification.id}")
                 return False
 
             # Prepare republish data
@@ -564,7 +669,7 @@ class NotifyService:
             }
 
             # Create and publish cloud event
-            cloud_event = NotifyService._create_cloud_event(notification.provider_code, republish_data)
+            cloud_event = NotifyService._create_cloud_event(provider, republish_data)
             publish_future = queue.publish(delivery_topic, GcpQueue.to_queue_message(cloud_event))
 
             logger.info(
@@ -574,9 +679,7 @@ class NotifyService:
 
             # Update notification status and bump retry count
             notification.retry_count = (notification.retry_count or 0) + 1
-            NotifyService._update_notification_status(
-                notification, notification.provider_code, Notification.NotificationStatus.QUEUED
-            )
+            NotifyService._update_notification_status(notification, provider, Notification.NotificationStatus.QUEUED)
 
             if notification.retry_count >= Notification.RESEND_MAX_RETRY_COUNT:
                 logger.warning(

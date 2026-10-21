@@ -112,7 +112,7 @@ def send_notification(notification: Notification, provider_class) -> Notificatio
        excludes) so it can only be cleaned up later by the archive sweep,
        never re-sent.
 
-     BC Notify and BC Notify Housing are left active as SENT after the send
+     BC Notify (email, SMS and their Housing variants) are left active as SENT after the send
      response; their provider response ID is stored and final history archival
      waits for a successful status callback.
 
@@ -151,7 +151,12 @@ def send_notification(notification: Notification, provider_class) -> Notificatio
     try:
         notification.status_code = Notification.NotificationStatus.SENT
         provider_code = getattr(notification.provider_code, "name", notification.provider_code)
-        waits_for_callback = str(provider_code).upper() in {"BC_NOTIFY", "BC_NOTIFY_HOUSING"}
+        waits_for_callback = str(provider_code).upper() in {
+            "BC_NOTIFY",
+            "BC_NOTIFY_HOUSING",
+            "BC_NOTIFY_SMS",
+            "BC_NOTIFY_HOUSING_SMS",
+        }
         if waits_for_callback:
             notification.notify_response_id = responses.recipients[0].response_id
 

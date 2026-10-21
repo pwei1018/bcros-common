@@ -19,7 +19,13 @@ from .callback import Callback, CallbackRequest
 from .content import Content, ContentRequest
 from .db import db
 from .email import EmailValidator
-from .notification import Notification, NotificationRequest, NotificationSendResponse, NotificationSendResponses
+from .notification import (
+    Notification,
+    NotificationRequest,
+    NotificationSendResponse,
+    NotificationSendResponses,
+    SmsRequest,
+)
 from .notification_history import NotificationHistory
 from .safe_list import SafeList, SafeListRequest
 
@@ -40,5 +46,6 @@ __all__ = (
     "NotificationHistory",
     "SafeList",
     "SafeListRequest",
+    "SmsRequest",
     "db",
 )

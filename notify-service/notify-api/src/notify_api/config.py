@@ -112,11 +112,16 @@ class Config:  # pylint: disable=too-few-public-methods
     DELIVERY_SMTP_TOPIC = os.getenv("DELIVERY_SMTP_TOPIC", "")
     DELIVERY_BC_NOTIFY_TOPIC = os.getenv("DELIVERY_BC_NOTIFY_TOPIC", "")
     DELIVERY_BC_NOTIFY_HOUSING_TOPIC = os.getenv("DELIVERY_BC_NOTIFY_HOUSING_TOPIC", "")
+    DELIVERY_BC_NOTIFY_SMS_TOPIC = os.getenv("DELIVERY_BC_NOTIFY_SMS_TOPIC", "")
+    DELIVERY_BC_NOTIFY_HOUSING_SMS_TOPIC = os.getenv("DELIVERY_BC_NOTIFY_HOUSING_SMS_TOPIC", "")
 
-    # Notification provider feature flags. BC Notify is the preferred default when
-    # enabled; otherwise GC Notify when enabled; when both are disabled SMTP is used.
-    BC_NOTIFY_ENABLE = env_truthy("BC_NOTIFY_ENABLE")
+    # Notification provider fallbacks, used when LaunchDarkly (LD_SDK_KEY) is not configured.
+    # BC Notify providers are controlled only by LaunchDarkly and are off without it.
     GC_NOTIFY_ENABLE = env_truthy("GC_NOTIFY_ENABLE", "true")
+    BC_NOTIFY_SMS_ENABLE = env_truthy("BC_NOTIFY_SMS_ENABLE", "true")
+
+    # LaunchDarkly
+    LD_SDK_KEY = os.getenv("LD_SDK_KEY", None)
 
 
 class ProductionConfig(Config):  # pylint: disable=too-few-public-methods

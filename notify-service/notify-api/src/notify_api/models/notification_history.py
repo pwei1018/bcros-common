@@ -33,7 +33,7 @@ class NotificationHistory(db.Model):
     subject = db.Column(db.String(2000), nullable=False)
     type_code = db.Column(db.String(15), nullable=False)
     status_code = db.Column(db.String(15), nullable=False)
-    provider_code = db.Column(db.String(15), nullable=False)
+    provider_code = db.Column(db.String(50), nullable=False)
     notify_response_id = db.Column(db.String, nullable=True)
     notify_status = db.Column(db.String, nullable=True)
     notification_id = db.Column(db.Integer, nullable=True, index=True)

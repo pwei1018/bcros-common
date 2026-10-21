@@ -90,7 +90,6 @@ class Config:
         GC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID = os.getenv("GC_NOTIFY_HOUSING_EMAIL_REPLY_TO_ID", "")
 
         # BC Notify
-        BC_NOTIFY_ENABLE = os.getenv("BC_NOTIFY_ENABLE", "False")
         BC_NOTIFY_API_URL = os.getenv("BC_NOTIFY_API_URL", "")
         BC_NOTIFY_API_KEY = os.getenv("BC_NOTIFY_API_KEY", "")
         BC_NOTIFY_HOUSING_API_URL = os.getenv("BC_NOTIFY_HOUSING_API_URL", "")
@@ -105,6 +104,8 @@ class Config:
     NOTIFY_HOUSING_SUB_AUDIENCE = os.getenv("GCNOTIFY_HOUSING_SUB_AUDIENCE", None)
     NOTIFY_BC_NOTIFY_SUB_AUDIENCE = os.getenv("BCNOTIFY_SUB_AUDIENCE", None)
     NOTIFY_BC_NOTIFY_HOUSING_SUB_AUDIENCE = os.getenv("BCNOTIFY_HOUSING_SUB_AUDIENCE", None)
+    NOTIFY_BC_NOTIFY_SMS_SUB_AUDIENCE = os.getenv("BCNOTIFY_SMS_SUB_AUDIENCE", None)
+    NOTIFY_BC_NOTIFY_HOUSING_SMS_SUB_AUDIENCE = os.getenv("BCNOTIFY_HOUSING_SMS_SUB_AUDIENCE", None)
 
 
 class ProductionConfig(Config):  # pylint: disable=too-few-public-methods

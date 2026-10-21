@@ -11,6 +11,9 @@ import tempfile
 import time
 
 import pytest
+from ldclient.client import LDClient
+from ldclient.config import Config as LDConfig
+from ldclient.integrations.test_data import TestData
 
 # Run against the sibling sources so either package's venv works, even with a stale installed copy.
 _SERVICE_ROOT = Path(__file__).resolve().parent.parent
@@ -36,6 +39,7 @@ from notify_api import jwt as api_jwt
 from notify_api.config import UnitTestingConfig as ApiUnitTestingConfig
 from notify_api.config import config as api_config
 from notify_api.models import db
+from notify_api.services.flags import FeatureFlag, flags
 from notify_delivery import create_app as create_delivery_app
 from notify_delivery.config import UnitTestingConfig as DeliveryUnitTestingConfig
 from notify_delivery.config import (
@@ -44,8 +48,28 @@ from notify_delivery.config import (
 from notify_delivery.config import config as delivery_config
 
 BC_NOTIFY_TOPIC = "projects/e2e/topics/bc-notify"
+BC_NOTIFY_SMS_TOPIC = "projects/e2e/topics/bc-notify-sms"
+BC_NOTIFY_HOUSING_SMS_TOPIC = "projects/e2e/topics/bc-notify-housing-sms"
 SMTP_TOPIC = "projects/e2e/topics/smtp"
 SMTP_FROM = "notify@e2e.gov.bc.ca"
+BC_NOTIFY_API_KEY = "e2e-key"  # noqa: S105
+BC_NOTIFY_HOUSING_API_KEY = "e2e-housing-key"  # noqa: S105
+
+
+@pytest.fixture(scope="session")
+def feature_flags():
+    """Serve every provider flag as on from an offline LaunchDarkly client; tests may update it."""
+    data_source = TestData.data_source()
+    for flag in FeatureFlag:
+        data_source.update(data_source.flag(str(flag)).variation_for_all(True))
+
+    client = LDClient(
+        LDConfig("e2e-sdk-key", update_processor_class=data_source, send_events=False)
+    )
+    flags.client = client
+    yield data_source
+    flags.client = None
+    client.close()
 
 
 @pytest.fixture(scope="session")
@@ -55,13 +79,14 @@ def database_uri(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def api_app(database_uri):
+def api_app(database_uri, feature_flags):  # noqa: ARG001  (flags must be served before requests)
     """Return the notify-api app with BC Notify as the default provider."""
 
     class E2EApiConfig(ApiUnitTestingConfig):
         SQLALCHEMY_DATABASE_URI = database_uri
-        BC_NOTIFY_ENABLE = True
         DELIVERY_BC_NOTIFY_TOPIC = BC_NOTIFY_TOPIC
+        DELIVERY_BC_NOTIFY_SMS_TOPIC = BC_NOTIFY_SMS_TOPIC
+        DELIVERY_BC_NOTIFY_HOUSING_SMS_TOPIC = BC_NOTIFY_HOUSING_SMS_TOPIC
         DELIVERY_SMTP_TOPIC = SMTP_TOPIC
 
     api_config["e2e"] = E2EApiConfig
@@ -80,7 +105,8 @@ def delivery_app(database_uri, api_app):  # noqa: ARG001  (api_app creates the s
         VERIFY_PUBSUB_VIA_JWT = False
         DEPLOYMENT_ENV = "production"
         BC_NOTIFY_API_URL = "https://bc-notify.example.test"
-        BC_NOTIFY_API_KEY = "e2e-key"  # noqa: S105
+        BC_NOTIFY_API_KEY = BC_NOTIFY_API_KEY
+        BC_NOTIFY_HOUSING_API_KEY = BC_NOTIFY_HOUSING_API_KEY
 
     delivery_config["e2e"] = E2EDeliveryConfig
     return create_delivery_app("e2e")

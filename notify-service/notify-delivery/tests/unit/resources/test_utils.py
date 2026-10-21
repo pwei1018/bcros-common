@@ -277,7 +277,12 @@ class TestSendNotification:
 
     @pytest.mark.parametrize(
         "provider_code",
-        [Notification.NotificationProvider.BC_NOTIFY, Notification.NotificationProvider.BC_NOTIFY_HOUSING],
+        [
+            Notification.NotificationProvider.BC_NOTIFY,
+            Notification.NotificationProvider.BC_NOTIFY_HOUSING,
+            "BC_NOTIFY_SMS",
+            "BC_NOTIFY_HOUSING_SMS",
+        ],
     )
     @patch("notify_delivery.resources.utils.NotificationHistory")
     @patch("notify_delivery.resources.utils.db")

@@ -53,6 +53,8 @@ for ENV in "${ENVS[@]}"; do
     # Topics to create
     TOPIC_BC_NOTIFY="notify-delivery-bc-notify-${ENV}"
     TOPIC_BC_NOTIFY_HOUSING="notify-delivery-bc-notify-housing-${ENV}"
+    TOPIC_BC_NOTIFY_SMS="notify-delivery-bc-notify-sms-${ENV}"
+    TOPIC_BC_NOTIFY_HOUSING_SMS="notify-delivery-bc-notify-housing-sms-${ENV}"
 
     # 1. Fetch GC Notify subscription and its settings to replicate
     echo "--> Fetching reference GC Notify configuration..."
@@ -95,9 +97,11 @@ for ENV in "${ENVS[@]}"; do
     # Define the endpoints according to notify-delivery blueprints
     ENDPOINT_BC_NOTIFY="${BASE_URL}/bc-notify/"
     ENDPOINT_BC_NOTIFY_HOUSING="${BASE_URL}/bc-notify-housing/"
+    ENDPOINT_BC_NOTIFY_SMS="${BASE_URL}/bcnotify-sms/"
+    ENDPOINT_BC_NOTIFY_HOUSING_SMS="${BASE_URL}/bcnotify-housing-sms/"
 
-    TOPICS=("$TOPIC_BC_NOTIFY" "$TOPIC_BC_NOTIFY_HOUSING")
-    ENDPOINTS=("$ENDPOINT_BC_NOTIFY" "$ENDPOINT_BC_NOTIFY_HOUSING")
+    TOPICS=("$TOPIC_BC_NOTIFY" "$TOPIC_BC_NOTIFY_HOUSING" "$TOPIC_BC_NOTIFY_SMS" "$TOPIC_BC_NOTIFY_HOUSING_SMS")
+    ENDPOINTS=("$ENDPOINT_BC_NOTIFY" "$ENDPOINT_BC_NOTIFY_HOUSING" "$ENDPOINT_BC_NOTIFY_SMS" "$ENDPOINT_BC_NOTIFY_HOUSING_SMS")
 
     for i in "${!TOPICS[@]}"; do
         TOPIC="${TOPICS[$i]}"

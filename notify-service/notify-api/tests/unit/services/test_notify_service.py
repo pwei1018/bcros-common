@@ -6,10 +6,20 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from notify_api.models import Notification, NotificationHistory, NotificationRequest
+from notify_api.models import Notification, NotificationHistory, NotificationRequest, SmsRequest
 from notify_api.models.attachment import AttachmentRequest
 from notify_api.models.content import ContentRequest
-from notify_api.services.notify_service import NotifyService
+from notify_api.services.flags import FeatureFlag
+from notify_api.services.notify_service import SMS_CONTENT_SUBJECT, NotifyService
+
+
+def bc_notify_enabled():
+    """Turn on the BC Notify and BC Notify Housing feature flags."""
+    enabled = {FeatureFlag.BC_NOTIFY, FeatureFlag.BC_NOTIFY_HOUSING}
+    return patch(
+        "notify_api.services.notify_service.flags.is_on",
+        side_effect=lambda flag, default: flag in enabled or default,
+    )
 
 
 class TestNotifyServiceProviderSelection:
@@ -17,33 +27,29 @@ class TestNotifyServiceProviderSelection:
 
     @staticmethod
     def test_get_provider_strr_request(app):
-        """STRR requests route to HOUSING when BC Notify is disabled."""
+        """STRR requests route to HOUSING when BC Notify Housing is disabled."""
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             provider = NotifyService.get_provider("STRR", "Any content")
             assert provider == Notification.NotificationProvider.HOUSING
 
     @staticmethod
     def test_get_provider_strr_request_lowercase(app):
-        """STRR requests (lowercase) route to HOUSING when BC Notify is disabled."""
+        """STRR requests (lowercase) route to HOUSING when BC Notify Housing is disabled."""
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             provider = NotifyService.get_provider("strr", "Any content")
             assert provider == Notification.NotificationProvider.HOUSING
 
     @staticmethod
     def test_get_provider_strr_request_bc_notify_housing(app):
-        """STRR requests route to BC_NOTIFY_HOUSING when BC Notify is enabled."""
-        with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = True
+        """STRR requests route to BC_NOTIFY_HOUSING when BC Notify Housing is enabled."""
+        with app.app_context(), bc_notify_enabled():
             provider = NotifyService.get_provider("STRR", "Any content")
             assert provider == Notification.NotificationProvider.BC_NOTIFY_HOUSING
 
     @staticmethod
     def test_get_provider_strr_request_lowercase_bc_notify_housing(app):
-        """STRR requests (lowercase) route to BC_NOTIFY_HOUSING when BC Notify is enabled."""
-        with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = True
+        """STRR requests (lowercase) route to BC_NOTIFY_HOUSING when BC Notify Housing is enabled."""
+        with app.app_context(), bc_notify_enabled():
             provider = NotifyService.get_provider("strr", "Any content")
             assert provider == Notification.NotificationProvider.BC_NOTIFY_HOUSING
 
@@ -57,8 +63,7 @@ class TestNotifyServiceProviderSelection:
     @staticmethod
     def test_get_provider_html_body_at_limit_uses_default_provider(app):
         """HTML at exactly 50000 characters should use the configured default provider."""
-        with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = True
+        with app.app_context(), bc_notify_enabled():
             app.config["GC_NOTIFY_ENABLE"] = True
             body = "<p>" + "x" * (50_000 - len("<p></p>")) + "</p>"
             provider = NotifyService.get_provider("other", body)
@@ -67,8 +72,7 @@ class TestNotifyServiceProviderSelection:
     @staticmethod
     def test_get_provider_html_body_with_embedded_image_uses_smtp(app):
         """HTML with an embedded image uses SMTP regardless of body length."""
-        with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = True
+        with app.app_context(), bc_notify_enabled():
             app.config["GC_NOTIFY_ENABLE"] = True
             body = '<html><body><img src="data:image/png;base64,AAAA"></body></html>'
             provider = NotifyService.get_provider("other", body)
@@ -78,16 +82,14 @@ class TestNotifyServiceProviderSelection:
     def test_get_provider_default_gc_notify(app):
         """Test default provider selection for plain text (GC Notify enabled, BC Notify disabled)."""
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             app.config["GC_NOTIFY_ENABLE"] = True
             provider = NotifyService.get_provider("other", "Plain text content")
             assert provider == Notification.NotificationProvider.GC_NOTIFY
 
     @staticmethod
     def test_get_provider_bc_notify_first_choice(app):
-        """BC Notify is the first choice when BC_NOTIFY_ENABLE is on."""
-        with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = True
+        """BC Notify is the first choice when the BC Notify flag is on."""
+        with app.app_context(), bc_notify_enabled():
             app.config["GC_NOTIFY_ENABLE"] = True
             provider = NotifyService.get_provider("other", "Plain text content")
             assert provider == Notification.NotificationProvider.BC_NOTIFY
@@ -96,7 +98,6 @@ class TestNotifyServiceProviderSelection:
     def test_get_provider_gc_notify_when_bc_disabled(app):
         """GC Notify is used when BC Notify is off but GC Notify is on."""
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             app.config["GC_NOTIFY_ENABLE"] = True
             provider = NotifyService.get_provider("other", "Plain text content")
             assert provider == Notification.NotificationProvider.GC_NOTIFY
@@ -105,7 +106,6 @@ class TestNotifyServiceProviderSelection:
     def test_get_provider_smtp_when_both_disabled(app):
         """SMTP is used when both BC Notify and GC Notify are off."""
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             app.config["GC_NOTIFY_ENABLE"] = False
             provider = NotifyService.get_provider("other", "Plain text content")
             assert provider == Notification.NotificationProvider.SMTP
@@ -113,8 +113,7 @@ class TestNotifyServiceProviderSelection:
     @staticmethod
     def test_get_provider_strr_precedence_over_flags(app):
         """STRR requests route to a Housing provider, not the generic default provider."""
-        with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = True
+        with app.app_context(), bc_notify_enabled():
             app.config["GC_NOTIFY_ENABLE"] = True
             # With BC Notify enabled, STRR maps to the BC Notify Housing variant
             # rather than the plain BC_NOTIFY default.
@@ -124,7 +123,6 @@ class TestNotifyServiceProviderSelection:
     def test_get_provider_empty_content(app):
         """Test provider selection with empty content."""
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             app.config["GC_NOTIFY_ENABLE"] = True
             provider = NotifyService.get_provider("other", "")
             assert provider == Notification.NotificationProvider.GC_NOTIFY
@@ -133,16 +131,17 @@ class TestNotifyServiceProviderSelection:
     def test_get_provider_invalid_request_by(app):
         """Test provider selection with invalid request_by."""
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             app.config["GC_NOTIFY_ENABLE"] = True
             provider = NotifyService.get_provider("", "content")
             assert provider == Notification.NotificationProvider.GC_NOTIFY
 
     @staticmethod
-    def test_get_provider_non_string_request_by():
-        """Test provider selection with non-string request_by."""
-        provider = NotifyService.get_provider(None, "content")
-        assert provider == Notification.NotificationProvider.GC_NOTIFY
+    def test_get_provider_non_string_request_by(app):
+        """Test provider selection with non-string request_by uses the default provider."""
+        with app.app_context():
+            app.config["GC_NOTIFY_ENABLE"] = True
+            provider = NotifyService.get_provider(None, "content")
+            assert provider == Notification.NotificationProvider.GC_NOTIFY
 
     @staticmethod
     def test_get_provider_large_attachments():
@@ -180,7 +179,6 @@ class TestNotifyServiceProviderSelection:
         )
 
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             app.config["GC_NOTIFY_ENABLE"] = True
             provider = NotifyService.get_provider("test_service", "Plain text", notification_request)
             assert provider == Notification.NotificationProvider.GC_NOTIFY
@@ -196,7 +194,6 @@ class TestNotifyServiceProviderSelection:
         )
 
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             app.config["GC_NOTIFY_ENABLE"] = True
             provider = NotifyService.get_provider("test_service", "Plain text", notification_request)
             assert provider == Notification.NotificationProvider.GC_NOTIFY
@@ -741,7 +738,6 @@ class TestNotifyServiceQueueOperations:
     def test_get_provider_edge_cases(app):
         """Test provider selection with edge cases."""
         with app.app_context():
-            app.config["BC_NOTIFY_ENABLE"] = False
             app.config["GC_NOTIFY_ENABLE"] = True
             # Test with various request_by formats - STRR must be exact match, not substring
             assert NotifyService.get_provider("STRR", "content") == Notification.NotificationProvider.HOUSING
@@ -765,6 +761,76 @@ class TestNotifyServiceQueueOperations:
                 NotifyService.get_provider("test", "<script>alert('test')</script>")
                 == Notification.NotificationProvider.GC_NOTIFY
             )
+
+
+class TestNotifyServiceSms:
+    """Test suite for BC Notify SMS publishing."""
+
+    @staticmethod
+    def test_get_delivery_topic_bc_notify_sms(app):
+        """BC Notify SMS uses its own delivery topic."""
+        with app.app_context():
+            app.config["DELIVERY_BC_NOTIFY_SMS_TOPIC"] = "test-bc-notify-sms-topic"
+            topic = NotifyService._get_delivery_topic(Notification.NotificationProvider.BC_NOTIFY_SMS)
+            assert topic == "test-bc-notify-sms-topic"
+
+    @staticmethod
+    def test_queue_publish_sms_queues_each_recipient_as_text(app):
+        """Each SMS recipient is saved as a TEXT notification for the BC Notify SMS provider."""
+        with app.app_context():
+            app.config["DELIVERY_BC_NOTIFY_SMS_TOPIC"] = "test-bc-notify-sms-topic"
+            sms_request = SmsRequest(recipients="2505550123, +16045550147", requestBy="test", body="Hello")
+            queued = Mock(recipients="+12505550123", status_code=Notification.NotificationStatus.QUEUED)
+
+            with patch.object(NotifyService, "_process_single_recipient", return_value=queued) as process_recipient:
+                result = NotifyService().queue_publish_sms(sms_request)
+
+            assert result is queued
+            assert [call.args[0] for call in process_recipient.call_args_list] == ["+12505550123", "+16045550147"]
+            notification_request = process_recipient.call_args_list[0].args[1]
+            assert notification_request.notify_type == Notification.NotificationType.TEXT
+            assert notification_request.content.body == "Hello"
+            assert notification_request.content.subject == SMS_CONTENT_SUBJECT
+            assert process_recipient.call_args_list[0].args[2] == Notification.NotificationProvider.BC_NOTIFY_SMS
+            assert process_recipient.call_args_list[0].args[3] == "test-bc-notify-sms-topic"
+
+    @staticmethod
+    @pytest.mark.parametrize("request_by", ["STRR", "strr"])
+    def test_queue_publish_sms_housing_uses_housing_topic(app, request_by):
+        """Housing (STRR) SMS uses the BC Notify Housing SMS provider and topic."""
+        with app.app_context():
+            app.config["DELIVERY_BC_NOTIFY_HOUSING_SMS_TOPIC"] = "test-bc-notify-housing-sms-topic"
+            sms_request = SmsRequest(recipients="+12505550123", requestBy=request_by, body="Hello")
+
+            with patch.object(NotifyService, "_process_single_recipient", return_value=Mock()) as process_recipient:
+                NotifyService().queue_publish_sms(sms_request)
+
+            args = process_recipient.call_args.args
+            assert args[2] == Notification.NotificationProvider.BC_NOTIFY_HOUSING_SMS
+            assert args[3] == "test-bc-notify-housing-sms-topic"
+
+    @staticmethod
+    def test_queue_publish_sms_no_delivery_topic(app):
+        """Missing SMS topic results in a FAILURE notification."""
+        with app.app_context():
+            app.config["DELIVERY_BC_NOTIFY_SMS_TOPIC"] = ""
+            sms_request = SmsRequest(recipients="+12505550123", body="Hello")
+
+            result = NotifyService().queue_publish_sms(sms_request)
+
+            assert result.status_code == Notification.NotificationStatus.FAILURE
+
+    @staticmethod
+    def test_queue_publish_sms_exception(app):
+        """Unexpected errors result in a FAILURE notification."""
+        with app.app_context():
+            sms_request = SmsRequest(recipients="+12505550123", body="Hello")
+
+            with patch.object(NotifyService, "_queue_recipients", side_effect=Exception("boom")):
+                result = NotifyService().queue_publish_sms(sms_request)
+
+            assert result.recipients == "+12505550123"
+            assert result.status_code == Notification.NotificationStatus.FAILURE
 
 
 class TestNotifyServiceArchiving:

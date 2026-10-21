@@ -28,6 +28,7 @@ from notify_api.exceptions import ExceptionHandler
 from notify_api.metadata import APP_RUNNING_ENVIRONMENT
 from notify_api.models import db
 from notify_api.resources import meta_endpoint, ops_endpoint, v1_endpoint, v2_endpoint
+from notify_api.services.flags import flags
 from notify_api.services.gcp_queue import queue
 from notify_api.utils.auth import jwt
 from notify_api.utils.util import describe_database_target, log_sidecar_connection_evidence
@@ -115,6 +116,7 @@ def create_app(run_mode: str = APP_RUNNING_ENVIRONMENT) -> Flask:
         logger.info("Finished migration upgrade.")
     else:
         queue.init_app(app)
+        flags.init_app(app)
         meta_endpoint.init_app(app)
         ops_endpoint.init_app(app)
         v1_endpoint.init_app(app)
