@@ -1,4 +1,15 @@
-FROM python:3.12-bookworm AS development_build
+# Multi-stage Dockerfile for doc-api (same pattern as notify-service/notify-api)
+#   - runtime   (DEFAULT, last stage): distroless image for the API service
+#   - migration: full Python environment for the db migration job (/code/update_db.sh)
+#
+# `runtime` MUST remain the LAST stage so that `docker build` without `--target`
+# produces the API image. The Cloud Build SRE helper builds the main image without
+# `--target`, then builds `--target migration` for the parallel doc-api-migration image.
+#
+#   docker build -t doc-api .
+#   docker build --target migration -t doc-api-migration .
+
+FROM python:3.13-slim-trixie AS builder
 
 USER root
 
@@ -7,7 +18,6 @@ ARG BUILD_DATE="missing"
 
 ENV VCS_REF=${VCS_REF}
 ENV BUILD_DATE=${BUILD_DATE}
-ENV PORT=8080
 
 LABEL org.label-schema.vcs-ref=${VCS_REF} \
     org.label-schema.build-date=${BUILD_DATE}
@@ -15,14 +25,7 @@ LABEL org.label-schema.vcs-ref=${VCS_REF} \
 LABEL maintainer="thorwolpert"
 LABEL vendor="BCROS"
 
-ARG APP_ENV \
-  # Needed for fixing permissions of files created by Docker:
-  UID=1000 \
-  GID=1000
-
-ENV APP_ENV=${APP_ENV} \
-  # python:
-  PYTHONFAULTHANDLER=1 \
+ENV PYTHONFAULTHANDLER=1 \
   PYTHONUNBUFFERED=1 \
   PYTHONHASHSEED=random \
   PYTHONDONTWRITEBYTECODE=1 \
@@ -31,10 +34,11 @@ ENV APP_ENV=${APP_ENV} \
   PIP_DISABLE_PIP_VERSION_CHECK=1 \
   PIP_DEFAULT_TIMEOUT=100 \
   PIP_ROOT_USER_ACTION=ignore \
-  # poetry:
+  # poetry (install into /code/.venv so it can be copied into the later stages):
   POETRY_VERSION=2.3.2 \
   POETRY_NO_INTERACTION=1 \
-  POETRY_VIRTUALENVS_CREATE=false \
+  POETRY_VIRTUALENVS_CREATE=true \
+  POETRY_VIRTUALENVS_IN_PROJECT=true \
   POETRY_CACHE_DIR='/var/cache/pypoetry' \
   POETRY_HOME='/usr/local' \
   POETRY_INSTALLER_PARALLEL=false
@@ -43,14 +47,10 @@ SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 
 RUN apt-get update && apt-get upgrade -y \
   && apt-get install --no-install-recommends -y \
-    bash \
-    brotli \
     build-essential \
+    ca-certificates \
     curl \
-    gettext \
     git \
-    libpq-dev \
-    wait-for-it \
   && curl -sSL 'https://install.python-poetry.org' | python - \
   && poetry --version \
   # Cleaning cache:
@@ -59,37 +59,74 @@ RUN apt-get update && apt-get upgrade -y \
 
 WORKDIR /code
 
-RUN groupadd -g "${GID}" -r web \
-  && useradd -d '/code' -g web -l -r -u "${UID}" web \
-  && chown web:web -R '/code'
-
 # Copy only requirements, to cache them in docker layer
-COPY --chown=web:web ./poetry.lock ./pyproject.toml /code/
+COPY ./poetry.lock ./pyproject.toml ./README.md /code/
+COPY ./src /code/src
 
-COPY --chown=web:web ./src /code/src
-COPY --chown=web:web ./README.md /code
-
-# Project initialization:
 RUN --mount=type=cache,target="$POETRY_CACHE_DIR" \
-  echo "$APP_ENV" \
-  && poetry version \
-  # Install deps:
-  && poetry run pip install -U pip \
-  && poetry install \
-    $(if [ -z ${APP_ENV+x} ] | [ "$APP_ENV" = 'production' ]; then echo '--only main'; fi) \
-    --no-interaction --no-ansi
+  poetry install --only main --no-interaction --no-ansi
 
-# Running as non-root user:
-USER web
+COPY . /code
 
-# The following stage is only for production:
-FROM development_build AS production_build
-COPY --chown=web:web . /code
+# Chown to UID/GID 65532 — the 'nonroot' user baked into the distroless runtime image.
+RUN chmod +x /code/update_db.sh \
+  && chown -R 65532:65532 /code
 
-RUN chmod +x /code/update_db.sh
+# ---------------------------------------------------------------------------
+# TARGET: migration
+# Used by the doc-api-db-migration-<env> Cloud Run job, which runs /code/update_db.sh.
+# Placed BEFORE `runtime` so that the default build produces the runtime image.
+# ---------------------------------------------------------------------------
+FROM python:3.13-slim-trixie AS migration
 
-# ENV PYTHONPATH=/opt/app-root/src
+ARG VCS_REF="missing"
+ARG BUILD_DATE="missing"
 
-# CMD gunicorn --bind 0.0.0.0:${PORT} --config /code/gunicorn_config.py wsgi:app
+LABEL org.label-schema.vcs-ref=${VCS_REF} \
+    org.label-schema.build-date=${BUILD_DATE} \
+    vendor="BCROS"
 
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 wsgi:app
+ENV PYTHONFAULTHANDLER=1 \
+  PYTHONUNBUFFERED=1 \
+  PYTHONHASHSEED=random \
+  PYTHONDONTWRITEBYTECODE=1 \
+  PATH="/code/.venv/bin:$PATH"
+
+WORKDIR /code
+
+COPY --from=builder /code /code
+
+USER 65532:65532
+
+CMD ["/code/update_db.sh"]
+
+# ---------------------------------------------------------------------------
+# TARGET: runtime  (DEFAULT — last stage)
+# Distroless: no shell, no package manager, no pip. Runs as 'nonroot' (65532).
+# gunicorn binds to 0.0.0.0:$PORT when no --bind is given.
+# ---------------------------------------------------------------------------
+FROM gcr.io/distroless/python3-debian13:nonroot AS runtime
+
+ARG VCS_REF="missing"
+ARG BUILD_DATE="missing"
+
+LABEL org.label-schema.vcs-ref=${VCS_REF} \
+    org.label-schema.build-date=${BUILD_DATE} \
+    vendor="BCROS"
+
+ENV PORT=8080 \
+  # Make the venv importable without its bin/python symlink
+  # (distroless python lives at /usr/bin/python, not /usr/local/bin).
+  PYTHONPATH="/code/src:/code/.venv/lib/python3.13/site-packages" \
+  PYTHONFAULTHANDLER=1 \
+  PYTHONUNBUFFERED=1 \
+  PYTHONHASHSEED=random \
+  PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /code
+
+COPY --from=builder /code /code
+
+USER 65532:65532
+
+ENTRYPOINT ["python", "-m", "gunicorn", "--workers", "1", "--threads", "8", "--timeout", "0", "wsgi:app"]
