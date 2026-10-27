@@ -57,8 +57,9 @@ COPY --chown=65532:65532 ./uv.lock /code/
 COPY --chown=65532:65532 ./src /code/src
 COPY --chown=65532:65532 ./README.md /code/
 
-# Use notify-api from GitHub main (matches uv.lock) instead of the local path.
-RUN sed -i 's|^notify-api = .*|notify-api = { git = "https://github.com/bcgov/bcros-common.git", subdirectory = "notify-service/notify-api", branch = "main" }|' /code/pyproject.toml
+# Use notify-api from the latest GitHub main instead of the local path or the rev pinned in uv.lock.
+RUN sed -i 's|^notify-api = .*|notify-api = { git = "https://github.com/bcgov/bcros-common.git", subdirectory = "notify-service/notify-api", branch = "main" }|' /code/pyproject.toml \
+  && uv lock --upgrade-package notify-api
 
 # Install dependencies first (better caching)
 RUN --mount=type=cache,target="/root/.cache/uv" \
