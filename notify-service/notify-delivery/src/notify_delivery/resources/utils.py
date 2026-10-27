@@ -164,7 +164,11 @@ def send_notification(notification: Notification, provider_class) -> Notificatio
 
         if waits_for_callback:
             db.session.commit()
-            logger.info(f"Notification {notification.id} sent to provider; waiting for callback status")
+            logger.info(
+                f"Notification {notification.id} sent to provider; waiting for callback status "
+                f"(response_id={notification.notify_response_id}, "
+                f"column_mapped={'notify_response_id' in Notification.__table__.columns})"
+            )
             return notification
 
         history = None
