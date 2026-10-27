@@ -18,6 +18,8 @@ from notify_api.resources.ops.ops import bp as ops_bp
 
 from notify_delivery.resources.bc_notify import bp as bcnotify_endpoint
 from notify_delivery.resources.bc_notify_housing import bp as bcnotify_housing_endpoint
+from notify_delivery.resources.bc_notify_housing_sms import bp as bcnotify_housing_sms_endpoint
+from notify_delivery.resources.bc_notify_sms import bp as bcnotify_sms_endpoint
 from notify_delivery.resources.email_smtp import bp as smtp_endpoint
 from notify_delivery.resources.gc_notify import bp as gcnotify_endpoint
 from notify_delivery.resources.gc_notify_housing import bp as gcnotify_housing_endpoint
@@ -35,5 +37,7 @@ def register_endpoints(app: Flask):
         app.register_blueprint(gcnotify_housing_endpoint, url_prefix="/gcnotify-housing")
         app.register_blueprint(bcnotify_endpoint, url_prefix="/bcnotify")
         app.register_blueprint(bcnotify_housing_endpoint, url_prefix="/bcnotify-housing")
+        app.register_blueprint(bcnotify_sms_endpoint, url_prefix="/bcnotify-sms")
+        app.register_blueprint(bcnotify_housing_sms_endpoint, url_prefix="/bcnotify-housing-sms")
 
     app.register_blueprint(ops_bp, url_prefix="/ops")

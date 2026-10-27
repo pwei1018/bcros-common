@@ -60,6 +60,45 @@ class NotificationRequest(BaseModel):  # pylint: disable=too-few-public-methods
         return v_field
 
 
+class SmsRequest(BaseModel):  # pylint: disable=too-few-public-methods
+    """SMS notification request model."""
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    recipients: str = Field(alias="recipients")
+    request_by: str | None = Field(default="", alias="requestBy")
+    body: str = Field(alias="body")
+
+    @field_validator("recipients")
+    @classmethod
+    def validate_recipients(cls, v_field):
+        """Validate the phone numbers and normalise them to E.164."""
+        numbers = []
+        for raw_recipient in (v_field or "").split(","):
+            recipient = raw_recipient.strip()
+            if not recipient:
+                continue
+            try:
+                parsed_phone = phonenumbers.parse(recipient, "CA")
+            except phonenumbers.NumberParseException as err:
+                raise ValueError(f"Invalid phone number: {recipient}.") from err
+            if not phonenumbers.is_valid_number(parsed_phone):
+                raise ValueError(f"Invalid phone number: {recipient}.")
+            numbers.append(phonenumbers.format_number(parsed_phone, phonenumbers.PhoneNumberFormat.E164))
+
+        if not numbers:
+            raise ValueError("The recipients must not empty")
+        return ",".join(numbers)
+
+    @field_validator("body")
+    @classmethod
+    def body_not_empty(cls, v_field):
+        """Validate the SMS body is not empty."""
+        if not v_field or not v_field.strip():
+            raise ValueError("The SMS body must not empty.")
+        return v_field
+
+
 class NotificationSendResponse(BaseModel):  # pylint: disable=too-few-public-methods
     """Model for GC notify send response."""
 
@@ -101,6 +140,8 @@ class Notification(db.Model):
         HOUSING = auto()
         BC_NOTIFY = auto()
         BC_NOTIFY_HOUSING = auto()
+        BC_NOTIFY_SMS = auto()
+        BC_NOTIFY_HOUSING_SMS = auto()
 
     __tablename__ = "notification"
 
@@ -243,12 +284,12 @@ class Notification(db.Model):
             or_(
                 Notification.status_code != Notification.NotificationStatus.SENT,
                 Notification.provider_code.is_(None),
-                Notification.provider_code.notin_(
-                    (
-                        Notification.NotificationProvider.BC_NOTIFY,
-                        Notification.NotificationProvider.BC_NOTIFY_HOUSING,
-                    )
-                ),
+                Notification.provider_code.notin_((
+                    Notification.NotificationProvider.BC_NOTIFY,
+                    Notification.NotificationProvider.BC_NOTIFY_HOUSING,
+                    Notification.NotificationProvider.BC_NOTIFY_SMS,
+                    Notification.NotificationProvider.BC_NOTIFY_HOUSING_SMS,
+                )),
             ),
         ).all()
 

@@ -35,6 +35,7 @@ dependencies = [
     "cloud-sql-connector",
     "flask-swagger-ui>=4.11.1",
     "psycopg[binary]>=3.3.4",
+    "launchdarkly-server-sdk>=9.0.0",
 ]
 
 [dependency-groups]

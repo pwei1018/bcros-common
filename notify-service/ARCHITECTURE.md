@@ -108,14 +108,14 @@ The diagram is an environment and business-context view, not a replacement for t
 
 **Owner:** `notify_api.services.notify_service.NotifyService`.
 
-Selection order:
+Selection order (provider toggles are LaunchDarkly flags evaluated per request):
 
-1. `STRR` requests use Housing or BC Notify Housing according to `BC_NOTIFY_ENABLE`.
+1. `STRR` requests use BC Notify Housing when `enable-bc-notify-housing` is on, then GC Notify Housing when `enable-gc-notify` is on, otherwise SMTP.
 2. Attachments whose decoded inline content exceeds 6 MiB use SMTP.
 3. HTML containing an `<img>` element or exceeding 50,000 characters uses SMTP.
-4. Remaining notifications use BC Notify when enabled, then GC Notify when enabled, otherwise SMTP.
+4. Remaining notifications use BC Notify when `enable-bc-notify` is on, then GC Notify when `enable-gc-notify` is on, otherwise SMTP.
 
-The selected provider determines the Pub/Sub topic and CloudEvent type.
+The selected provider determines the Pub/Sub topic and CloudEvent type. SMS (`/api/v2/sms`) is rejected when `enable-bc-notify-sms` (or `enable-bc-notify-housing-sms` for `STRR`) is off. The resend job re-checks the flags: email queued for a now-disabled provider is re-routed using the rules above, and SMS for a disabled provider is not resent.
 
 ### 3.3 notify-delivery
 

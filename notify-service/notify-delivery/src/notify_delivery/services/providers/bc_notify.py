@@ -149,14 +149,12 @@ class BCNotify:
             return "html"
         return "text"
 
-    def _send_with_retry(self, recipient: str, content: Content) -> dict | None:
-        """Send email with retries for rate limits and transient server errors."""
-        if not self.api_key or not self.bc_notify_url:
-            logger.error("BC Notify API URL or key is not configured.")
-            return None
+    def _build_url(self) -> str:
+        """Return the BC Notify send endpoint."""
+        return f"{self.bc_notify_url.rstrip('/')}/api/v1/notifysimple/email"
 
-        url = f"{self.bc_notify_url.rstrip('/')}/api/v1/notifysimple/email"
-        headers = {"X-API-KEY": f"{self.api_key}", "Content-Type": "application/json"}
+    def _build_payload(self, recipient: str, content: Content) -> dict:
+        """Return the BC Notify request body for a single recipient."""
         deployment_env = current_app.config.get("DEPLOYMENT_ENV", "production").lower()
         subject = content.subject
         if deployment_env != "production":
@@ -173,6 +171,18 @@ class BCNotify:
 
         if content.attachments:
             payload["attachments"] = [self._build_attachment(attachment) for attachment in content.attachments]
+
+        return payload
+
+    def _send_with_retry(self, recipient: str, content: Content) -> dict | None:
+        """Send with retries for rate limits and transient server errors."""
+        if not self.api_key or not self.bc_notify_url:
+            logger.error("BC Notify API URL or key is not configured.")
+            return None
+
+        url = self._build_url()
+        headers = {"X-API-KEY": f"{self.api_key}", "Content-Type": "application/json"}
+        payload = self._build_payload(recipient, content)
 
         for attempt in range(self.MAX_RETRIES + 1):
             try:
