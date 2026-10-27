@@ -892,7 +892,9 @@ class TestNotifyServiceArchiving:
 
         assert result is True
         assert mock_notification.status_code == Notification.NotificationStatus.EXPIRED
-        mock_history_class.create_history.assert_called_once_with(mock_notification, commit=False)
+        mock_history_class.create_history.assert_called_once_with(
+            mock_notification, response_id=mock_notification.notify_response_id, commit=False
+        )
         mock_notification.delete_notification.assert_called_once_with(commit=False)
         mock_db.session.commit.assert_called_once()
 
@@ -912,6 +914,7 @@ class TestNotifyServiceArchiving:
         assert result is True
         mock_history_class.create_history.assert_called_once_with(
             mock_notification,
+            response_id=mock_notification.notify_response_id,
             subject=mock_history_class.MISSING_CONTENT_SUBJECT,
             commit=False,
         )
