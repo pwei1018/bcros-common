@@ -1,146 +1,141 @@
 #!/bin/bash
-# 
-# Script to generate Pub/Sub topics and subscriptions for BC Notify and BC Notify Housing Service.
-# This script iterates through the Common projects for dev, test, sandbox, and prod.
-# It dynamically copies the service account and IAM permissions from the existing GC Notify pub/sub setup.
+#
+# Create Pub/Sub topics and push subscriptions for the BC Notify delivery workers
+# (email, Housing email, SMS and Housing SMS) in the Common projects.
+#
+# Settings are copied from the existing GC Notify subscription in each project:
+# push service account/audience, ack deadline, retry backoff, retention, dead-letter
+# topic and IAM bindings. Existing topics and subscriptions are left untouched.
 #
 # Usage:
-#   chmod +x create_pubsub_bc_notify.sh
-#   ./create_pubsub_bc_notify.sh [env]
+#   ./create_pubsub_bc_notify.sh [env]          # env: dev | test | sandbox | prod (default: all)
+#   DRY_RUN=1 ./create_pubsub_bc_notify.sh dev  # print what would be created
 #
 # Note: Ensure you are authenticated with gcloud with sufficient permissions.
 
-set -e
+set -euo pipefail
 
-if [ -z "$1" ]; then
-  # Define the common GCP environments
-  ENVS=(
-    "dev"
-    "test"
-    "sandbox"
-    "prod"
-  )
+GCLOUD="${GCLOUD:-gcloud}"
+REGION="northamerica-northeast1"
+DRY_RUN="${DRY_RUN:-}"
+
+if [ -z "${1:-}" ]; then
+  ENVS=("dev" "test" "sandbox" "prod")
 else
-  ENVS=( "$1" )
+  ENVS=("$1")
 fi
+
+run() {
+  if [[ -n "$DRY_RUN" ]]; then
+    echo "    [dry-run] $*"
+  else
+    "$@"
+  fi
+}
 
 echo "Starting Pub/Sub topic and subscription generation..."
 
 for ENV in "${ENVS[@]}"; do
-    PROJECT_ID="c4hnrd-${ENV}"
-    
-    echo "=========================================================="
-    echo "Processing Project: $PROJECT_ID (Environment: $ENV)"
-    echo "=========================================================="
-    
-    # Map the correct Cloud Run base URL based on the environment suffix
-    if [[ "$ENV" == "dev" ]]; then
-        BASE_URL="https://notify-delivery-dev.a.run.app"
-    elif [[ "$ENV" == "test" ]]; then
-        BASE_URL="https://notify-delivery-test.a.run.app"
-    elif [[ "$ENV" == "sandbox" ]]; then
-        BASE_URL="https://notify-delivery-sandbox.a.run.app"
-    elif [[ "$ENV" == "prod" ]]; then
-        BASE_URL="https://notify-delivery-prod.a.run.app"
+  PROJECT_ID="c4hnrd-${ENV}"
+
+  echo "=========================================================="
+  echo "Processing Project: $PROJECT_ID (Environment: $ENV)"
+  echo "=========================================================="
+
+  BASE_URL=$("$GCLOUD" run services describe "notify-delivery-${ENV}" --project="$PROJECT_ID" \
+    --region="$REGION" --format="value(status.url)" 2>/dev/null || true)
+  if [[ -z "$BASE_URL" ]]; then
+    echo "    [Error] Cloud Run service notify-delivery-${ENV} not found. Skipping project."
+    continue
+  fi
+  echo "    notify-delivery URL: $BASE_URL"
+
+  # Reference GC Notify topic to copy configuration and permissions from
+  TOPIC_GCNOTIFY="notify-delivery-gcnotify-${ENV}"
+  if ! "$GCLOUD" pubsub topics describe "$TOPIC_GCNOTIFY" --project="$PROJECT_ID" &>/dev/null; then
+    echo "    [Error] GC Notify topic $TOPIC_GCNOTIFY does not exist. Skipping project."
+    continue
+  fi
+
+  REF_SUB=$("$GCLOUD" pubsub topics list-subscriptions "$TOPIC_GCNOTIFY" --project="$PROJECT_ID" \
+    --format="value(.)" | head -n 1)
+  REF_SUB=$(basename "${REF_SUB:-}")
+  if [[ -z "$REF_SUB" ]]; then
+    echo "    [Error] No subscription found for $TOPIC_GCNOTIFY. Skipping project."
+    continue
+  fi
+  echo "    Reference subscription: $REF_SUB"
+
+  IFS='|' read -r SERVICE_ACCOUNT AUDIENCE ACK_DEADLINE MIN_BACKOFF MAX_BACKOFF RETENTION DLQ_TOPIC MAX_ATTEMPTS < <(
+    "$GCLOUD" pubsub subscriptions describe "$REF_SUB" --project="$PROJECT_ID" \
+      --format="value[separator='|'](pushConfig.oidcToken.serviceAccountEmail,pushConfig.oidcToken.audience,ackDeadlineSeconds,retryPolicy.minimumBackoff,retryPolicy.maximumBackoff,messageRetentionDuration,deadLetterPolicy.deadLetterTopic,deadLetterPolicy.maxDeliveryAttempts)"
+  )
+  SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-pubsub-invoker@${PROJECT_ID}.iam.gserviceaccount.com}"
+  echo "    Service account: $SERVICE_ACCOUNT, audience: ${AUDIENCE:-<push endpoint>}, ack: ${ACK_DEADLINE}s," \
+    "backoff: ${MIN_BACKOFF:-default}-${MAX_BACKOFF:-default}, retention: ${RETENTION:-default}," \
+    "dead-letter: ${DLQ_TOPIC:-none} (${MAX_ATTEMPTS:-n/a} attempts)"
+
+  SUB_FLAGS=(--push-auth-service-account="$SERVICE_ACCOUNT" --expiration-period=never)
+  [[ -n "$AUDIENCE" ]] && SUB_FLAGS+=(--push-auth-token-audience="$AUDIENCE")
+  [[ -n "$ACK_DEADLINE" ]] && SUB_FLAGS+=(--ack-deadline="$ACK_DEADLINE")
+  [[ -n "$MIN_BACKOFF" ]] && SUB_FLAGS+=(--min-retry-delay="$MIN_BACKOFF")
+  [[ -n "$MAX_BACKOFF" ]] && SUB_FLAGS+=(--max-retry-delay="$MAX_BACKOFF")
+  [[ -n "$RETENTION" ]] && SUB_FLAGS+=(--message-retention-duration="$RETENTION")
+  [[ -n "$DLQ_TOPIC" ]] && SUB_FLAGS+=(--dead-letter-topic="$DLQ_TOPIC" --max-delivery-attempts="${MAX_ATTEMPTS:-5}")
+
+  # topic name -> notify-delivery blueprint path (see notify_delivery/resources/__init__.py)
+  TOPICS=(
+    "notify-delivery-bc-notify-${ENV}"
+    "notify-delivery-bc-notify-housing-${ENV}"
+    "notify-delivery-bc-notify-sms-${ENV}"
+    "notify-delivery-bc-notify-housing-sms-${ENV}"
+  )
+  PATHS=("/bcnotify" "/bcnotify-housing" "/bcnotify-sms" "/bcnotify-housing-sms")
+
+  for i in "${!TOPICS[@]}"; do
+    TOPIC="${TOPICS[$i]}"
+    PUSH_ENDPOINT="${BASE_URL}${PATHS[$i]}"
+
+    echo "--> Topic: $TOPIC"
+    if "$GCLOUD" pubsub topics describe "$TOPIC" --project="$PROJECT_ID" &>/dev/null; then
+      echo "    [Info] Topic already exists."
     else
-        echo "Unknown environment $ENV. Skipping."
-        continue
+      run "$GCLOUD" pubsub topics create "$TOPIC" --project="$PROJECT_ID"
+      [[ -z "$DRY_RUN" ]] && echo "    [Success] Created topic."
     fi
 
-    # Reference GC Notify Topic to copy configurations and permissions from
-    TOPIC_GCNOTIFY="notify-delivery-gcnotify-${ENV}"
+    # Bindings are added individually; set-iam-policy with the reference policy's etag is rejected.
+    while IFS=$'\t' read -r ROLE MEMBER; do
+      [[ -z "$ROLE" ]] && continue
+      run "$GCLOUD" pubsub topics add-iam-policy-binding "$TOPIC" --project="$PROJECT_ID" \
+        --role="$ROLE" --member="$MEMBER" --format=none
+    done < <("$GCLOUD" pubsub topics get-iam-policy "$TOPIC_GCNOTIFY" --project="$PROJECT_ID" \
+      --flatten="bindings[].members" --format="value[separator='\t'](bindings.role,bindings.members)")
 
-    # Topics to create
-    TOPIC_BC_NOTIFY="notify-delivery-bc-notify-${ENV}"
-    TOPIC_BC_NOTIFY_HOUSING="notify-delivery-bc-notify-housing-${ENV}"
-    TOPIC_BC_NOTIFY_SMS="notify-delivery-bc-notify-sms-${ENV}"
-    TOPIC_BC_NOTIFY_HOUSING_SMS="notify-delivery-bc-notify-housing-sms-${ENV}"
-
-    # 1. Fetch GC Notify subscription and its settings to replicate
-    echo "--> Fetching reference GC Notify configuration..."
-    
-    # Check if GC Notify Topic exists
-    if ! /opt/homebrew/bin/gcloud pubsub topics describe "$TOPIC_GCNOTIFY" --project="$PROJECT_ID" &>/dev/null; then
-        echo "    [Error] GC Notify topic $TOPIC_GCNOTIFY does not exist in $PROJECT_ID. Cannot copy settings. Skipping project."
-        continue
-    fi
-
-    # Extract the first subscription attached to the GC Notify Topic
-    GCNOTIFY_SUB=$(/opt/homebrew/bin/gcloud pubsub topics list-subscriptions "$TOPIC_GCNOTIFY" --project="$PROJECT_ID" --format="value(.)" | head -n 1)
-    # The returned value is often the full path, extract just the name
-    GCNOTIFY_SUB_NAME=$(basename "$GCNOTIFY_SUB")
-
-    if [[ -z "$GCNOTIFY_SUB_NAME" ]]; then
-        echo "    [Error] Could not find any subscriptions for GC Notify topic. Cannot copy service account. Skipping project."
-        continue
-    fi
-    
-    echo "    Found reference subscription: $GCNOTIFY_SUB_NAME"
-
-    # Extract Service Account and Audience from the GC Notify subscription
-    SERVICE_ACCOUNT=$(/opt/homebrew/bin/gcloud pubsub subscriptions describe "$GCNOTIFY_SUB_NAME" --project="$PROJECT_ID" --format="value(pushConfig.oidcToken.serviceAccountEmail)")
-    AUDIENCE=$(/opt/homebrew/bin/gcloud pubsub subscriptions describe "$GCNOTIFY_SUB_NAME" --project="$PROJECT_ID" --format="value(pushConfig.oidcToken.audience)")
-    
-    if [[ -z "$SERVICE_ACCOUNT" ]]; then
-        echo "    [Warning] Service account not found in pushConfig of $GCNOTIFY_SUB_NAME. Defaulting to pubsub-invoker."
-        SERVICE_ACCOUNT="pubsub-invoker@${PROJECT_ID}.iam.gserviceaccount.com"
-        AUDIENCE="https://pubsub.googleapis.com/google.pubsub.v1.Subscriber"
+    # Any existing subscription already pushes this topic; a second one would deliver every message twice.
+    EXISTING_SUB=$("$GCLOUD" pubsub topics list-subscriptions "$TOPIC" --project="$PROJECT_ID" \
+      --format="value(.)" 2>/dev/null | head -n 1 || true)
+    if [[ -n "$EXISTING_SUB" ]]; then
+      SUBSCRIPTION=$(basename "$EXISTING_SUB")
+      CURRENT_ENDPOINT=$("$GCLOUD" pubsub subscriptions describe "$SUBSCRIPTION" --project="$PROJECT_ID" \
+        --format="value(pushConfig.pushEndpoint)")
+      echo "    [Info] Subscription $SUBSCRIPTION already exists -> $CURRENT_ENDPOINT"
+      [[ "$CURRENT_ENDPOINT" != "$PUSH_ENDPOINT" ]] && echo "    [Warning] Expected endpoint $PUSH_ENDPOINT"
     else
-        echo "    Using Service Account: $SERVICE_ACCOUNT"
-        echo "    Using Audience: $AUDIENCE"
+      SUBSCRIPTION="${TOPIC}-sub"
+      run "$GCLOUD" pubsub subscriptions create "$SUBSCRIPTION" --topic="$TOPIC" --project="$PROJECT_ID" \
+        --push-endpoint="$PUSH_ENDPOINT" "${SUB_FLAGS[@]}"
+      [[ -z "$DRY_RUN" ]] && echo "    [Success] Created subscription $SUBSCRIPTION -> $PUSH_ENDPOINT"
     fi
 
-    # Download IAM policies of GC Notify to replicate permissions
-    /opt/homebrew/bin/gcloud pubsub topics get-iam-policy "$TOPIC_GCNOTIFY" --project="$PROJECT_ID" --format=json > /tmp/topic_policy.json
-    /opt/homebrew/bin/gcloud pubsub subscriptions get-iam-policy "$GCNOTIFY_SUB_NAME" --project="$PROJECT_ID" --format=json > /tmp/sub_policy.json
-
-    # Define the endpoints according to notify-delivery blueprints
-    ENDPOINT_BC_NOTIFY="${BASE_URL}/bc-notify/"
-    ENDPOINT_BC_NOTIFY_HOUSING="${BASE_URL}/bc-notify-housing/"
-    ENDPOINT_BC_NOTIFY_SMS="${BASE_URL}/bcnotify-sms/"
-    ENDPOINT_BC_NOTIFY_HOUSING_SMS="${BASE_URL}/bcnotify-housing-sms/"
-
-    TOPICS=("$TOPIC_BC_NOTIFY" "$TOPIC_BC_NOTIFY_HOUSING" "$TOPIC_BC_NOTIFY_SMS" "$TOPIC_BC_NOTIFY_HOUSING_SMS")
-    ENDPOINTS=("$ENDPOINT_BC_NOTIFY" "$ENDPOINT_BC_NOTIFY_HOUSING" "$ENDPOINT_BC_NOTIFY_SMS" "$ENDPOINT_BC_NOTIFY_HOUSING_SMS")
-
-    for i in "${!TOPICS[@]}"; do
-        TOPIC="${TOPICS[$i]}"
-        PUSH_ENDPOINT="${ENDPOINTS[$i]}"
-        SUBSCRIPTION="${TOPIC}-sub"
-        
-        echo "--> Creating topic: $TOPIC"
-        if ! /opt/homebrew/bin/gcloud pubsub topics create "$TOPIC" --project="$PROJECT_ID" 2>/dev/null; then
-            echo "    [Info] Topic $TOPIC may already exist or creation failed."
-        else
-            echo "    [Success] Created topic $TOPIC."
-        fi
-
-        echo "--> Applying IAM permissions to topic: $TOPIC"
-        /opt/homebrew/bin/gcloud pubsub topics set-iam-policy "$TOPIC" /tmp/topic_policy.json --project="$PROJECT_ID" 2>/dev/null || echo "    [Warning] Failed to set IAM policy on topic."
-
-        echo "--> Creating push subscription: $SUBSCRIPTION"
-        if ! /opt/homebrew/bin/gcloud pubsub subscriptions create "$SUBSCRIPTION" \
-            --topic="$TOPIC" \
-            --project="$PROJECT_ID" \
-            --push-endpoint="$PUSH_ENDPOINT" \
-            --push-auth-service-account="$SERVICE_ACCOUNT" \
-            --push-auth-token-audience="$AUDIENCE" \
-            --min-retry-delay=10s \
-            --max-retry-delay=600s \
-            --message-retention-duration=7d 2>/dev/null; then
-            echo "    [Info] Subscription $SUBSCRIPTION may already exist or creation failed."
-        else
-            echo "    [Success] Created subscription $SUBSCRIPTION."
-        fi
-        echo "    Endpoint: $PUSH_ENDPOINT"
-
-        echo "--> Applying IAM permissions to subscription: $SUBSCRIPTION"
-        /opt/homebrew/bin/gcloud pubsub subscriptions set-iam-policy "$SUBSCRIPTION" /tmp/sub_policy.json --project="$PROJECT_ID" 2>/dev/null || echo "    [Warning] Failed to set IAM policy on subscription."
-    done
-    echo ""
+    while IFS=$'\t' read -r ROLE MEMBER; do
+      [[ -z "$ROLE" ]] && continue
+      run "$GCLOUD" pubsub subscriptions add-iam-policy-binding "$SUBSCRIPTION" --project="$PROJECT_ID" \
+        --role="$ROLE" --member="$MEMBER" --format=none
+    done < <("$GCLOUD" pubsub subscriptions get-iam-policy "$REF_SUB" --project="$PROJECT_ID" \
+      --flatten="bindings[].members" --format="value[separator='\t'](bindings.role,bindings.members)")
+  done
+  echo ""
 done
-
-# Cleanup temporary policy files
-rm -f /tmp/topic_policy.json /tmp/sub_policy.json
 
 echo "Pub/Sub generation script finished!"

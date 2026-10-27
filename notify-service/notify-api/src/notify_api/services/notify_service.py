@@ -749,13 +749,16 @@ class NotifyService:
             notification.status_code = Notification.NotificationStatus.EXPIRED
 
             if notification.content:
-                NotificationHistory.create_history(notification, commit=False)
+                NotificationHistory.create_history(
+                    notification, response_id=notification.notify_response_id, commit=False
+                )
             else:
                 logger.warning(
                     f"Archiving notification ID {notification.id} without content; using a placeholder history subject"
                 )
                 NotificationHistory.create_history(
                     notification,
+                    response_id=notification.notify_response_id,
                     subject=NotificationHistory.MISSING_CONTENT_SUBJECT,
                     commit=False,
                 )
