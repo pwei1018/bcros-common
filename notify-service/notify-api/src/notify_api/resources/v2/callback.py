@@ -13,10 +13,13 @@
 # limitations under the License.
 """API endpoint for receiving BC Notify callback events."""
 
+from functools import wraps
+import hashlib
+import hmac
 from http import HTTPStatus
 import sys
 
-from flask import Blueprint
+from flask import Blueprint, current_app, request
 from flask_pydantic import validate
 from structured_logging import StructuredLogging
 
@@ -26,6 +29,36 @@ from notify_api.utils.enums import Role
 
 logger = StructuredLogging.get_logger()
 bp = Blueprint("CALLBACK", __name__, url_prefix="/callback")
+
+SIGNATURE_HEADER = "X-Webhook-Signature"
+
+
+def _signature_is_valid(secret: str) -> bool:
+    """Compare the header's sha256=<hex> HMAC with one computed over the raw request body."""
+    received = request.headers.get(SIGNATURE_HEADER, "")
+    expected = "sha256=" + hmac.new(secret.encode(), request.get_data(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(received, expected)
+
+
+def requires_callback_auth(func=None, *, config_key: str = "BC_NOTIFY_WEBHOOK_SECRET"):
+    """Authenticate a BC Notify webhook signature when configured, otherwise use JWT roles."""
+
+    def decorator(view_func):
+        jwt_protected = jwt.requires_auth(jwt.has_one_of_roles([Role.BC_NOTIFY_CALLBACK.value])(view_func))
+
+        @wraps(view_func)
+        def wrapper(*args, **kwargs):
+            secret = current_app.config.get(config_key)
+            if not secret:
+                return jwt_protected(*args, **kwargs)
+            if not _signature_is_valid(secret):
+                logger.warning("BC Notify callback rejected: invalid webhook signature")
+                return {"message": "Invalid webhook signature"}, HTTPStatus.UNAUTHORIZED
+            return view_func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator(func) if func is not None else decorator
 
 
 def process_bc_notify_callback(body: BCNotifyCallbackRequest) -> NotificationHistory | Notification | None:
@@ -58,8 +91,7 @@ def process_bc_notify_callback(body: BCNotifyCallbackRequest) -> NotificationHis
 
 
 @bp.route("/", methods=["POST", "OPTIONS"])
-@jwt.requires_auth
-@jwt.has_one_of_roles([Role.BC_NOTIFY_CALLBACK.value])
+@requires_callback_auth
 @validate()
 def callback(body: BCNotifyCallbackRequest):  # pylint: disable=unused-argument
     """Persist a BC Notify status event and update its notification history."""
@@ -68,4 +100,17 @@ def callback(body: BCNotifyCallbackRequest):  # pylint: disable=unused-argument
 
     except Exception as err:  # pylint: disable=broad-except,unused-variable
         logger.error(f"Callback error: {err}, details: {sys.exc_info()}")
+    return {}, HTTPStatus.OK
+
+
+@bp.route("/housing/", methods=["POST", "OPTIONS"], strict_slashes=False)
+@requires_callback_auth(config_key="BC_NOTIFY_HOUSING_WEBHOOK_SECRET")
+@validate()
+def housing_callback(body: BCNotifyCallbackRequest):  # pylint: disable=unused-argument
+    """Persist a BC Notify Housing status event and update its notification history."""
+    try:
+        process_bc_notify_callback(body)
+
+    except Exception as err:  # pylint: disable=broad-except,unused-variable
+        logger.error(f"BC Notify Housing callback error: {err}, details: {sys.exc_info()}")
     return {}, HTTPStatus.OK

@@ -120,6 +120,10 @@ class Config:  # pylint: disable=too-few-public-methods
     GC_NOTIFY_ENABLE = env_truthy("GC_NOTIFY_ENABLE", "true")
     BC_NOTIFY_SMS_ENABLE = env_truthy("BC_NOTIFY_SMS_ENABLE", "true")
 
+    # Shared secret for verifying BC Notify's X-Webhook-Signature; JWT auth is used when unset.
+    BC_NOTIFY_WEBHOOK_SECRET = os.getenv("BC_NOTIFY_WEBHOOK_SECRET", None)
+    BC_NOTIFY_HOUSING_WEBHOOK_SECRET = os.getenv("BC_NOTIFY_HOUSING_WEBHOOK_SECRET", None)
+
     # LaunchDarkly
     LD_SDK_KEY = os.getenv("LD_SDK_KEY", None)
 
