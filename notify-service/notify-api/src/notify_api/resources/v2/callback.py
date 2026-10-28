@@ -103,7 +103,7 @@ def callback(body: BCNotifyCallbackRequest):  # pylint: disable=unused-argument
     return {}, HTTPStatus.OK
 
 
-@bp.route("/housing/", methods=["POST", "OPTIONS"])
+@bp.route("/housing/", methods=["POST", "OPTIONS"], strict_slashes=False)
 @requires_callback_auth(config_key="BC_NOTIFY_HOUSING_WEBHOOK_SECRET")
 @validate()
 def housing_callback(body: BCNotifyCallbackRequest):  # pylint: disable=unused-argument

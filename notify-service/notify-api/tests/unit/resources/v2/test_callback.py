@@ -307,11 +307,9 @@ class TestCallbackEndpoint:
         app.config["BC_NOTIFY_HOUSING_WEBHOOK_SECRET"] = "housing-secret"  # noqa: S105
         try:
             with patch("notify_api.resources.v2.callback.process_bc_notify_callback"):
-                response = TestCallbackEndpoint._signed_post(
-                    client, "housing-secret", path="/api/v2/callback/housing/"
-                )
+                response = TestCallbackEndpoint._signed_post(client, "housing-secret", path="/api/v2/callback/housing")
             wrong_secret_response = TestCallbackEndpoint._signed_post(
-                client, "general-secret", path="/api/v2/callback/housing/"
+                client, "general-secret", path="/api/v2/callback/housing"
             )
         finally:
             app.config["BC_NOTIFY_WEBHOOK_SECRET"] = None
