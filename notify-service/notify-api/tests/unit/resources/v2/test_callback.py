@@ -18,8 +18,11 @@ This includes testing authentication, callback processing, and error handling.
 """
 
 from datetime import datetime
+import hashlib
+import hmac
 from http import HTTPStatus
 import inspect
+import json
 import time
 from unittest.mock import Mock, patch
 
@@ -267,6 +270,54 @@ class TestCallbackEndpoint:
         session.rollback.assert_called_once()
         session.commit.assert_not_called()
         notification.delete_notification.assert_not_called()
+
+    @staticmethod
+    def _signed_post(client, secret, signature=None, path="/api/v2/callback/"):
+        payload = json.dumps({"id": "123e4567-e89b-12d3-a456-426614174000", "status": "delivered"}).encode()
+        digest = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+        headers = {
+            "Content-Type": "application/json",
+            "X-Webhook-Signature": f"sha256={digest}" if signature is None else signature,
+        }
+        return client.post(path, data=payload, headers=headers)
+
+    @staticmethod
+    def test_webhook_signature_valid(app, client):
+        app.config["BC_NOTIFY_WEBHOOK_SECRET"] = "s3cret"  # noqa: S105
+        try:
+            with patch("notify_api.resources.v2.callback.process_bc_notify_callback"):
+                response = TestCallbackEndpoint._signed_post(client, "s3cret")
+        finally:
+            app.config["BC_NOTIFY_WEBHOOK_SECRET"] = None
+        assert response.status_code != HTTPStatus.UNAUTHORIZED
+
+    @staticmethod
+    @pytest.mark.parametrize("signature", ["sha256=deadbeef", ""])
+    def test_webhook_signature_invalid(app, client, signature):
+        app.config["BC_NOTIFY_WEBHOOK_SECRET"] = "s3cret"  # noqa: S105
+        try:
+            response = TestCallbackEndpoint._signed_post(client, "s3cret", signature)
+        finally:
+            app.config["BC_NOTIFY_WEBHOOK_SECRET"] = None
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
+
+    @staticmethod
+    def test_housing_webhook_uses_separate_signature_secret(app, client):
+        app.config["BC_NOTIFY_WEBHOOK_SECRET"] = "general-secret"  # noqa: S105
+        app.config["BC_NOTIFY_HOUSING_WEBHOOK_SECRET"] = "housing-secret"  # noqa: S105
+        try:
+            with patch("notify_api.resources.v2.callback.process_bc_notify_callback"):
+                response = TestCallbackEndpoint._signed_post(
+                    client, "housing-secret", path="/api/v2/callback/housing/"
+                )
+            wrong_secret_response = TestCallbackEndpoint._signed_post(
+                client, "general-secret", path="/api/v2/callback/housing/"
+            )
+        finally:
+            app.config["BC_NOTIFY_WEBHOOK_SECRET"] = None
+            app.config["BC_NOTIFY_HOUSING_WEBHOOK_SECRET"] = None
+        assert response.status_code != HTTPStatus.UNAUTHORIZED
+        assert wrong_secret_response.status_code == HTTPStatus.UNAUTHORIZED
 
     @staticmethod
     def test_no_token_unauthorized(client):
