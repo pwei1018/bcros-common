@@ -460,6 +460,7 @@ class NotifyService:
                 notify_type=Notification.NotificationType.TEXT,
                 content=ContentRequest(subject=SMS_CONTENT_SUBJECT, body=sms_request.body),
             )
+            notification_request._product = getattr(sms_request, "_product", None)
             recipients = [recipient.strip() for recipient in sms_request.recipients.split(",") if recipient.strip()]
             if (sms_request.request_by or "").upper() == STRR_REQUEST_IDENTIFIER:
                 provider = Notification.NotificationProvider.BC_NOTIFY_HOUSING_SMS
@@ -581,6 +582,7 @@ class NotifyService:
             notification._cached_response = {
                 "id": cached_id,
                 "recipients": recipient,
+                "product": notification.product,
                 "notifyStatus": Notification.NotificationStatus.QUEUED.name,
             }
 

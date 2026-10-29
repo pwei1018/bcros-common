@@ -160,7 +160,7 @@ def delivery_client(delivery_app):
 def auth_headers():
     """Return a factory for bearer headers carrying the given realm roles."""
 
-    def _headers(*roles: str) -> dict:
+    def _headers(*roles: str, product: str | None = None) -> dict:
         claims = {
             "realm_access": {"roles": list(roles)},
             "aud": "example",
@@ -168,6 +168,8 @@ def auth_headers():
             "sub": "e2e-user",
             "exp": int(time.time()) + 60,
         }
+        if product is not None:
+            claims["PRODUCT"] = product
         token = api_jwt.create_jwt(
             claims=claims, header={"kid": "flask-jwt-oidc-test-client"}
         )

@@ -14,9 +14,11 @@ from notify_api.models import (
     NotificationRequest,
     NotificationSendResponse,
     NotificationSendResponses,
+    SmsRequest,
 )
 from notify_api.models.content import ContentRequest
 from notify_api.models.db import db
+from notify_api.models.notification import validate_product_claim
 
 # Test constants
 EXPECTED_PENDING_COUNT = 2
@@ -59,6 +61,29 @@ class TestNotificationRequest:
         assert not notification.request_by
         assert notification.notify_type is None
         assert notification.content is None
+
+    @staticmethod
+    def test_validate_optional_product_claim():
+        assert validate_product_claim(None) is None
+        assert validate_product_claim("Business Search") == "Business Search"
+
+    @staticmethod
+    def test_validate_unknown_product_claim():
+        with pytest.raises(ValueError, match="Unsupported PRODUCT claim"):
+            validate_product_claim("Unknown")
+
+    @staticmethod
+    def test_product_is_not_a_public_request_field():
+        assert "product" not in NotificationRequest.model_fields
+        assert "product" not in SmsRequest.model_fields
+
+        email_request = NotificationRequest(recipients="test@gmail.com")
+        email_request._product = "Business"
+        sms_request = SmsRequest(recipients="250-555-0123", body="Hello")
+        sms_request._product = "Business"
+
+        assert "product" not in email_request.model_dump(by_alias=True)
+        assert "product" not in sms_request.model_dump(by_alias=True)
 
     @staticmethod
     def test_notification_request_camel_case_aliases():
@@ -878,6 +903,7 @@ class TestNotificationModel:
             "recipients": "test@gmail.com",
             "requestDate": None,
             "requestBy": "test_system",
+            "product": None,
             "sentDate": None,
             "notifyType": "EMAIL",
             "notifyStatus": "DELIVERED",
@@ -909,6 +935,7 @@ class TestNotificationModel:
             "recipients": "nocontent@gmail.com",
             "requestDate": None,
             "requestBy": "no_content_system",
+            "product": None,
             "sentDate": None,
             "notifyType": "EMAIL",
             "notifyStatus": "PENDING",
@@ -931,6 +958,7 @@ class TestNotificationModel:
         assert hasattr(notification, "id")
         assert hasattr(notification, "recipients")
         assert hasattr(notification, "request_by")
+        assert hasattr(notification, "product")
         assert hasattr(notification, "type_code")
         assert hasattr(notification, "status_code")
         assert hasattr(notification, "provider_code")

@@ -4,6 +4,8 @@ import base64
 from http import HTTPStatus
 from unittest.mock import patch
 
+import pytest
+
 from notify_api.models import (
     BCNotifyCallback,
     Content,
@@ -61,7 +63,23 @@ def test_invalid_request_is_rejected(api_client, auth_headers):
     publish.assert_not_called()
 
 
-def test_bc_notify_success_path(api_app, api_client, delivery_client, auth_headers):
+def test_unsupported_product_claim_is_rejected(api_client, auth_headers):
+    with patch.object(queue, "publish") as publish:
+        response = api_client.post(
+            "/api/v1/notify",
+            json={
+                "recipients": RECIPIENT,
+                "content": {"subject": "E2E subject", "body": "E2E body"},
+            },
+            headers=auth_headers(Role.SYSTEM.value, product="Unsupported"),
+        )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    publish.assert_not_called()
+
+
+@pytest.mark.parametrize("product", [None, "Business"])
+def test_bc_notify_success_path(api_app, api_client, delivery_client, auth_headers, product):
     published = []
 
     # 1. API receives and validates the request, persists it and publishes a CloudEvent.
@@ -77,11 +95,12 @@ def test_bc_notify_success_path(api_app, api_client, delivery_client, auth_heade
                 "requestBy": "e2e",
                 "content": {"subject": "E2E subject", "body": "E2E body"},
             },
-            headers=auth_headers(Role.SYSTEM.value),
+            headers=auth_headers(Role.SYSTEM.value, product=product),
         )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json["notifyStatus"] == "QUEUED"
+    assert response.json["product"] == product
     notification_id = response.json["id"]
     assert len(published) == 1
     topic, payload = published[0]
@@ -91,6 +110,7 @@ def test_bc_notify_success_path(api_app, api_client, delivery_client, auth_heade
         notification = db.session.get(Notification, notification_id)
         assert notification.status_code == Notification.NotificationStatus.QUEUED
         assert notification.provider_code == Notification.NotificationProvider.BC_NOTIFY
+        assert notification.product == product
 
     # 2. Delivery receives the push, loads the notification and sends it through BC Notify.
     with patch(
@@ -137,6 +157,7 @@ def test_bc_notify_success_path(api_app, api_client, delivery_client, auth_heade
         assert history is not None
         assert history.status_code == "DELIVERED"
         assert history.provider_code == "BC_NOTIFY"
+        assert history.product == product
         assert history.notify_response_id == PROVIDER_RESPONSE_ID
         assert history.notify_status == "completed"
         assert history.subject == "E2E subject"

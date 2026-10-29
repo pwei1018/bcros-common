@@ -373,6 +373,21 @@ components:
           format: date-time
         requestBy:
           type: string
+        product:
+          type: string
+          nullable: true
+          enum:
+            [
+              Business,
+              Account,
+              Pay,
+              Names,
+              STRR,
+              Assets,
+              Business Search,
+              Person Search,
+              RPT,
+            ]
         sentDate:
           type: string
           format: date-time
