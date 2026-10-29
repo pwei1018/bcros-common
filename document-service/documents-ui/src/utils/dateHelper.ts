@@ -45,8 +45,7 @@ export function formatToReadableDate(isoDate: string, omitTime: boolean = false)
   const dateOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
-    day: 'numeric',
-    timeZone: 'America/Vancouver', // Pacific Time Zone
+    day: 'numeric'
   }
 
   // Options for formatting the time

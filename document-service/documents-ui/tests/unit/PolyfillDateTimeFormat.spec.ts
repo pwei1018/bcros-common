@@ -1,29 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-function createDtfMock(formattedOutput: string, tzValue: string) {
-  return function () {
-    return {
-      format: () => formattedOutput,
-      formatToParts: () => [
-        { type: 'hour', value: '4' },
-        { type: 'literal', value: ':' },
-        { type: 'minute', value: '00' },
-        { type: 'literal', value: ' ' },
-        { type: 'dayPeriod', value: 'a.m.' },
-        { type: 'literal', value: ' ' },
-        { type: 'timeZoneName', value: tzValue }
-      ]
-    } as unknown as Intl.DateTimeFormat
-  }
-}
+const importSpy = vi.fn()
 
-function mockPolyfillImports(importSpy: ReturnType<typeof vi.fn>) {
-  vi.doMock('@formatjs/intl-datetimeformat/polyfill-force.js', () => {
-    importSpy('polyfill-force')
-    return {}
+function mockTimeZoneName(tzValue: string) {
+  vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(function () {
+    return {
+      formatToParts: () => [{ type: 'timeZoneName', value: tzValue }]
+    } as unknown as Intl.DateTimeFormat
   })
-  vi.doMock('@formatjs/intl-datetimeformat/locale-data/en.js', () => ({}))
-  vi.doMock('@formatjs/intl-datetimeformat/add-all-tz.js', () => ({}))
 }
 
 async function runPlugin() {
@@ -34,41 +18,36 @@ async function runPlugin() {
 describe('Timezone Polyfill Plugin', () => {
   beforeEach(() => {
     vi.resetModules()
-    vi.clearAllMocks()
+    importSpy.mockClear()
+    vi.doMock('@formatjs/intl-datetimeformat/polyfill-force.js', () => {
+      importSpy()
+      return {}
+    })
+    vi.doMock('@formatjs/intl-datetimeformat/locale-data/en.js', () => ({}))
+    vi.doMock('@formatjs/intl-datetimeformat/add-all-tz.js', () => ({}))
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it.each([
-    ['standard short offset', '4:00 a.m. GMT-8', 'GMT-8'],
-    ['padded hour format (Safari)', '4:00 a.m. GMT-08', 'GMT-08'],
-    ['full minutes format', '4:00 a.m. GMT-08:00', 'GMT-08:00'],
-    ['unicode minus sign', '4:00 a.m. GMT−8', 'GMT−8'],
-    ['unicode minus with padding', '4:00 a.m. GMT−08:00', 'GMT−08:00']
-  ])('should import the polyfills when timezone output is %s (%s)', async (_, formattedOutput, tzValue) => {
-    const importSpy = vi.fn()
-    mockPolyfillImports(importSpy)
-    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(createDtfMock(formattedOutput, tzValue))
-
+  it.each(['GMT-8', 'GMT-08:00', 'GMT−8', 'PST', ''])('loads the polyfill when the offset is "%s"', async (tzValue) => {
+    mockTimeZoneName(tzValue)
     await runPlugin()
-
-    expect(importSpy).toHaveBeenCalledWith('polyfill-force')
+    expect(importSpy).toHaveBeenCalled()
   })
 
-  it.each([
-    ['GMT-7', '4:00 a.m. GMT-7', 'GMT-7'],
-    ['GMT-07', '4:00 a.m. GMT-07', 'GMT-07'],
-    ['standard abbreviation', '4:00 a.m. PST', 'PST'],
-    ['daylight abbreviation', '4:00 a.m. PDT', 'PDT']
-  ])('should not import the polyfills when timezone output is %s (%s)', async (_, formattedOutput, tzValue) => {
-    const importSpy = vi.fn()
-    mockPolyfillImports(importSpy)
-    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(createDtfMock(formattedOutput, tzValue))
-
+  it('loads the polyfill when shortOffset is not supported', async () => {
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(function () {
+      throw new RangeError('Invalid timeZoneName')
+    })
     await runPlugin()
+    expect(importSpy).toHaveBeenCalled()
+  })
 
+  it.each(['GMT-7', 'GMT-07:00', 'GMT−7'])('does not load the polyfill when the offset is "%s"', async (tzValue) => {
+    mockTimeZoneName(tzValue)
+    await runPlugin()
     expect(importSpy).not.toHaveBeenCalled()
   })
 })
