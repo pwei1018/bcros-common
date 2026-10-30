@@ -47,9 +47,12 @@ def validate_product_claim(value: object) -> Product | None:
     """Return a supported product claim, or None when the optional claim is absent."""
     if value is None:
         return None
-    if value not in PRODUCT_VALUES:
+    if not isinstance(value, str):
         raise ValueError("Unsupported PRODUCT claim")
-    return cast(Product, value)
+    for product in PRODUCT_VALUES:
+        if value.casefold() == product.casefold():
+            return cast(Product, product)
+    raise ValueError("Unsupported PRODUCT claim")
 
 
 class NotificationRequest(BaseModel):  # pylint: disable=too-few-public-methods

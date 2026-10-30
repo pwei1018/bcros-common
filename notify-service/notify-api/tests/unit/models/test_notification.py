@@ -65,7 +65,9 @@ class TestNotificationRequest:
     @staticmethod
     def test_validate_optional_product_claim():
         assert validate_product_claim(None) is None
+        assert validate_product_claim("business search") == "Business Search"
         assert validate_product_claim("Business Search") == "Business Search"
+        assert validate_product_claim("bUsInEsS sEaRcH") == "Business Search"
 
     @staticmethod
     def test_validate_unknown_product_claim():
