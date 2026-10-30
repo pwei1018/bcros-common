@@ -54,8 +54,7 @@ export function formatToReadableDate(isoDate: string, omitTime: boolean = false)
     minute: 'numeric',
     second: 'numeric',
     hour12: true,
-    timeZoneName: 'short',
-    timeZone: 'America/Los_Angeles', // Pacific Time Zone
+    timeZone: 'America/Vancouver', // Pacific Time Zone
   }
 
   // Format the date
@@ -69,8 +68,8 @@ export function formatToReadableDate(isoDate: string, omitTime: boolean = false)
   // Otherwise, format the date with time
   const formattedTime = new Intl.DateTimeFormat('en-US', timeOptions).format(date)
 
-  // Return the date and time, replacing PDT/PST with 'Pacific time'
-  return `${formattedDate} at ${formattedTime.replace(/PDT|PST/, 'Pacific time')}`
+  // Return the date and time with a fixed 'Pacific time' label (zone abbreviations vary by browser)
+  return `${formattedDate} at ${formattedTime} Pacific time`
 }
 
 /**
