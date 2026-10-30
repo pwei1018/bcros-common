@@ -194,6 +194,7 @@ class TestNotificationHistoryModel:
             "recipients": "history@example.com",
             "requestDate": "2024-01-01T10:00:00+00:00",
             "requestBy": "history_user",
+            "product": None,
             "sentDate": "2024-01-01T10:05:00+00:00",  # Matches sample_history fixture
             "subject": "History Subject",
             "notifyType": "EMAIL",

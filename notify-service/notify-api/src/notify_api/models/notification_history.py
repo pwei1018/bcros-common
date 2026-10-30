@@ -29,6 +29,7 @@ class NotificationHistory(db.Model):
     recipients = db.Column(db.String(2000), nullable=False)
     request_date = db.Column(db.DateTime(timezone=True), default=datetime.now(UTC), nullable=True)
     request_by = db.Column(db.String(100), nullable=True)
+    product = db.Column(db.String(50), nullable=True)
     sent_date = db.Column(db.DateTime(timezone=True), default=datetime.now(UTC), nullable=True)
     subject = db.Column(db.String(2000), nullable=False)
     type_code = db.Column(db.String(15), nullable=False)
@@ -46,6 +47,7 @@ class NotificationHistory(db.Model):
             "recipients": self.recipients,
             "requestDate": self.request_date.isoformat() if self.request_date else None,
             "requestBy": self.request_by,
+            "product": self.product,
             "sentDate": self.sent_date.isoformat() if self.sent_date else None,
             "subject": self.subject,
             "notifyType": self.type_code,
@@ -85,6 +87,7 @@ class NotificationHistory(db.Model):
             recipients=recipient or notification.recipients,
             request_date=notification.request_date,
             request_by=notification.request_by,
+            product=getattr(notification, "product", None),
             sent_date=notification.sent_date,
             subject=history_subject,
             type_code=notification.type_code.upper(),

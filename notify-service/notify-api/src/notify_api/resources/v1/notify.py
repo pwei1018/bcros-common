@@ -15,10 +15,11 @@
 
 from http import HTTPStatus
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, g, jsonify
 from flask_pydantic import validate
 
 from notify_api.models import Notification, NotificationHistory, NotificationRequest
+from notify_api.models.notification import validate_product_claim
 from notify_api.services import notify
 from notify_api.utils.auth import jwt
 from notify_api.utils.enums import Role
@@ -32,6 +33,10 @@ bp = Blueprint("Notify", __name__, url_prefix="/notify")
 @validate()
 def send_notification(body: NotificationRequest):
     """Create and send EMAIL notification endpoint."""
+    try:
+        body._product = validate_product_claim(g.jwt_oidc_token_info.get("PRODUCT"))
+    except ValueError as error:
+        return {"error": str(error)}, HTTPStatus.BAD_REQUEST
     body.notify_type = Notification.NotificationType.EMAIL
     notification = notify.queue_publish(body)
     # Eagerly build response dict to avoid ObjectDeletedError /

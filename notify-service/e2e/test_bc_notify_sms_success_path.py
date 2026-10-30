@@ -67,7 +67,7 @@ def test_invalid_sms_request_is_rejected(api_client, auth_headers):
 
 
 @pytest.mark.parametrize(
-    ("request_by", "topic", "push_path", "provider", "api_key"),
+    ("request_by", "topic", "push_path", "provider", "api_key", "product"),
     [
         (
             "e2e",
@@ -75,6 +75,7 @@ def test_invalid_sms_request_is_rejected(api_client, auth_headers):
             "/bcnotify-sms/",
             Notification.NotificationProvider.BC_NOTIFY_SMS,
             BC_NOTIFY_API_KEY,
+            None,
         ),
         (
             "STRR",
@@ -82,6 +83,7 @@ def test_invalid_sms_request_is_rejected(api_client, auth_headers):
             "/bcnotify-housing-sms/",
             Notification.NotificationProvider.BC_NOTIFY_HOUSING_SMS,
             BC_NOTIFY_HOUSING_API_KEY,
+            "STRR",
         ),
     ],
 )
@@ -95,6 +97,7 @@ def test_bc_notify_sms_success_path(
     push_path,
     provider,
     api_key,
+    product,
 ):
     published = []
 
@@ -107,11 +110,12 @@ def test_bc_notify_sms_success_path(
         response = api_client.post(
             "/api/v2/sms",
             json={"recipients": RECIPIENT, "requestBy": request_by, "body": SMS_BODY},
-            headers=auth_headers(Role.SYSTEM.value),
+            headers=auth_headers(Role.SYSTEM.value, product=product),
         )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json["notifyStatus"] == "QUEUED"
+    assert response.json["product"] == product
     notification_id = response.json["id"]
     assert len(published) == 1
     published_topic, payload = published[0]
@@ -123,6 +127,7 @@ def test_bc_notify_sms_success_path(
         assert notification.type_code == Notification.NotificationType.TEXT
         assert notification.status_code == Notification.NotificationStatus.QUEUED
         assert notification.provider_code == provider
+        assert notification.product == product
         assert notification.content[0].body == SMS_BODY
 
     # 2. Delivery receives the push and sends it through the BC Notify SMS endpoint.
@@ -179,6 +184,7 @@ def test_bc_notify_sms_success_path(
         assert history.type_code == "TEXT"
         assert history.status_code == "DELIVERED"
         assert history.provider_code == provider.name
+        assert history.product == product
         assert history.notify_response_id == PROVIDER_RESPONSE_ID
         assert history.notify_status == "completed"
         assert (

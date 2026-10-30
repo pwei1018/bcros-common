@@ -15,10 +15,11 @@
 
 from http import HTTPStatus
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, g, jsonify
 from flask_pydantic import validate
 
 from notify_api.models import SmsRequest
+from notify_api.models.notification import validate_product_claim
 from notify_api.services import notify
 from notify_api.utils.auth import jwt
 from notify_api.utils.enums import Role
@@ -32,6 +33,10 @@ bp = Blueprint("SMS", __name__, url_prefix="/sms")
 @validate()
 def send_sms(body: SmsRequest):
     """Create and send SMS notification endpoint."""
+    try:
+        body._product = validate_product_claim(g.jwt_oidc_token_info.get("PRODUCT"))
+    except ValueError as error:
+        return {"error": str(error)}, HTTPStatus.BAD_REQUEST
     notification = notify.queue_publish_sms(body)
     # The delivery service may archive the row before we respond; fall back to the cached response.
     try:

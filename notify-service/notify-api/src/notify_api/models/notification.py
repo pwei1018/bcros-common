@@ -15,11 +15,12 @@
 
 from datetime import UTC, datetime, timedelta
 from enum import auto
+from typing import Literal, cast
 
 from email_validator import EmailNotValidError, validate_email
 from flask import current_app
 import phonenumbers
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 from sqlalchemy import or_
 
 from notify_api.utils.base import BaseEnum
@@ -27,6 +28,28 @@ from notify_api.utils.util import to_camel
 
 from .content import Content, ContentRequest
 from .db import db
+
+Product = Literal[
+    "Business",
+    "Account",
+    "Pay",
+    "Names",
+    "STRR",
+    "Assets",
+    "Business Search",
+    "Person Search",
+    "RPT",
+]
+PRODUCT_VALUES = Product.__args__
+
+
+def validate_product_claim(value: object) -> Product | None:
+    """Return a supported product claim, or None when the optional claim is absent."""
+    if value is None:
+        return None
+    if value not in PRODUCT_VALUES:
+        raise ValueError("Unsupported PRODUCT claim")
+    return cast(Product, value)
 
 
 class NotificationRequest(BaseModel):  # pylint: disable=too-few-public-methods
@@ -38,6 +61,7 @@ class NotificationRequest(BaseModel):  # pylint: disable=too-few-public-methods
     request_by: str | None = Field(default="", alias="requestBy")
     notify_type: str | None = Field(default=None, alias="notifyType")
     content: ContentRequest | None = None
+    _product: Product | None = PrivateAttr(default=None)
 
     @field_validator("recipients")
     @classmethod
@@ -68,6 +92,7 @@ class SmsRequest(BaseModel):  # pylint: disable=too-few-public-methods
     recipients: str = Field(alias="recipients")
     request_by: str | None = Field(default="", alias="requestBy")
     body: str = Field(alias="body")
+    _product: Product | None = PrivateAttr(default=None)
 
     @field_validator("recipients")
     @classmethod
@@ -149,6 +174,7 @@ class Notification(db.Model):
     recipients = db.Column(db.String(2000), nullable=False)
     request_date = db.Column(db.DateTime(timezone=True), default=datetime.now, nullable=True)
     request_by = db.Column(db.String(100), nullable=True)
+    product = db.Column(db.String(50), nullable=True)
     sent_date = db.Column(db.DateTime(timezone=True), default=datetime.now, nullable=True)
     type_code = db.Column(db.Enum(NotificationType), default=NotificationType.EMAIL)
     status_code = db.Column(db.Enum(NotificationStatus), default=NotificationStatus.PENDING)
@@ -167,6 +193,7 @@ class Notification(db.Model):
             "recipients": self.recipients,
             "requestDate": getattr(self.request_date, "isoformat", lambda: None)(),
             "requestBy": self.request_by,
+            "product": self.product,
             "sentDate": getattr(self.sent_date, "isoformat", lambda: None)(),
             "notifyType": getattr(self.type_code, "name", None),
             "notifyStatus": getattr(self.status_code, "name", None),
@@ -309,6 +336,7 @@ class Notification(db.Model):
             recipients=recipient or notification.recipients,
             request_date=datetime.now(UTC),
             request_by=notification.request_by,
+            product=getattr(notification, "_product", None),
             type_code=notification.notify_type or Notification.NotificationType.EMAIL,
             provider_code=provider,
         )
